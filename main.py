@@ -2337,17 +2337,27 @@ class Backend:
         else:
             return True
 
-        draft_yesno = messagebox.askyesnocancel('Do you want to continue?', 'Beim fortfahren geht jeglicher Fortschritt verloren! Soll ein Entwurf gespeicher werden?')
+        # check if draft exist and check value
+        if os.path.exists(f'{self.parent.rechnungen_location}/drafts/{rechnungsdaten[1]}DRAFT.csv'):
+            data = []
+            with open(f'{self.parent.rechnungen_location}/drafts/{rechnungsdaten[1]}DRAFT.csv', newline='') as f:
+                csvfile = csv.reader(f, delimiter=';')
+                for index, row_1 in enumerate(csvfile):
+                    if index == 0:
+                        data.extend(row_1)
+            if data == rechnungsdaten:
+                return True
+
+        # check if rechnung to rechnungsnummer exists
+        if os.path.exists(f'{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/{rechnungsdaten[1].upper()}.pdf'):
+            return True
+
+        # ask if draft should be safed
+        draft_yesno = messagebox.askyesnocancel('Do you want to continue?', 'Soll ein Entwurf gespeicher werden?')
         if draft_yesno:
-            extension = 1
-            while True:
-                if os.path.exists(f'{self.parent.rechnungen_location}/drafts/{rechnungsdaten[1]}DRAFT-{extension}.csv'):
-                    extension += 1
-                else:
-                    break
             if not os.path.exists(f'{self.parent.rechnungen_location}/drafts/'):
                 os.mkdir(f'{self.parent.rechnungen_location}/drafts/')
-            with open(f'{self.parent.rechnungen_location}/drafts/{rechnungsdaten[1]}DRAFT-{extension}.csv', 'w',
+            with open(f'{self.parent.rechnungen_location}/drafts/{rechnungsdaten[1].upper}DRAFT.csv', 'w',
                       newline='') as f:
                 csvfile = csv.writer(f, delimiter=';')
                 csvfile.writerow(rechnungsdaten)
