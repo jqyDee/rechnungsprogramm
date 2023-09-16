@@ -238,7 +238,7 @@ class App(customtkinter.CTk):
             self.hp_interface = HPRechnungInterface(self)
 
     def stammdaten_(self):
-        """Calls the store_draft function and creates the Stammdaten Interface by
+        """Calls the store_draft function and creates the stammdaten Interface by
            calling the class StammdatenInterface"""
 
         logging.debug('App.stammdaten_() called')
@@ -370,8 +370,8 @@ class Sidebar(customtkinter.CTkFrame):
         # buttons
         self.button_1 = customtkinter.CTkButton(self, text='KG-Rechnung', command=lambda: self.parent.kg_rechnung())
         self.button_2 = customtkinter.CTkButton(self, text='HP-Rechnung', command=lambda: self.parent.hp_rechnung())
-        self.button_3 = customtkinter.CTkButton(self, text='Stammdaten', command=lambda: self.parent.stammdaten_())
-        self.button_4 = customtkinter.CTkButton(self, text='Rechnungen',
+        self.button_3 = customtkinter.CTkButton(self, text='stammdaten', command=lambda: self.parent.stammdaten_())
+        self.button_4 = customtkinter.CTkButton(self, text='rechnungen',
                                                 command=lambda: self.parent.rechnung_loeschen())
         self.button_6 = customtkinter.CTkButton(self, text='clear screen',
                                                 command=lambda: self.parent.clear_interfaces())
@@ -1129,7 +1129,7 @@ class StammdatenInterface(customtkinter.CTkFrame):
         logging.debug('StammdatenInterface.create_widgets_part_1() called')
 
         # 'KG Rechnung' / 'heading' section
-        self.heading_1 = customtkinter.CTkLabel(self, text='Stammdaten Bearbeiten', font=large_heading)
+        self.heading_1 = customtkinter.CTkLabel(self, text='stammdaten Bearbeiten', font=large_heading)
 
         # Separator
         self.separator_1 = tk.ttk.Separator(self, orient='horizontal')
@@ -1493,7 +1493,7 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
         logging.debug('RechnungLoeschenInterface.create_widgets_part_1() called')
 
         # 'KG Rechnung' / 'heading_1' section
-        self.heading_1 = customtkinter.CTkLabel(self, text='Rechnungen Bearbeiten', font=large_heading)
+        self.heading_1 = customtkinter.CTkLabel(self, text='rechnungen Bearbeiten', font=large_heading)
 
         # Separator
         self.separator_1 = tk.ttk.Separator(self, orient='horizontal')
@@ -1890,7 +1890,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
 
         # rechnungen location section
         self.rechnungen_location_label = customtkinter.CTkLabel(self.frame_3,
-                                                                text='Rechnungen folder location:')
+                                                                text='rechnungen folder location:')
         self.rechnungen_location_entry = customtkinter.CTkEntry(self.frame_3,
                                                                 textvariable=self.frame_3_rechnungen_location_var,
                                                                 state='disabled', fg_color='gray16')
@@ -1899,7 +1899,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
 
         # stammdaten location section
         self.stammdaten_location_label = customtkinter.CTkLabel(self.frame_3,
-                                                                text='Stammdaten folder location:')
+                                                                text='stammdaten folder location:')
         self.stammdaten_location_entry = customtkinter.CTkEntry(self.frame_3,
                                                                 textvariable=self.frame_3_stammdaten_location_var,
                                                                 state='disabled', fg_color='gray16')
@@ -2156,7 +2156,7 @@ class Backend:
                 except ValueError:
                     logging.debug(f'Stammdatei/Kilometer zu Fahren has non float convertible value, exiting')
                     self.parent.parent.bottom_nav.bottom_nav_warning.configure(
-                        text=f'Stammdatei - Kilometer keine Zahl: -> z.B. 3.40 oder 10; Ändern unter Stammdaten!',
+                        text=f'Stammdatei - Kilometer keine Zahl: -> z.B. 3.40 oder 10; Ändern unter stammdaten!',
                         fg_color='red')
                     return False
             if i == '':
@@ -2345,6 +2345,8 @@ class Backend:
                     extension += 1
                 else:
                     break
+            if not os.path.exists(f'{self.parent.rechnungen_location}/drafts/'):
+                os.mkdir(f'{self.parent.rechnungen_location}/drafts/')
             with open(f'{self.parent.rechnungen_location}/drafts/{rechnungsdaten[1]}DRAFT-{extension}.csv', 'w',
                       newline='') as f:
                 csvfile = csv.writer(f, delimiter=';')
@@ -2414,7 +2416,7 @@ class Backend:
 
     def change_properties(self, kind, *args):
         if kind == 'stammdaten_location':
-            dirpath = tk.filedialog.askdirectory(title='Stammdaten Filepath', initialdir='./', )
+            dirpath = tk.filedialog.askdirectory(title='stammdaten Filepath', initialdir='./', )
             if dirpath == '':
                 return
             else:
@@ -2437,7 +2439,7 @@ class Backend:
                     self.parent.parent.check_or_create_working_dirs()
                 return logging.info('stammdaten location changed successfully')
         elif kind == 'rechnungen_location':
-            dirpath = tk.filedialog.askdirectory(title='Rechnungen Filepath', initialdir='./', )
+            dirpath = tk.filedialog.askdirectory(title='rechnungen Filepath', initialdir='./', )
             if dirpath == '':
                 return
             else:
