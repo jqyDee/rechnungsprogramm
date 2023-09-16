@@ -7,8 +7,9 @@
 **/venv
 # ignore idea lirary
 **/.idea
-# ignore every file in dir except
+# ignore every file in dir
 *
+# except
 !main.py
 !README.md
 !.gitignore
