@@ -1,4 +1,4 @@
-rechnungen/
-stammdaten/
-venv/
-backups/
+**/backups
+**/rechnungen
+**/stammdaten
+**/venv
