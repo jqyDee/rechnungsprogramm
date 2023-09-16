@@ -1,6 +1,14 @@
+# ignoring dirs and files created by program
 **/backups
 **/rechnungen
 **/stammdaten
-**/venv
-**/.idea
 /system/properties.yml
+# ignore virtual env
+**/venv
+# ignore idea lirary
+**/.idea
+# ignore every file in dir except
+*
+!main.py
+!README.md
+!.gitignore
