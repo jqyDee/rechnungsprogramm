@@ -3016,7 +3016,7 @@ class HpRechnung(PDF):
         self.write(txt='Mervi Fischbach')
 
         # export_filepath = f'{self.parent.parent.parent.rechnungen_location}/rechnungen-{self.parent.parent.parent.year}/{self.rechnungsnummer}H.pdf'
-        export_filepath = './hprechnung2.pdf'
+        export_filepath = './--sample-files/hprechnung2.pdf'
         self.output(export_filepath)
         return export_filepath
 
