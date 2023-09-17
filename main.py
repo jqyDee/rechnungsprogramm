@@ -11,7 +11,6 @@ import csv
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from PIL import Image
-from datetime import datetime
 
 from fpdf import FPDF, XPos, YPos
 import customtkinter
@@ -27,7 +26,6 @@ import yaml
 #           Copyright Matti Fischbach 2023          #
 #####################################################
 
-version = '2.0.0'
 customtkinter.set_appearance_mode("dark")
 customtkinter.set_default_color_theme("dark-blue")
 default_font = ('Arial', 15, "normal")
@@ -69,7 +67,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = version
+    version = '2.0.0'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -187,7 +185,7 @@ class App(customtkinter.CTk):
             os.makedirs(f'{self.backup_location}/')
             logging.info('created backups dir')
 
-    def configure_main_window(self, title: str ='Rechnungsprogramm'):
+    def configure_main_window(self, title: str = 'Rechnungsprogramm'):
         """Configures the main window Dimensions, title, isResizeable, X-Y-Coordinates)"""
 
         logging.debug('App.configure_main_window() called')
@@ -331,7 +329,7 @@ class App(customtkinter.CTk):
 
         self.destroy()
 
-    def store_draft(self, open_interface: str = open_interface) -> bool:
+    def store_draft(self) -> bool:
         """Calls store_draft in Backend with the Params:
                     open_interface: str = self.open_interface"""
 
@@ -884,7 +882,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
         # row widgets
         self.rows_2d_array = []
 
-        # table heading
+        # table header row
         self.row_frames.append(customtkinter.CTkFrame(self.frame_2, corner_radius=0, fg_color='gray16'))
         self.rows_2d_array.append([customtkinter.CTkLabel(self.row_frames[1], text='Datum', width=80),
                                    tk.ttk.Separator(self.row_frames[1], orient='vertical'),
@@ -1105,6 +1103,10 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
 
 
 class StammdatenInterface(customtkinter.CTkFrame):
+    """Creating the StammdatenInterface frame and widgets_part_1 and
+       updating the list for the first time"""
+
+    # Entrys for new Stammdatei
     stammdaten_label_names = ['Kürzel', 'Mann/Frau', 'Nachname', 'Vorname', 'Straße', 'Hausnummer', 'Postleitzahl',
                               'Stadt', 'Geburtsdatum', 'Kilometer', 'Hausarzt', 'Email', 'KG/HP']
 
@@ -1114,35 +1116,33 @@ class StammdatenInterface(customtkinter.CTkFrame):
         logging.info('class StammdatenInterface() called')
 
         self.parent = parent
+        self.parent.bottom_nav.bottom_nav_button.configure(command=lambda: self.create_stammdatei_event())
 
         self.configure(fg_color='gray16', corner_radius=0)
 
         self.place(relx=0.2, y=0, relwidth=0.8, relheight=0.90)
-
-        self.parent.bottom_nav.bottom_nav_button.configure(command=lambda: self.create_stammdatei_event())
 
         self.create_widgets_part_1()
         self.create_layout_part_1()
         self.aktualisieren_event()
 
     def create_widgets_part_1(self):
+        """Creating the widgets_part_1 of frame/class StammdatenInterface"""
+
         logging.debug('StammdatenInterface.create_widgets_part_1() called')
 
-        # 'KG Rechnung' / 'heading' section
+        # heading section
         self.heading_1 = customtkinter.CTkLabel(self, text='stammdaten Bearbeiten', font=large_heading)
 
         # Separator
         self.separator_1 = tk.ttk.Separator(self, orient='horizontal')
 
-        # 'kuerzel-rechnungsdatum' section
+        # Filter section
         self.frame_1 = customtkinter.CTkFrame(self, fg_color='gray16')
         self.heading_2 = customtkinter.CTkLabel(self.frame_1, text='Filter', font=small_heading)
         self.search_label = customtkinter.CTkLabel(self.frame_1, text='Suche:')
         self.search_entry = customtkinter.CTkEntry(self.frame_1)
         self.search_entry.bind('<Return>', self.aktualisieren_event)
-
-        self.frame_1_warning = customtkinter.CTkLabel(self.frame_1, text='')
-
         self.segmented_button_1 = customtkinter.CTkSegmentedButton(self.frame_1, values=['Alle', 'KG', 'HP'],
                                                                    command=lambda x: self.aktualisieren_event(x))
         self.segmented_button_1.set('Alle')
@@ -1155,24 +1155,23 @@ class StammdatenInterface(customtkinter.CTkFrame):
         self.separator_2 = tk.ttk.Separator(self, orient='horizontal')
 
     def create_layout_part_1(self):
+        """Creating the layout_part_1 of frame/class StammdatenInterface"""
+
         logging.debug('StammdatenInterface.create_layout_part_1() called')
 
-        # 'KG Rechnung' / 'heading' section
+        # heading section
         self.heading_1.pack(side='top', fill='x', expand=False, pady=(20, 30), padx=20)
 
         # Separator
         self.separator_1.pack(fill='x', expand=False)
 
-        # 'kuerzel-rechnungsdatum' section
+        # Filter section
         self.frame_1.grid_columnconfigure(3, weight=1)
         self.frame_1.pack(fill='x', expand=False, pady=(15, 15), padx=20)
         self.heading_2.grid(row=0, column=0, padx=10, pady=4, columnspan=2, sticky='w')
         self.search_label.grid(row=1, column=0, padx=10, pady=4, sticky='w')
         self.search_entry.grid(row=1, column=1, sticky='w')
-
         self.segmented_button_1.grid(row=1, column=2, pady=4, padx=10)
-
-        self.frame_1_warning.grid(row=1, column=3, pady=4, sticky='ew')
 
         self.aktualisieren_button.grid(row=1, column=4)
 
@@ -1180,77 +1179,80 @@ class StammdatenInterface(customtkinter.CTkFrame):
         self.separator_2.pack(fill='x', expand=False)
 
     def create_widgets_part_2(self):
+        """Creating the widgets_part_2 of frame/class StammdatenInterface
+           -> being called by aktualisieren_event"""
+
         logging.debug('StammdatenInterface.create_widgets_part_2() called')
 
         self.frame_2 = customtkinter.CTkScrollableFrame(self, corner_radius=0)
 
-        self.rows_frames = []
-        self.rows_frames.append(customtkinter.CTkFrame(self.frame_2, corner_radius=0))
-        self.heading_3 = customtkinter.CTkLabel(self.rows_frames[0], text='Dateiname', width=120)
+        self.row_frames = []
 
-        # Separator
-        self.separator_3 = tk.ttk.Separator(self.rows_frames[0], orient='vertical')
-
-        # files in dir
-        self.date_added_label = customtkinter.CTkLabel(self.rows_frames[0], text='Erstellungsdatum', width=120)
-        self.separator_4 = tk.ttk.Separator(self.rows_frames[0], orient='vertical')
-        self.date_modified_label = customtkinter.CTkLabel(self.rows_frames[0], text='Änderungsdatum', width=120)
-        self.separator_5 = tk.ttk.Separator(self.rows_frames[0], orient='horizontal')
-
-        self.new_stammdatei_button = customtkinter.CTkButton(self.rows_frames[0], width=20, text='Neue erstellen',
+        # header row
+        self.row_frames.append(customtkinter.CTkFrame(self.frame_2, corner_radius=0))
+        self.heading_3 = customtkinter.CTkLabel(self.row_frames[0], text='Dateiname', width=120)
+        self.separator_3 = tk.ttk.Separator(self.row_frames[0], orient='vertical')
+        self.date_added_label = customtkinter.CTkLabel(self.row_frames[0], text='Erstellungsdatum', width=120)
+        self.separator_4 = tk.ttk.Separator(self.row_frames[0], orient='vertical')
+        self.date_modified_label = customtkinter.CTkLabel(self.row_frames[0], text='Änderungsdatum', width=120)
+        self.separator_5 = tk.ttk.Separator(self.row_frames[0], orient='horizontal')
+        self.new_stammdatei_button = customtkinter.CTkButton(self.row_frames[0], width=20, text='Neue erstellen',
                                                              command=lambda: self.new_stammdatei_button_event())
 
+        # creating widgets for every file in dir
         self.rows_2d_array = []
         for index, i in enumerate(self.files_in_dir):
             if index % 2 != 0:
-                self.rows_frames.append(customtkinter.CTkFrame(self.frame_2, corner_radius=0, fg_color='gray25'))
+                self.row_frames.append(customtkinter.CTkFrame(self.frame_2, corner_radius=0, fg_color='gray25'))
             else:
-                self.rows_frames.append(customtkinter.CTkFrame(self.frame_2, corner_radius=0))
+                self.row_frames.append(customtkinter.CTkFrame(self.frame_2, corner_radius=0))
 
-            row_1d_array = [customtkinter.CTkLabel(self.rows_frames[index + 1], width=120,
+            row_1d_array = [customtkinter.CTkLabel(self.row_frames[index + 1], width=120,
                                                    text=str(i).replace('.pdf', '')),
-                            tk.ttk.Separator(self.rows_frames[index + 1], orient='vertical'),
-                            customtkinter.CTkLabel(self.rows_frames[index + 1], width=120,
+                            tk.ttk.Separator(self.row_frames[index + 1], orient='vertical'),
+                            customtkinter.CTkLabel(self.row_frames[index + 1], width=120,
                                                    text=str(time.strftime("%d.%m.%y at %H:%M",
                                                                           time.strptime(
                                                                               time.ctime(os.path.getctime(
                                                                                   f'{self.parent.stammdaten_location}/{i}')))))),
-                            tk.ttk.Separator(self.rows_frames[index + 1], orient='vertical'),
-                            customtkinter.CTkLabel(self.rows_frames[index + 1], width=120,
+                            tk.ttk.Separator(self.row_frames[index + 1], orient='vertical'),
+                            customtkinter.CTkLabel(self.row_frames[index + 1], width=120,
                                                    text=str(time.strftime("%d.%m.%y at %H:%M",
                                                                           time.strptime(
                                                                               time.ctime(os.path.getmtime(
                                                                                   f'{self.parent.stammdaten_location}/{i}')))))),
-                            customtkinter.CTkLabel(self.rows_frames[index + 1], text=''),
-                            customtkinter.CTkButton(self.rows_frames[index + 1], width=20,
+                            customtkinter.CTkLabel(self.row_frames[index + 1], text=''),
+                            customtkinter.CTkButton(self.row_frames[index + 1], width=20,
                                                     text='öffnen', image=open_img),
-                            customtkinter.CTkButton(self.rows_frames[index + 1], width=20,
+                            customtkinter.CTkButton(self.row_frames[index + 1], width=20,
                                                     text='bearbeiten', image=edit_img),
-                            customtkinter.CTkButton(self.rows_frames[index + 1], width=20,
+                            customtkinter.CTkButton(self.row_frames[index + 1], width=20,
                                                     text='löschen', image=trash_img)]
 
             self.rows_2d_array.append(row_1d_array)
 
     def create_layout_part_2(self):
+        """Creating the layout_part_2 of frame/class StammdatenInterface
+           -> being called by aktualisieren_event"""
         logging.debug('StammdatenInterface.create_layout_part_2() called')
 
         self.frame_2.pack(side='top', fill='both', expand=True, pady=20, padx=20)
         self.frame_2.grid_columnconfigure(0, weight=1)
 
-        # heading
-        self.rows_frames[0].grid_columnconfigure(5, weight=1)
+        # header row
+        self.row_frames[0].grid_columnconfigure(5, weight=1)
 
+        # header row widgets
         self.heading_3.grid(row=0, column=0, ipadx=20, ipady=6)
         self.separator_3.grid(row=0, column=1, padx=0, pady=0, rowspan=2, sticky='ns')
         self.date_added_label.grid(row=0, column=2, ipadx=20, ipady=6)
         self.separator_4.grid(row=0, column=3, padx=0, pady=0, rowspan=2, sticky='ns')
         self.date_modified_label.grid(row=0, column=4, ipadx=20, ipady=6)
         self.separator_5.grid(row=1, column=0, padx=0, pady=0, columnspan=9, sticky='ew')
-
         self.new_stammdatei_button.grid(row=0, column=5, padx=(5, 20), pady=6,
                                         sticky='e')
 
-        # rows
+        # creating layout for created widgets of file in dir
         for index_1, i in enumerate(self.rows_2d_array):
             for index_2, a in enumerate(i):
                 if index_2 == 1 or index_2 == 3:
@@ -1279,27 +1281,30 @@ class StammdatenInterface(customtkinter.CTkFrame):
                 else:
                     a.grid(row=0, column=index_2, ipadx=20, ipady=6)
 
-        for index, i in enumerate(self.rows_frames):
+        # creating the layout of the row_frames
+        for index, i in enumerate(self.row_frames):
             i.grid_columnconfigure(5, weight=1)
             i.grid(row=index, column=0, columnspan=9, sticky='nsew')
 
     def create_widgets_part_3(self):
+        """Creating the widgets_part_3 of frame/class StammdatenInterface
+           -> being called when new stammdatei button is pressed"""
+
         logging.debug('StammdatenInterface.create_widgets_part_3() called')
 
         self.parent.bottom_nav.bottom_nav_button.configure(state='normal')
 
         self.frame_3 = customtkinter.CTkFrame(self.parent, fg_color='gray16', corner_radius=0)
 
-        # 'heading' section
+        # heading section
         self.heading_4 = customtkinter.CTkLabel(self.frame_3, text='Neue Stammdatei', font=large_heading)
 
         # Separator
         self.separator_6 = tk.ttk.Separator(self.frame_3, orient='horizontal')
 
-        # 'kuerzel-rechnungsdatum' section
+        # placeholder section
         self.frame_4 = customtkinter.CTkFrame(self.frame_3, fg_color='gray16')
         self.heading_5 = customtkinter.CTkLabel(self.frame_4, text='', font=small_heading)
-
         self.search_label = customtkinter.CTkLabel(self.frame_4, text='')
         self.close_button = customtkinter.CTkButton(self.frame_4, width=20, text='Schließen',
                                                     command=lambda: self.clear_widgets_part_3())
@@ -1307,7 +1312,7 @@ class StammdatenInterface(customtkinter.CTkFrame):
         # Separator
         self.separator_2 = tk.ttk.Separator(self.frame_3, orient='horizontal')
 
-        # 'stammdaten' section
+        # stammdatei section
         self.frame_5 = customtkinter.CTkFrame(self.frame_3, corner_radius=0)
 
         self.stammdaten_labels = []
@@ -1321,31 +1326,29 @@ class StammdatenInterface(customtkinter.CTkFrame):
                 self.stammdaten_entrys[index].configure(width=300)
 
     def create_layout_part_3(self):
+        """Creating the layout_part_3 of frame/class StammdatenInterface
+           -> being called when new stammdatei button is pressed"""
+
         logging.debug('StammdatenInterface.create_layout_part_3() called')
 
         self.frame_3.place(relx=0.2, y=0, relwidth=0.8, relheight=0.90)
 
-        # 'heading' section
+        # heading section
         self.heading_4.pack(side='top', fill='x', expand=False, pady=(20, 30), padx=20)
 
         # Separator
         self.separator_6.pack(fill='x', expand=False)
 
-        # 'kuerzel-rechnungsdatum' section
+        # placeholder section
         self.frame_4.grid_columnconfigure(2, weight=1)
         self.frame_4.pack(fill='x', expand=False, pady=(15, 15), padx=20)
-
         self.heading_5.grid(row=0, column=0, padx=10, pady=4, columnspan=2, sticky='w')
-
         self.search_label.grid(row=1, column=0, padx=10, pady=4, sticky='w')
-
         self.close_button.grid(row=1, column=4, sticky='w')
-
         self.separator_2.pack(side='top', fill='x', expand=False)
 
+        # stammdatei section
         self.frame_5.grid_columnconfigure(5, weight=1)
-
-        # 'stammdaten' section
         self.frame_5.pack(side='top', fill='both', expand=True, pady=20, padx=20)
 
         for index, i in enumerate(self.stammdaten_label_names):
@@ -1357,19 +1360,26 @@ class StammdatenInterface(customtkinter.CTkFrame):
                 self.stammdaten_entrys[index].grid(row=index - 6, column=3, padx=(10, 10), pady=(8, 0), sticky='w')
 
     def clear_widgets_part_3(self):
+        """Clears the frame to create a new stammdatei
+           -> being called when close button is pressed"""
+
         logging.debug('StammdatenInterface.clear_widgets_part_3() called')
 
         self.parent.bottom_nav.bottom_nav_button.configure(state='disabled')
 
         self.frame_3.place_forget()
         self.frame_3.destroy()
-
         self.aktualisieren_event()
 
     def aktualisieren_event(self, *args):
+        """is responsible to fetch and prepare the name of the files in dir.
+           Updates the widgets and layout part_2"""
+
         logging.debug('StammdatenInterface.aktualisieren_event() called')
 
         def destroy_frame():
+            """destroys the widgets and layout part_2"""
+
             logging.debug('StammdatenInterface.aktualisieren_event.destroy_frame() called')
 
             try:
@@ -1379,16 +1389,22 @@ class StammdatenInterface(customtkinter.CTkFrame):
                 pass
 
         def create_frame():
+            """runs the create widgets and layout part_2 functions"""
+
             logging.debug('StammdatenInterface.aktualisieren_event.create_frame() called')
 
             self.create_widgets_part_2()
             self.create_layout_part_2()
             self.parent.focus_set()
 
+        # fetches names of files in dir
         self.files_in_dir = []
         self.files_in_dir_unsorted = os.listdir(f'{self.parent.stammdaten_location}/')
 
+        # checks if file meets filter criteria
         for index, i in enumerate(self.files_in_dir_unsorted):
+            if i == '.DS_Store':
+                continue
             if self.segmented_button_1.get() == 'Alle':
                 with open(f'{self.parent.stammdaten_location}/{i}', 'r') as f:
                     f = f.readlines()
@@ -1419,24 +1435,31 @@ class StammdatenInterface(customtkinter.CTkFrame):
                         except IndexError:
                             pass
 
+        # sorts the filenames alphabetically
         self.files_in_dir.sort()
 
         destroy_frame()
         create_frame()
 
     def open_stammdatei_button_event(self, row):
-        logging.debug(f'StammdatenInterface.open_stammdatei() called, row={row}')
+        """being called when open button of specific file is pressed and
+           opens the respective file."""
+
+        logging.debug(f'StammdatenInterface.open_stammdatei_button_event() called, row={row}')
 
         Backend(self).open_file(f'{self.parent.stammdaten_location}/{self.files_in_dir[row]}')
 
     def edit_stammdatei_button_event(self, row):
-        logging.debug(f'StammdatenInterface.edit_stammdatei() called, row={row}')
+        """being called when edit button of specific file is pressed. Runs create
+           widgets and layout part_3 and inserts saved values into entries."""
+
+        logging.debug(f'StammdatenInterface.edit_stammdatei_button_event() called, row={row}')
 
         self.create_widgets_part_3()
         self.create_layout_part_3()
 
+        # inserts the values in the entries
         filepath = f'{self.parent.stammdaten_location}/{self.files_in_dir[row]}'
-
         if os.path.exists(filepath):
             with open(filepath, 'r') as f:
                 f = f.readlines()
@@ -1448,7 +1471,10 @@ class StammdatenInterface(customtkinter.CTkFrame):
                         break
 
     def delete_stammdatei_button_event(self, row):
-        logging.debug(f'StammdatenInterface.delete_stammdaeti() called, row={row}')
+        """being called when delete button of specific file is pressed and
+           deletes the respective file. After it calls the aktualisieren event."""
+
+        logging.debug(f'StammdatenInterface.delete_stammdaeti_button_event() called, row={row}')
 
         filepath = f'{self.parent.stammdaten_location}/{self.files_in_dir[row]}'
 
@@ -1457,12 +1483,17 @@ class StammdatenInterface(customtkinter.CTkFrame):
         self.aktualisieren_event()
 
     def new_stammdatei_button_event(self):
-        logging.debug(f'StammdatenInterface.new_stammdatei() called')
+        """being called when new stammdatei button is pressed and calls function to
+           create widgets and layout part_3."""
+
+        logging.debug(f'StammdatenInterface.new_stammdatei_button_event() called')
 
         self.create_widgets_part_3()
         self.create_layout_part_3()
 
     def create_stammdatei_event(self):
+        """being called when save button is pressed. Passes the data from entries
+           to Backend and validates them"""
 
         if Backend(self, stammdaten=self.stammdaten_entrys).validate_stammdaten_entrys():
             self.clear_widgets_part_3()
@@ -1551,47 +1582,47 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
 
         self.frame_2 = customtkinter.CTkScrollableFrame(self, corner_radius=0)
 
-        self.rows_frames = []
+        self.row_frames = []
 
         # header row
-        self.rows_frames.append(customtkinter.CTkFrame(self.frame_2, corner_radius=0))
-        self.heading_3 = customtkinter.CTkLabel(self.rows_frames[0], text='Dateiname', width=160)
-        self.separator_3 = tk.ttk.Separator(self.rows_frames[0], orient='vertical')
-        self.date_added_label = customtkinter.CTkLabel(self.rows_frames[0], text='Erstellungsdatum', width=120)
-        self.separator_4 = tk.ttk.Separator(self.rows_frames[0], orient='vertical')
-        self.date_modified_label = customtkinter.CTkLabel(self.rows_frames[0], text='Änderungsdatum', width=120)
-        self.separator_5 = tk.ttk.Separator(self.rows_frames[0], orient='horizontal')
+        self.row_frames.append(customtkinter.CTkFrame(self.frame_2, corner_radius=0))
+        self.heading_3 = customtkinter.CTkLabel(self.row_frames[0], text='Dateiname', width=160)
+        self.separator_3 = tk.ttk.Separator(self.row_frames[0], orient='vertical')
+        self.date_added_label = customtkinter.CTkLabel(self.row_frames[0], text='Erstellungsdatum', width=120)
+        self.separator_4 = tk.ttk.Separator(self.row_frames[0], orient='vertical')
+        self.date_modified_label = customtkinter.CTkLabel(self.row_frames[0], text='Änderungsdatum', width=120)
+        self.separator_5 = tk.ttk.Separator(self.row_frames[0], orient='horizontal')
 
         # files in dir
         self.rows_2d_array = []
         for index, i in enumerate(self.files_in_dir):
             if index % 2 != 0:
-                self.rows_frames.append(customtkinter.CTkFrame(self.frame_2, corner_radius=0, fg_color='gray25'))
+                self.row_frames.append(customtkinter.CTkFrame(self.frame_2, corner_radius=0, fg_color='gray25'))
             else:
-                self.rows_frames.append(customtkinter.CTkFrame(self.frame_2, corner_radius=0))
+                self.row_frames.append(customtkinter.CTkFrame(self.frame_2, corner_radius=0))
 
-            row_1d_array = [customtkinter.CTkLabel(self.rows_frames[index + 1], width=160,
+            row_1d_array = [customtkinter.CTkLabel(self.row_frames[index + 1], width=160,
                                                    text=str(i).replace('.pdf', '')),
-                            tk.ttk.Separator(self.rows_frames[index + 1], orient='vertical'),
-                            customtkinter.CTkLabel(self.rows_frames[index + 1], width=120,
+                            tk.ttk.Separator(self.row_frames[index + 1], orient='vertical'),
+                            customtkinter.CTkLabel(self.row_frames[index + 1], width=120,
                                                    text=str(time.strftime("%d.%m.%y at %H:%M",
                                                                           time.strptime(
                                                                               time.ctime(os.path.getctime(
                                                                                   f'{basepath}'
                                                                                   f'{i}')))))),
-                            tk.ttk.Separator(self.rows_frames[index + 1], orient='vertical'),
-                            customtkinter.CTkLabel(self.rows_frames[index + 1], width=120,
+                            tk.ttk.Separator(self.row_frames[index + 1], orient='vertical'),
+                            customtkinter.CTkLabel(self.row_frames[index + 1], width=120,
                                                    text=str(time.strftime("%d.%m.%y at %H:%M",
                                                                           time.strptime(
                                                                               time.ctime(os.path.getmtime(
                                                                                   f'{basepath}'
                                                                                   f'{i}')))))),
-                            customtkinter.CTkLabel(self.rows_frames[index + 1], text=''),
-                            customtkinter.CTkButton(self.rows_frames[index + 1], width=20,
+                            customtkinter.CTkLabel(self.row_frames[index + 1], text=''),
+                            customtkinter.CTkButton(self.row_frames[index + 1], width=20,
                                                     text='öffnen', image=open_img),
-                            customtkinter.CTkButton(self.rows_frames[index + 1], width=20,
+                            customtkinter.CTkButton(self.row_frames[index + 1], width=20,
                                                     text='bearbeiten', image=edit_img),
-                            customtkinter.CTkButton(self.rows_frames[index + 1], width=20,
+                            customtkinter.CTkButton(self.row_frames[index + 1], width=20,
                                                     text='löschen', image=trash_img)]
 
             self.rows_2d_array.append(row_1d_array)
@@ -1635,7 +1666,7 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
                 else:
                     a.grid(row=0, column=index_2, ipadx=20, ipady=6, sticky='w')
 
-        for index, i in enumerate(self.rows_frames):
+        for index, i in enumerate(self.row_frames):
             i.grid_columnconfigure(5, weight=1)
             i.grid(row=index, column=0, columnspan=9, sticky='nsew')
 
@@ -1671,6 +1702,8 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
         self.files_in_dir_unsorted = os.listdir(basepath)
 
         for index, i in enumerate(self.files_in_dir_unsorted):
+            if i == '.DS_Store':
+                continue
             if self.segmented_button_1.get() == 'Alle':
                 if self.search_entry.get().upper() in i:
                     self.files_in_dir.append(i)
@@ -2357,7 +2390,7 @@ class Backend:
         if draft_yesno:
             if not os.path.exists(f'{self.parent.rechnungen_location}/drafts/'):
                 os.mkdir(f'{self.parent.rechnungen_location}/drafts/')
-            with open(f'{self.parent.rechnungen_location}/drafts/{rechnungsdaten[1].upper}DRAFT.csv', 'w',
+            with open(f'{self.parent.rechnungen_location}/drafts/{rechnungsdaten[1].upper()}DRAFT.csv', 'w',
                       newline='') as f:
                 csvfile = csv.writer(f, delimiter=';')
                 csvfile.writerow(rechnungsdaten)
@@ -2455,8 +2488,11 @@ class Backend:
             else:
                 try:
                     for i in os.listdir(self.parent.parent.rechnungen_location):
-                        shutil.move(f'{self.parent.parent.rechnungen_location}/{i}', dirpath)
-                    os.removedirs(self.parent.parent.rechnungen_location)
+                        try:
+                            shutil.move(f'{self.parent.parent.rechnungen_location}/{i}', dirpath)
+                            os.removedirs(self.parent.parent.rechnungen_location)
+                        except shutil.Error:
+                            logging.info('dir already exists and files wont be moved')
                 except FileNotFoundError:
                     logging.error('rechnungen location not existing')
 
