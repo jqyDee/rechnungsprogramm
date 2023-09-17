@@ -368,8 +368,8 @@ class Sidebar(customtkinter.CTkFrame):
         # buttons
         self.button_1 = customtkinter.CTkButton(self, text='KG-Rechnung', command=lambda: self.parent.kg_rechnung())
         self.button_2 = customtkinter.CTkButton(self, text='HP-Rechnung', command=lambda: self.parent.hp_rechnung())
-        self.button_3 = customtkinter.CTkButton(self, text='stammdaten', command=lambda: self.parent.stammdaten_())
-        self.button_4 = customtkinter.CTkButton(self, text='rechnungen',
+        self.button_3 = customtkinter.CTkButton(self, text='Stammdateien', command=lambda: self.parent.stammdaten_())
+        self.button_4 = customtkinter.CTkButton(self, text='Rechnungen',
                                                 command=lambda: self.parent.rechnung_loeschen())
         self.button_6 = customtkinter.CTkButton(self, text='clear screen',
                                                 command=lambda: self.parent.clear_interfaces())
@@ -1567,7 +1567,7 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
         # Separator
         self.separator_2.pack(fill='x', expand=False)
 
-    def create_widgets_part_2(self, basepath):
+    def create_widgets_part_2(self, basepath: str):
         """Creating the widgets_part_2 of frame/class RechnungLoeschenInterface
            -> being called by aktualisieren_event"""
 
@@ -1620,7 +1620,7 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
 
             self.rows_2d_array.append(row_1d_array)
 
-    def create_layout_part_2(self, basepath, draft):
+    def create_layout_part_2(self, basepath: str, draft: bool):
         """Creating the layout_part_2 of frame/class RechnungLoeschenInterface
            -> being called by aktualisieren_event"""
 
@@ -1727,7 +1727,7 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
         destroy_frame()
         create_frame()
 
-    def open_rechnung_button_event(self, row, basepath):
+    def open_rechnung_button_event(self, row: int, basepath: str):
         """being called when open button of specific file is pressed and
            opens the respective file."""
 
@@ -1736,7 +1736,7 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
         Backend(self).open_file(
             f'{basepath}{self.files_in_dir[row]}')
 
-    def edit_rechnung_button_event(self, row, basepath, draft):
+    def edit_rechnung_button_event(self, row: int, basepath: str, draft: bool):
         """being called when edit button of specific file is pressed. Switches to
         KGRechnungInterface and passes values."""
 
@@ -1791,7 +1791,7 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
 
         self.parent.kg_rechnung(data)
 
-    def delete_rechnung_button_event(self, row, basepath):
+    def delete_rechnung_button_event(self, row: int, basepath: str):
         """being called when delete button of specific file is pressed and
            deletes the respective file. After it calls the aktualisieren event."""
 
@@ -2015,12 +2015,12 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         elif self.frame_1_switch_var.get() == 'off':
             self.frame_3.destroy()
 
-    def edit_dirs(self, kind):
+    def edit_dirs(self, kind: str):
         logging.debug('EinstellungInterface.open_dir() called')
 
         Backend(self).change_properties(kind)
 
-    def behandlungsarten_limit_validation(self, text_after_action):
+    def behandlungsarten_limit_validation(self, text_after_action: str):
         if not text_after_action == '':
             try:
                 int(text_after_action)
@@ -2059,6 +2059,7 @@ class UpdateYearToplevelWindow(customtkinter.CTkToplevel):
         self.title('Programmjahr ändern')
         self.resizable(False, False)
         self.geometry(f'{self.window_width}x{self.window_height}+{x_cordinate}+{y_cordinate}')
+        self.configure(fg_color='gray16')
 
         self.label = customtkinter.CTkLabel(self, text="Neues Programmjahr:")
         self.label.pack(padx=20, pady=4)
@@ -2126,7 +2127,6 @@ class Backend:
             self.rechnungsdatum = self.kwargs.get('rechnungsdatum').get()
         else:
             self.parent.rechnungsdatum_entry.select_range(0, tk.END)
-            self.parent.rechnungsdatum_entry.set_focus()
             logging.info('rechnungsdatum not formatted correctly: mm.dd.yy')
             self.parent.parent.bottom_nav.bottom_nav_warning.configure(
                 text=f'Rechnungsdatum nicht richtig formatiert: dd.mm.yy', fg_color='red')
@@ -2171,7 +2171,6 @@ class Backend:
                         self.behandlungsarten.append(a.get())
                     else:
                         logging.debug(f'Behandlungsart {index_1 + 1} has no value, exiting')
-                        a.set_focus()
                         self.parent.parent.bottom_nav.bottom_nav_warning.configure(
                             text=f'Behandlungsart {index_1 + 1} braucht eine Eingabe!',
                             fg_color='red')
@@ -2189,7 +2188,6 @@ class Backend:
                             return False
                     else:
                         logging.debug(f'Einzelpreis {index_1 + 1} has no value, exiting')
-                        a.set_focus()
                         self.parent.parent.bottom_nav.bottom_nav_warning.configure(
                             text=f'Einzelpreis {index_1 + 1} brauch eine Eingabe!',
                             fg_color='red')
@@ -2249,7 +2247,7 @@ class Backend:
         logging.debug(f'gesamtpreis: {self.gesamtpreis}')
 
         rechnungsdaten = [self.stammdaten[0], self.rechnungsnummer, self.stammdaten[9], 'km', km_insg, 'km',
-                          self.gesamtpreis, '€']
+                          self.gesamtpreis, 'Euro']
         rechnungsdaten.extend(self.dates)
         rechnungsdaten.extend(self.behandlungsarten)
         rechnungsdaten.extend(self.einzelpreise)
@@ -3091,4 +3089,3 @@ if __name__ == "__main__":
     #             ['23.23.23\n ', '100.0\n100.1', 'Allgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\n', '12000,50\n12000,50'],
     #             ['23.23.23\n ', '100.0\n100.1', 'Allgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\n', '12000,50\n12000,50']]
     #            , 'Hallo was geht ab Freunde ich schriebe jetzt hier einen langen text um zu schauen ob sich der text wrapped')
-
