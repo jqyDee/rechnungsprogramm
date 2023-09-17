@@ -1146,7 +1146,6 @@ class StammdatenInterface(customtkinter.CTkFrame):
         self.segmented_button_1 = customtkinter.CTkSegmentedButton(self.frame_1, values=['Alle', 'KG', 'HP'],
                                                                    command=lambda x: self.aktualisieren_event(x))
         self.segmented_button_1.set('Alle')
-
         self.aktualisieren_button = customtkinter.CTkButton(self.frame_1, width=20, text='suchen',
                                                             image=search_img,
                                                             command=lambda: self.aktualisieren_event())
@@ -1172,7 +1171,6 @@ class StammdatenInterface(customtkinter.CTkFrame):
         self.search_label.grid(row=1, column=0, padx=10, pady=4, sticky='w')
         self.search_entry.grid(row=1, column=1, sticky='w')
         self.segmented_button_1.grid(row=1, column=2, pady=4, padx=10)
-
         self.aktualisieren_button.grid(row=1, column=4)
 
         # Separator
@@ -1234,13 +1232,11 @@ class StammdatenInterface(customtkinter.CTkFrame):
     def create_layout_part_2(self):
         """Creating the layout_part_2 of frame/class StammdatenInterface
            -> being called by aktualisieren_event"""
+
         logging.debug('StammdatenInterface.create_layout_part_2() called')
 
         self.frame_2.pack(side='top', fill='both', expand=True, pady=20, padx=20)
         self.frame_2.grid_columnconfigure(0, weight=1)
-
-        # header row
-        self.row_frames[0].grid_columnconfigure(5, weight=1)
 
         # header row widgets
         self.heading_3.grid(row=0, column=0, ipadx=20, ipady=6)
@@ -1500,51 +1496,47 @@ class StammdatenInterface(customtkinter.CTkFrame):
 
 
 class RechnungLoeschenInterface(customtkinter.CTkFrame):
+    """Creating the RechnungLoeschenInterface frame and widgets_part_1 and
+       updating the list for the first time"""
+
     def __init__(self, parent):
         super().__init__(parent)
 
         logging.info('class KGRechnungInterface() called')
 
         self.parent = parent
+        self.parent.bottom_nav.bottom_nav_button.configure()
 
         self.configure(fg_color='gray16', corner_radius=0)
 
         self.place(relx=0.2, y=0, relwidth=0.8, relheight=0.90)
-
-        self.parent.bottom_nav.bottom_nav_button.configure()
-
-        # textvariables
-        self.frame_1_warning_var = tk.StringVar()
 
         self.create_widgets_part_1()
         self.create_layout_part_1()
         self.aktualisieren_event()
 
     def create_widgets_part_1(self):
+        """Creating the widgets_part_1 of frame/class RechnungLoeschenInterface"""
+
         logging.debug('RechnungLoeschenInterface.create_widgets_part_1() called')
 
-        # 'KG Rechnung' / 'heading_1' section
+        # heading section
         self.heading_1 = customtkinter.CTkLabel(self, text='rechnungen Bearbeiten', font=large_heading)
 
         # Separator
         self.separator_1 = tk.ttk.Separator(self, orient='horizontal')
 
-        # 'kuerzel-rechnungsdatum' section
+        # Filter
         self.frame_1 = customtkinter.CTkFrame(self, fg_color='gray16')
         self.heading_2 = customtkinter.CTkLabel(self.frame_1,
                                                 text='Filter', font=small_heading)
         self.search_label = customtkinter.CTkLabel(self.frame_1, text='Suche:')
         self.search_entry = customtkinter.CTkEntry(self.frame_1)
 
-        self.frame_1_warning = customtkinter.CTkLabel(self.frame_1,
-                                                      textvariable=self.frame_1_warning_var,
-                                                      text='')
-
         self.segmented_button_1 = customtkinter.CTkSegmentedButton(self.frame_1,
                                                                    values=['Alle', 'KG', 'HP', 'Entwürfe'],
                                                                    command=lambda x: self.aktualisieren_event(x))
         self.segmented_button_1.set('Alle')
-
         self.aktualisieren_button = customtkinter.CTkButton(self.frame_1, width=20, text='suchen',
                                                             image=search_img,
                                                             command=lambda: self.aktualisieren_event())
@@ -1553,31 +1545,32 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
         self.separator_2 = tk.ttk.Separator(self, orient='horizontal')
 
     def create_layout_part_1(self):
+        """Creating the layout_part_1 of frame/class RechnungLoeschenInterface"""
+
         logging.debug('RechnungLoeschenInterface.create_layout_part_1() called')
 
-        # 'KG Rechnung' / 'heading_1' section
+        # heading section
         self.heading_1.pack(side='top', fill='x', expand=False, pady=(20, 30), padx=20)
 
         # Separator
         self.separator_1.pack(fill='x', expand=False)
 
-        # 'kuerzel-rechnungsdatum' section
+        # Filter section
         self.frame_1.grid_columnconfigure(3, weight=1)
         self.frame_1.pack(fill='x', expand=False, pady=(15, 15), padx=20)
         self.heading_2.grid(row=0, column=0, padx=10, pady=4, columnspan=2, sticky='w')
         self.search_label.grid(row=1, column=0, padx=10, pady=4, sticky='w')
         self.search_entry.grid(row=1, column=1, sticky='w')
-
         self.segmented_button_1.grid(row=1, column=2, pady=4, padx=10)
-
-        self.frame_1_warning.grid(row=1, column=3, pady=4, sticky='ew')
-
         self.aktualisieren_button.grid(row=1, column=4)
 
         # Separator
         self.separator_2.pack(fill='x', expand=False)
 
     def create_widgets_part_2(self, basepath):
+        """Creating the widgets_part_2 of frame/class RechnungLoeschenInterface
+           -> being called by aktualisieren_event"""
+
         logging.debug('StammdatenInterface.create_widgets_part_2() called')
 
         self.frame_2 = customtkinter.CTkScrollableFrame(self, corner_radius=0)
@@ -1593,7 +1586,7 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
         self.date_modified_label = customtkinter.CTkLabel(self.row_frames[0], text='Änderungsdatum', width=120)
         self.separator_5 = tk.ttk.Separator(self.row_frames[0], orient='horizontal')
 
-        # files in dir
+        # creating widgets for every file in dir
         self.rows_2d_array = []
         for index, i in enumerate(self.files_in_dir):
             if index % 2 != 0:
@@ -1628,12 +1621,15 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
             self.rows_2d_array.append(row_1d_array)
 
     def create_layout_part_2(self, basepath, draft):
+        """Creating the layout_part_2 of frame/class RechnungLoeschenInterface
+           -> being called by aktualisieren_event"""
+
         logging.debug('StammdatenInterface.create_layout_part_2() called')
 
         self.frame_2.pack(side='top', fill='both', expand=True, pady=20, padx=20)
         self.frame_2.grid_columnconfigure(0, weight=1)
 
-        # heading
+        # header row widgets
         self.heading_3.grid(row=0, column=0, ipadx=20, ipady=6, sticky='w')
         self.separator_3.grid(row=0, column=1, padx=0, pady=0, rowspan=2, sticky='ns')
         self.date_added_label.grid(row=0, column=2, ipadx=20, ipady=6)
@@ -1641,7 +1637,7 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
         self.date_modified_label.grid(row=0, column=4, ipadx=20, ipady=6)
         self.separator_5.grid(row=1, column=0, padx=0, pady=0, columnspan=9, sticky='ew')
 
-        # rows
+        # creating layout for created widgets of file in dir
         for index_1, i in enumerate(self.rows_2d_array):
             for index_2, a in enumerate(i):
                 if index_2 == 1 or index_2 == 3:
@@ -1666,15 +1662,22 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
                 else:
                     a.grid(row=0, column=index_2, ipadx=20, ipady=6, sticky='w')
 
+        # creating the layout of the row_frames
         for index, i in enumerate(self.row_frames):
             i.grid_columnconfigure(5, weight=1)
             i.grid(row=index, column=0, columnspan=9, sticky='nsew')
 
     def aktualisieren_event(self, *args):
+        """is responsible to fetch and prepare the name of the files in dir.
+           Updates the widgets and layout part_2"""
+
         logging.debug('StammdatenInterface.aktualisieren_event() called')
 
         def destroy_frame():
+            """destroys the widgets and layout part_2"""
+
             logging.debug('StammdatenInterface.aktualisieren_event.destroy_frame() called')
+
             try:
                 self.frame_2.pack_forget()
                 self.frame_2.destroy()
@@ -1682,12 +1685,15 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
                 pass
 
         def create_frame():
+            """runs the create widgets and layout part_2 functions"""
+
             logging.debug('StammdatenInterface.aktualisieren_event.create_frame() called')
 
             self.create_widgets_part_2(basepath)
             self.create_layout_part_2(basepath, draft)
             self.parent.focus_set()
 
+        # checks in what directory to search
         self.files_in_dir = []
         if self.segmented_button_1.get() == 'Entwürfe':
             basepath = f'{self.parent.rechnungen_location}/drafts/'
@@ -1699,8 +1705,10 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
         if not os.path.exists(basepath):
             os.makedirs(basepath)
 
+        # fetches names of files in dir
         self.files_in_dir_unsorted = os.listdir(basepath)
 
+        # checks if file meets filter criteria
         for index, i in enumerate(self.files_in_dir_unsorted):
             if i == '.DS_Store':
                 continue
@@ -1716,24 +1724,29 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
             elif self.segmented_button_1.get() == 'Entwürfe':
                 self.files_in_dir = self.files_in_dir_unsorted
 
-        self.files_in_dir.sort()
-
         destroy_frame()
         create_frame()
 
     def open_rechnung_button_event(self, row, basepath):
-        logging.debug(f'RechnungLoeschenInterface.open_rechnung() called, row={row}')
+        """being called when open button of specific file is pressed and
+           opens the respective file."""
+
+        logging.debug(f'RechnungLoeschenInterface.open_rechnung_button_event() called, row={row}')
 
         Backend(self).open_file(
             f'{basepath}{self.files_in_dir[row]}')
 
     def edit_rechnung_button_event(self, row, basepath, draft):
-        logging.debug(f'RechnungLoeschenInterface.edit_rechnung() called, row={row}')
+        """being called when edit button of specific file is pressed. Switches to
+        KGRechnungInterface and passes values."""
+
+        logging.debug(f'RechnungLoeschenInterface.edit_rechnung_button_event() called, row={row}')
 
         filepath = f'{basepath}{self.files_in_dir[row]}'
         row_count = 0
         data = []
 
+        # checks if file is a draft
         if draft:
             with open(filepath,
                       newline='') as f:
@@ -1741,7 +1754,6 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
                 for index, row_1 in enumerate(csvfile):
                     if index == 0:
                         data.extend(row_1)
-
         else:
             if not os.path.exists(filepath):
                 logging.debug(f'Rechnung {self.files_in_dir_unsorted[row]} cant be found. Trying to recreate!')
@@ -1770,6 +1782,7 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
                 return messagebox.showerror('rechnungen-csv Error',
                                             f'rechnungen-{self.parent.year}.csv korrupt. Mehrfach {self.files_in_dir[row]} gefunden!')
 
+        # checks if stammdatei exists
         if not os.path.exists(f'{self.parent.stammdaten_location}/{data[0]}.txt'):
                 logging.error(
                     f'stammdatei Error: stammdatei {data[0]}.txt not found, create it again to edit this rechnung!')
@@ -1779,6 +1792,9 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
         self.parent.kg_rechnung(data)
 
     def delete_rechnung_button_event(self, row, basepath):
+        """being called when delete button of specific file is pressed and
+           deletes the respective file. After it calls the aktualisieren event."""
+
         logging.debug(f'RechnungLoeschenInterface.delete_rechnung() called, row={row}')
 
         filepath = f'{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/{self.files_in_dir[row]}'
