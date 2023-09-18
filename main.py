@@ -10,8 +10,9 @@ import time
 import csv
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
-from PIL import Image
+import ast
 
+from PIL import Image
 from fpdf import FPDF, XPos, YPos
 import customtkinter
 import yaml
@@ -1782,12 +1783,22 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
                 return messagebox.showerror('rechnungen-csv Error',
                                             f'rechnungen-{self.parent.year}.csv korrupt. Mehrfach {self.files_in_dir[row]} gefunden!')
 
+        if '[' in data[18]:
+            data_18 = ast.literal_eval(data[18])
+            data.pop(18)
+            for index, i in enumerate(data_18):
+                data.insert(int(18+index), str(i))
+            data_end = ast.literal_eval(data[-1])
+            data.pop(-1)
+            for index, i in enumerate(data_end):
+                data.append(str(i))
+
         # checks if stammdatei exists
         if not os.path.exists(f'{self.parent.stammdaten_location}/{data[0]}.txt'):
-                logging.error(
-                    f'stammdatei Error: stammdatei {data[0]}.txt not found, create it again to edit this rechnung!')
-                return messagebox.showerror('stammdatei Error', f'Stammdatei {data[0]}.txt nicht gefunden. Erneut '
-                                                                f'erstellen um Rechnung zu bearbeiten!')
+            logging.error(f'stammdatei Error: stammdatei {data[0]}.txt '
+                          f'not found, create it again to edit this rechnung!')
+            return messagebox.showerror('stammdatei Error', f'Stammdatei {data[0]}.txt nicht gefunden. Erneut '
+                                                            f'erstellen um Rechnung zu bearbeiten!')
 
         self.parent.kg_rechnung(data)
 
@@ -1805,6 +1816,8 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
 
 
 class EinstellungInterface(customtkinter.CTkScrollableFrame):
+    # TODO Documentation
+
     def __init__(self, parent):
         super().__init__(parent)
 
