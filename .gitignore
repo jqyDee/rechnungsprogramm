@@ -15,4 +15,5 @@
 !.gitignore
 !/system/components/**
 !/system/updater/updater.py
+!requirements.txt
 

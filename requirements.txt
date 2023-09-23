@@ -1,0 +1,7 @@
+customtkinter==5.2.0
+darkdetect==0.8.0
+defusedxml==0.7.1
+fonttools==4.42.1
+fpdf2==2.7.5
+Pillow==10.0.1
+PyYAML==6.0.1
