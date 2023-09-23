@@ -46,7 +46,7 @@ class Updater:
 
         while self.running:
             try:
-                urllib.request.urlretrieve(data[5], './system/tmp/requirements.txt.tmp')
+                urllib.request.urlretrieve(data[4], './system/tmp/requirements.txt.tmp')
             except HTTPError as e:
                 logging.error('Error code: ', e.code)
                 time.sleep(60)
