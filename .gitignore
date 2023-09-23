@@ -13,4 +13,6 @@
 !main.py
 !README.md
 !.gitignore
-!/system
+!/system/components/*
+!/system/updater/updater.py
+
