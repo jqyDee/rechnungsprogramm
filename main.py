@@ -8,14 +8,23 @@ import subprocess
 import sys
 import time
 import csv
+import ast
+import urllib.request
+from urllib.error import URLError, HTTPError
+import threading
+from queue import Queue
+
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
-import ast
-
 from PIL import Image
 from fpdf import FPDF, XPos, YPos
 import customtkinter
 import yaml
+
+try:
+    from system.updater.updater import Updater
+except Exception as f:
+    print(f)
 
 #####################################################
 #                                                   #
@@ -38,28 +47,24 @@ try:
                                         dark_image=Image.open('./system/components/images/search-md.png'),
                                         size=(15, 15))
 except FileNotFoundError:
-    logging.warning('./system/components/images/search-md.png cant be found, trying to rebuild at next startup')
     search_img = None
 try:
     open_img = customtkinter.CTkImage(light_image=Image.open('./system/components/images/cursor-01.png'),
                                       dark_image=Image.open('./system/components/images/cursor-01.png'),
                                       size=(15, 15))
 except FileNotFoundError:
-    logging.warning('./system/components/images/cursor-01.png cant be found, trying to rebuild at next startup')
     open_img = None
 try:
     edit_img = customtkinter.CTkImage(light_image=Image.open('./system/components/images/edit-05.png'),
                                       dark_image=Image.open('./system/components/images/edit-05.png'),
                                       size=(15, 15))
 except FileNotFoundError:
-    logging.warning('./system/components/images/edit-05.png cant be found, trying to rebuild at next startup')
     edit_img = None
 try:
     trash_img = customtkinter.CTkImage(light_image=Image.open('./system/components/images/trash-03.png'),
                                        dark_image=Image.open('./system/components/images/trash-03.png'),
                                        size=(15, 15))
 except FileNotFoundError:
-    logging.warning('./system/components/images/trash-03.png cant be found, trying to rebuild at next startup')
     trash_img = None
 
 
@@ -81,7 +86,7 @@ class App(customtkinter.CTk):
     backups_enabled = True
     backup_location = f'{os.getcwd()}/backups'
 
-    # currently active interfaces - !!!MAYBE REDUNDANT!!!
+    # interfaces
     kg_interface = None
     hp_interface = None
     stammdaten_interface = None
@@ -104,7 +109,105 @@ class App(customtkinter.CTk):
         self.sidebar = Sidebar(self)
         self.bottom_nav = BottomNav(self)
 
+        self.running = True
+        threading.Thread(target=self.check_for_program_update).start()
+
         self.mainloop()
+
+    def check_for_program_update(self):
+        while self.running:
+            if not os.path.exists('./system/tmp/'):
+                os.makedirs('./system/tmp/')
+
+            if os.path.exists('./system/tmp/version.txt.tmp'):
+                os.remove('./system/tmp/version.txt.tmp')
+
+            try:
+                urllib.request.urlretrieve('https://ffischh.de/version.txt', './system/tmp/version.txt.tmp')
+            except HTTPError as e:
+                logging.error('Error code: ', e.code)
+                time.sleep(60)
+            except URLError as e:
+                logging.error('Reason: ', e.reason)
+                time.sleep(60)
+            else:
+                logging.info('HTTP request good!')
+
+                with open('./system/tmp/version.txt.tmp', 'r') as f:
+                    if f.readlines()[0].replace('\n', '') != self.version:
+                        logging.info('Program version not up to date')
+                        self.sidebar.button_7.pack(padx=20, pady=(10, 20), side='bottom', fill='x')
+                        threading.Thread(target=self.check_for_updater_update).start()
+                        break
+                    else:
+                        logging.info('Program version up to date')
+                        threading.Thread(target=self.check_for_updater_update).start()
+                        break
+
+    def check_for_updater_update(self):
+        while self.running:
+            if not os.path.exists('./system/updater/'):
+                os.makedirs('./system/updater/')
+
+            if os.path.exists('./system/tmp/updater.py'):
+                os.remove('./system/tmp/updater.py')
+
+            with open('./system/tmp/version.txt.tmp', 'r') as f:
+                file = f.readlines()
+                try:
+                    if file[2].replace('\n', '') != Updater.version:
+                        logging.info('Updater version not up to date')
+
+                        try:
+                            urllib.request.urlretrieve(str(file[3]), './system/tmp/updater.py')
+                        except HTTPError as e:
+                            logging.error('Error code: ', e.code)
+                            time.sleep(60)
+                        except URLError as e:
+                            logging.error('Reason: ', e.reason)
+                            time.sleep(60)
+                        else:
+                            logging.info('HTTP request good!')
+
+                            if os.path.exists('./system/tmp/updater.py'):
+                                os.remove('./system/updater/updater.py')
+                                shutil.move('./system/tmp/updater.py', './system/updater/updater.py')
+
+                            break
+
+                    else:
+                        logging.info('Updater version up to date')
+                        break
+
+                except NameError:
+                    logging.info('Updater not found')
+
+                    try:
+                        urllib.request.urlretrieve(str(file[3]), './system/tmp/updater.py')
+                    except HTTPError as e:
+                        # do something
+                        logging.error('Error code: ', e.code)
+                        time.sleep(60)
+                    except URLError as e:
+                        # do something
+                        logging.error('Reason: ', e.reason)
+                        time.sleep(60)
+                    else:
+                        # do something
+                        logging.info('HTTP request good!')
+
+                        if os.path.exists('./system/tmp/updater.py'):
+                            shutil.move('./system/tmp/updater.py', './system/updater/updater.py')
+
+                        logging.info('Updater Installed')
+                        break
+
+    def update_(self):
+        logging.info('Updater started')
+
+        subprocess.Popen([sys.executable, f'{os.getcwd()}/system/updater/updater.py', self.version])
+
+        self.sidebar.button_7.pack_forget()
 
     def check_or_create_working_dirs(self):
         """Runs at startup and checks the necessary Directories to run the Program. HAS TO BE MOVED TO BACKEND"""
@@ -121,7 +224,7 @@ class App(customtkinter.CTk):
             # creating properties.yml
             with open('system/properties.yml', 'w') as f:
                 yaml.dump(
-                    {'version': self.version, 'program_year': self.year, 'window_resizable': self.window_resizable,
+                    {'program_year': self.year, 'window_resizable': self.window_resizable,
                      'window_width': self.window_width, 'window_height': self.window_height,
                      'debug_mode': self.debug_mode, 'backup_location': self.backup_location,
                      'rechnungen_location': self.rechnungen_location,
@@ -135,7 +238,6 @@ class App(customtkinter.CTk):
         # extracting year out of ./system/properties.yml
         with open('./system/properties.yml', 'r') as f:
             properties_dict = yaml.safe_load(f)
-            self.version = properties_dict['version']
             self.year = properties_dict['program_year']
             self.window_resizable = properties_dict['window_resizable']
             self.window_width = properties_dict['window_width']
@@ -328,6 +430,10 @@ class App(customtkinter.CTk):
         else:
             logging.info('Backup created')
 
+        self.running = False
+        if os.path.exists('./system/tmp/version.txt.tmp'):
+            os.remove('./system/tmp/version.txt.tmp')
+
         self.destroy()
 
     def store_draft(self) -> bool:
@@ -372,6 +478,8 @@ class Sidebar(customtkinter.CTkFrame):
         self.button_3 = customtkinter.CTkButton(self, text='Stammdateien', command=lambda: self.parent.stammdaten_())
         self.button_4 = customtkinter.CTkButton(self, text='Rechnungen',
                                                 command=lambda: self.parent.rechnung_loeschen())
+        self.button_7 = customtkinter.CTkButton(self, text='Update', fg_color='red',
+                                                command=lambda: self.parent.update_())
         self.button_6 = customtkinter.CTkButton(self, text='clear screen',
                                                 command=lambda: self.parent.clear_interfaces())
         self.button_5 = customtkinter.CTkButton(self, text='Einstellungen',
@@ -555,7 +663,8 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
         self.heading_3.grid(row=0, column=0, padx=10, pady=4, columnspan=2, sticky='w')
         for index_1, i in enumerate(self.daten_layout):
             for index_2, a in enumerate(i):
-                self.daten_labels[a - 1].grid(row=index_1 + 1, column=index_2 + index_2, padx=(10, 0), pady=4, sticky='w')
+                self.daten_labels[a - 1].grid(row=index_1 + 1, column=index_2 + index_2, padx=(10, 0), pady=4,
+                                              sticky='w')
                 self.daten_entrys[a - 1].grid(row=index_1 + 1, column=index_2 + index_2 + 1, padx=(0, 10), pady=4,
                                               sticky='w')
 
@@ -732,8 +841,8 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
 
         # KG Rechnung erstellt
         if Backend(self, kuerzel=self.kuerzel_entry, rechnungsdatum=self.rechnungsdatum_entry,
-                dates=self.daten_entrys,
-                behandlungsarten=self.behandlungsarten_entrys_2d_array).validate_kg_entrys():
+                   dates=self.daten_entrys,
+                   behandlungsarten=self.behandlungsarten_entrys_2d_array).validate_kg_entrys():
 
             self.kuerzel_entry.delete(0, tk.END)
             self.rechnungsdatum_entry.delete(0, tk.END)
@@ -1761,7 +1870,8 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
             else:
                 logging.debug(f'Rechnung {self.files_in_dir_unsorted[row]} found.')
 
-            if not os.path.exists(f'{self.parent.rechnungen_location}/rechnungen-csv/rechnungen-{self.parent.year}.csv'):
+            if not os.path.exists(
+                    f'{self.parent.rechnungen_location}/rechnungen-csv/rechnungen-{self.parent.year}.csv'):
                 with open(f'{self.parent.rechnungen_location}/rechnungen-csv/rechnungen-{self.parent.year}.csv', 'w'):
                     pass
                 logging.error(
@@ -1787,7 +1897,7 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
             data_18 = ast.literal_eval(data[18])
             data.pop(18)
             for index, i in enumerate(data_18):
-                data.insert(int(18+index), str(i))
+                data.insert(int(18 + index), str(i))
             data_end = ast.literal_eval(data[-1])
             data.pop(-1)
             for index, i in enumerate(data_end):
@@ -2033,7 +2143,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
 
         Backend(self).change_properties(kind)
 
-    def behandlungsarten_limit_validation(self, text_after_action: str):
+    def behandlungsarten_limit_validation(self, text_after_action: str) -> bool:
         if not text_after_action == '':
             try:
                 int(text_after_action)
@@ -2160,15 +2270,15 @@ class Backend:
                 logging.debug(f'date {index + 1} not formatted correctly, exiting')
                 i.select_range(0, tk.END)
                 self.parent.parent.bottom_nav.bottom_nav_warning.configure(text=f'Datum {index + 1} '
-                                                                                       f'nicht richtig formatiert: dd.mm.yy',
-                                                                                  fg_color='red')
+                                                                                f'nicht richtig formatiert: dd.mm.yy',
+                                                                           fg_color='red')
                 return False
         if self.datenanzahl == 0:
             if not messagebox.askyesno('Do you want to continue?',
                                        'Keine Behandlungsdaten eingetragen! Trotzdem fortsetzen?'):
                 logging.debug(f'no dates and dont wanting to continue, exiting')
                 self.parent.parent.bottom_nav.bottom_nav_warning.configure(text=f'Rechnung wurde nicht erstellt',
-                                                                                  fg_color='orange')
+                                                                           fg_color='orange')
                 return False
         self.dates.extend(empty_dates)
         logging.debug(f'datenanzahl: {self.datenanzahl}')
@@ -2282,7 +2392,8 @@ class Backend:
     def create_kg_pdf(self):
         logging.debug('Backend.create_kg_pdf() called')
 
-        filepath = KgRechnung(self, self.stammdaten, self.rechnungsnummer, self.rechnungsdatum, self.gesamtpreis, self.dates,
+        filepath = KgRechnung(self, self.stammdaten, self.rechnungsnummer, self.rechnungsdatum, self.gesamtpreis,
+                              self.dates,
                               self.datenanzahl, self.behandlungsarten, self.einzelpreise).create_pages()
 
         # PDF Öffnen
@@ -2368,7 +2479,8 @@ class Backend:
         if interface == 'kg':
             try:
                 data = [self.parent.kg_interface.kuerzel_entry, self.parent.kg_interface.rechnungsdatum_entry,
-                        self.parent.kg_interface.daten_entrys, self.parent.kg_interface.behandlungsarten_entrys_2d_array]
+                        self.parent.kg_interface.daten_entrys,
+                        self.parent.kg_interface.behandlungsarten_entrys_2d_array]
             except AttributeError:
                 return True
 
@@ -2409,7 +2521,8 @@ class Backend:
                 return True
 
         # check if rechnung to rechnungsnummer exists
-        if os.path.exists(f'{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/{rechnungsdaten[1].upper()}.pdf'):
+        if os.path.exists(
+                f'{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/{rechnungsdaten[1].upper()}.pdf'):
             return True
 
         # ask if draft should be safed
@@ -2477,11 +2590,15 @@ class Backend:
                     pass
             logging.info("File didn't exist. Cleared RechnungenInsgesamt!")
 
-        draft_files = os.listdir(f'{self.parent.parent.rechnungen_location}/drafts/')
-        file_without_extension = os.path.splitext(file)[0]
-        for i in draft_files:
-            if file_without_extension.lower() in i.lower():
-                os.remove(f'{self.parent.parent.rechnungen_location}/drafts/{i}')
+        try:
+            draft_files = os.listdir(f'{self.parent.parent.rechnungen_location}/drafts/')
+            file_without_extension = os.path.splitext(file)[0]
+            for i in draft_files:
+                if file_without_extension.lower() in i.lower():
+                    os.remove(f'{self.parent.parent.rechnungen_location}/drafts/{i}')
+        except FileNotFoundError:
+            pass
+
         return True
 
     def change_properties(self, kind, *args):
@@ -2967,10 +3084,10 @@ class HpRechnung(PDF):
             dummy.ln(15)
             if self.mafr == 'Mann':
                 dummy.write(txt=f'Sehr geehrter Herr {self.nachname},\n\n'
-                               'hiermit erlaube ich mir, für meine Bemühungen folgendes Honorar zu berechnen:')
+                                'hiermit erlaube ich mir, für meine Bemühungen folgendes Honorar zu berechnen:')
             if self.mafr == 'Frau':
                 dummy.write(txt=f'Sehr geehrte Frau {self.nachname},\n\n'
-                               'hiermit erlaube ich mir, für meine Bemühungen folgendes Honorar zu berechnen:')
+                                'hiermit erlaube ich mir, für meine Bemühungen folgendes Honorar zu berechnen:')
             dummy.ln(7)
             dummy.set_font("helvetica", size=self.honorar_font_size)
 
@@ -3020,17 +3137,17 @@ class HpRechnung(PDF):
         self.ln(linebreak_length)
         if self.mafr == 'Mann':
             self.write(txt=f'Sehr geehrter Herr {self.nachname},\n\n'
-                            'hiermit erlaube ich mir, für meine Bemühungen folgendes Honorar zu berechnen:')
+                           'hiermit erlaube ich mir, für meine Bemühungen folgendes Honorar zu berechnen:')
         if self.mafr == 'Frau':
             self.write(txt=f'Sehr geehrte Frau {self.nachname},\n\n'
-                            'hiermit erlaube ich mir, für meine Bemühungen folgendes Honorar zu berechnen:')
+                           'hiermit erlaube ich mir, für meine Bemühungen folgendes Honorar zu berechnen:')
         self.ln(7)
         self.set_font("helvetica", size=self.honorar_font_size)
 
         with self.table(cell_fill_color=230, cell_fill_mode="ROWS",
-                         line_height=1.7 * self.font_size,
-                         text_align=('CENTER', 'CENTER', 'LEFT', 'RIGHT', 'LEFT'),
-                         col_widths=(10, 8, 70, 10, 3)) as table:
+                        line_height=1.7 * self.font_size,
+                        text_align=('CENTER', 'CENTER', 'LEFT', 'RIGHT', 'LEFT'),
+                        col_widths=(10, 8, 70, 10, 3)) as table:
             for data_row in self.TABLE_DATA_2:
                 row = table.row()
                 for index, datum in enumerate(data_row):
@@ -3043,8 +3160,8 @@ class HpRechnung(PDF):
         self.cell(190, 0, border=1, center=True)
 
         with self.table(borders_layout='NONE', col_widths=(10, 8, 70, 10, 3), line_height=1.7 * self.font_size,
-                         text_align=('CENTER', 'LEFT', 'RIGHT', 'RIGHT', 'LEFT'),
-                         cell_fill_color=180, cell_fill_mode="NONE", first_row_as_headings=False) as table:
+                        text_align=('CENTER', 'LEFT', 'RIGHT', 'RIGHT', 'LEFT'),
+                        cell_fill_color=180, cell_fill_mode="NONE", first_row_as_headings=False) as table:
             for data_row in self.TABLE_DATA_3:
                 row = table.row()
                 for index, datum in enumerate(data_row):
@@ -3067,7 +3184,7 @@ class HpRechnung(PDF):
             dummy.write(6.5, txt='\u00a0 ')
             dummy.set_font("helvetica", size=self.normal_font_size)
             dummy.write(6.5,
-                       txt='innerhalb von 14 Tagen unter Angabe der Rechnungsnummer auf unten stehendes Konto zu überweisen.')
+                        txt='innerhalb von 14 Tagen unter Angabe der Rechnungsnummer auf unten stehendes Konto zu überweisen.')
             dummy.ln(13)
             dummy.write(txt='Mit freundlichen Grüßen')
             dummy.ln(10)
@@ -3082,7 +3199,7 @@ class HpRechnung(PDF):
         self.write(6.5, txt='\u00a0 ')
         self.set_font("helvetica", size=self.normal_font_size)
         self.write(6.5,
-                    txt='innerhalb von 14 Tagen unter Angabe der Rechnungsnummer auf unten stehendes Konto zu überweisen.')
+                   txt='innerhalb von 14 Tagen unter Angabe der Rechnungsnummer auf unten stehendes Konto zu überweisen.')
         self.ln(13)
         self.write(txt='Mit freundlichen Grüßen')
         self.ln(10)
@@ -3096,6 +3213,7 @@ class HpRechnung(PDF):
 
 if __name__ == "__main__":
     app = App()
+
     # HpRechnung(1, ['FIMA', 'Mann', 'Fischbach', 'Matti', 'Schulgasse', '9', '86923', 'Finning', '29.11.2004', '10',
     #                'Dr. Moser', 'matti.fischbach@web.de', 'KG'], 'FIMA232323', '23.23.23', 20,
     #            [['23.23.23\n ', '100.0\n100.1', 'Allgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\n', '12000,50\n12000,50'],
