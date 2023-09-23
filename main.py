@@ -12,7 +12,6 @@ import ast
 import urllib.request
 from urllib.error import URLError, HTTPError
 import threading
-from queue import Queue
 
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
