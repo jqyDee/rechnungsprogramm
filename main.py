@@ -113,7 +113,7 @@ class App(customtkinter.CTk):
         self.bottom_nav = BottomNav(self)
 
         self.running = True
-        threading.Thread(target=self.check_for_program_update).start()
+        threading.Thread(target=self.check_for_program_update, daemon=True).start()
 
         self.mainloop()
 
@@ -148,13 +148,14 @@ class App(customtkinter.CTk):
                 with open('./system/tmp/version.txt.tmp', 'r') as f:
                     if f.readlines()[0].replace('\n', '') != self.version:
                         logging.info('Program version not up to date')
-                        self.sidebar.button_7.pack(padx=20, pady=(10, 20), side='bottom', fill='x')
-                        threading.Thread(target=self.check_for_updater_update).start()
+                        self.sidebar.button_5.configure(fg_color='red')
+                        self.update_available = True
+                        threading.Thread(target=self.check_for_updater_update, daemon=True).start()
                         self.read_version_tmp = True
                         break
                     else:
                         logging.info('Program version up to date')
-                        threading.Thread(target=self.check_for_updater_update).start()
+                        threading.Thread(target=self.check_for_updater_update, daemon=True).start()
                         self.read_version_tmp = True
                         break
 
@@ -238,7 +239,7 @@ class App(customtkinter.CTk):
                                                                       'heruntergeladen!'):
             return
         else:
-            self.sidebar.button_7.configure(state='disabled')
+            self.einstellungen_interface.update_button.configure(state='disabled')
 
         def check_update_status(queue, updater):
             updater.start()
@@ -256,10 +257,15 @@ class App(customtkinter.CTk):
                         print(f)
 
                     if all(data):
-                        self.sidebar.button_7.pack_forget()
+                        self.sidebar.button_5.configure(fg_color='#1f538d')
+                        try:
+                            self.einstellungen_interface.update_button.configure(state='disabled', fg_color='#1f538d')
+                        except AttributeError:
+                            pass
                         break
                     else:
-                        self.sidebar.button_7.configure(state='normal')
+                        self.sidebar.button_5.configure(fg_color='red')
+                        self.update_available = True
 
                     if not data[0]:
                         self.sidebar.label_3.pack(padx=20, pady=(10, 20), ipadx=5, ipady=5, side='bottom', fill='x')
@@ -277,7 +283,7 @@ class App(customtkinter.CTk):
         queue = multiprocessing.Queue()
         updater = multiprocessing.Process(target=Updater, args=[queue, ])
 
-        threading.Thread(target=check_update_status, args=[queue, updater, ]).start()
+        threading.Thread(target=check_update_status, args=[queue, updater, ], daemon=True).start()
 
     def check_or_create_working_dirs(self):
         """Runs at startup and checks the necessary Directories to run the Program. HAS TO BE MOVED TO BACKEND"""
@@ -558,8 +564,6 @@ class Sidebar(customtkinter.CTkFrame):
                                               fg_color='orange', text_color='black')
         self.label_5 = customtkinter.CTkLabel(self, text="Updater Error\nCouldn't read main.py.\nTry again later",
                                               fg_color='orange', text_color='black')
-        self.button_7 = customtkinter.CTkButton(self, text='Update', fg_color='red',
-                                                command=lambda: self.parent.update_())
         self.button_6 = customtkinter.CTkButton(self, text='clear screen',
                                                 command=lambda: self.parent.clear_interfaces())
         self.button_5 = customtkinter.CTkButton(self, text='Einstellungen',
@@ -2057,9 +2061,15 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         # 'kuerzel-rechnungsdatum' section
         self.frame_1 = customtkinter.CTkFrame(self, fg_color='gray16')
         self.heading_2 = customtkinter.CTkLabel(self.frame_1, text='General', font=small_heading)
-        self.change_year_label = customtkinter.CTkLabel(self.frame_1, text='Programmjahr ändern')
-        self.change_year_button = customtkinter.CTkButton(self.frame_1, text='Ändern',
+        self.change_year_label = customtkinter.CTkLabel(self.frame_1, text='Programmjahr:')
+        self.change_year_button = customtkinter.CTkButton(self.frame_1, text='Ändern', width=20,
                                                           command=lambda: self.parent.updateyear_interface())
+
+        self.update_button = customtkinter.CTkButton(self.frame_1, text='Update', width=10,
+                                                     command=lambda: self.parent.update_(), state='disabled')
+        if self.parent.update_available:
+            self.update_button.configure(state='normal', fg_color='red')
+
         self.show_dev_options_label = customtkinter.CTkLabel(self.frame_1, text='Erweiterte Optionen anzeigen')
         self.advanced_options_switch = customtkinter.CTkSwitch(self.frame_1, text='', variable=self.frame_1_switch_var,
                                                                onvalue='on', offvalue='off',
@@ -2088,13 +2098,14 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.separator_1.pack(fill='x', expand=False)
 
         # 'kuerzel-rechnungsdatum' section
-        self.frame_1.grid_columnconfigure(2, weight=1)
+        self.frame_1.grid_columnconfigure(3, weight=1)
         self.frame_1.pack(fill='x', expand=False, pady=(15, 15), padx=20)
         self.heading_2.grid(row=0, column=0, padx=10, pady=4, columnspan=2, sticky='w')
         self.change_year_label.grid(row=1, column=0, padx=10, pady=4, sticky='w')
         self.change_year_button.grid(row=1, column=1, padx=10, pady=4, sticky='w')
-        self.show_dev_options_label.grid(row=1, column=2, padx=10, pady=4, sticky='e')
-        self.advanced_options_switch.grid(row=1, column=3, padx=10, pady=4, sticky='e')
+        self.update_button.grid(row=1, column=2, padx=(100, 10), pady=4, sticky='w')
+        self.show_dev_options_label.grid(row=1, column=3, padx=10, pady=4, sticky='e')
+        self.advanced_options_switch.grid(row=1, column=4, padx=10, pady=4, sticky='e')
 
         # Separator
         self.separator_2.pack(fill='x', expand=False)
