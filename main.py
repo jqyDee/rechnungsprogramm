@@ -12,6 +12,7 @@ import ast
 import urllib.request
 from urllib.error import URLError, HTTPError
 import threading
+import multiprocessing
 
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
@@ -96,6 +97,9 @@ class App(customtkinter.CTk):
     # currently active interface
     open_interface = None
 
+    # request time.sleep
+    sleep_time = 30
+
     def __init__(self):
         super().__init__()
 
@@ -113,8 +117,15 @@ class App(customtkinter.CTk):
 
         self.mainloop()
 
+    def __del__(self):
+        self.running = False
+        if os.path.exists('./system/tmp/version.txt.tmp'):
+            os.remove('./system/tmp/version.txt.tmp')
+
     def check_for_program_update(self):
-        while self.running:
+        i = 0
+        while self.running and i < 10:
+            i += 1
             if not os.path.exists('./system/tmp/'):
                 os.makedirs('./system/tmp/')
 
@@ -125,10 +136,12 @@ class App(customtkinter.CTk):
                 urllib.request.urlretrieve('https://ffischh.de/version.txt', './system/tmp/version.txt.tmp')
             except HTTPError as e:
                 logging.error('Error code: ', e.code)
-                time.sleep(60)
+                time.sleep(self.sleep_time)
+                self.read_version_tmp = False
             except URLError as e:
                 logging.error('Reason: ', e.reason)
-                time.sleep(60)
+                time.sleep(self.sleep_time)
+                self.read_version_tmp = False
             else:
                 logging.info('HTTP request good!')
 
@@ -137,14 +150,22 @@ class App(customtkinter.CTk):
                         logging.info('Program version not up to date')
                         self.sidebar.button_7.pack(padx=20, pady=(10, 20), side='bottom', fill='x')
                         threading.Thread(target=self.check_for_updater_update).start()
+                        self.read_version_tmp = True
                         break
                     else:
                         logging.info('Program version up to date')
                         threading.Thread(target=self.check_for_updater_update).start()
+                        self.read_version_tmp = True
                         break
 
+        if not self.read_version_tmp:
+            self.sidebar.label_1.pack(padx=20, pady=(10, 20), ipadx=5, ipady=5, side='bottom', fill='x')
+
     def check_for_updater_update(self):
-        while self.running:
+        i = 0
+        while self.running and i < 10:
+            i += 1
+
             if not os.path.exists('./system/updater/'):
                 os.makedirs('./system/updater/')
 
@@ -161,10 +182,12 @@ class App(customtkinter.CTk):
                             urllib.request.urlretrieve(str(file[3]), './system/tmp/updater.py')
                         except HTTPError as e:
                             logging.error('Error code: ', e.code)
-                            time.sleep(60)
+                            time.sleep(self.sleep_time)
+                            self.installed_updater_updates = False
                         except URLError as e:
                             logging.error('Reason: ', e.reason)
-                            time.sleep(60)
+                            time.sleep(self.sleep_time)
+                            self.installed_updater_updates = False
                         else:
                             logging.info('HTTP request good!')
 
@@ -172,10 +195,12 @@ class App(customtkinter.CTk):
                                 os.remove('./system/updater/updater.py')
                                 shutil.move('./system/tmp/updater.py', './system/updater/updater.py')
 
+                            self.installed_updater_updates = True
                             break
 
                     else:
                         logging.info('Updater version up to date')
+                        self.installed_updater_updates = True
                         break
 
                 except NameError:
@@ -186,11 +211,13 @@ class App(customtkinter.CTk):
                     except HTTPError as e:
                         # do something
                         logging.error('Error code: ', e.code)
-                        time.sleep(60)
+                        time.sleep(self.sleep_time)
+                        self.installed_updater_updates = False
                     except URLError as e:
                         # do something
                         logging.error('Reason: ', e.reason)
-                        time.sleep(60)
+                        time.sleep(self.sleep_time)
+                        self.installed_updater_updates = False
                     else:
                         # do something
                         logging.info('HTTP request good!')
@@ -199,14 +226,58 @@ class App(customtkinter.CTk):
                             shutil.move('./system/tmp/updater.py', './system/updater/updater.py')
 
                         logging.info('Updater Installed')
+                        self.installed_updater_updates = True
                         break
 
+        if not self.installed_updater_updates:
+            self.sidebar.label_2.pack(padx=20, pady=(10, 20), ipadx=5, ipady=5, side='bottom', fill='x')
+
     def update_(self):
-        logging.info('Updater started')
+        logging.info('Update initiated')
+        if not messagebox.askyesno('Soll Update heruntergeladen werden?', 'Beim fortfahren wird ein neues Update '
+                                                                      'heruntergeladen!'):
+            return
+        else:
+            self.sidebar.button_7.configure(state='disabled')
 
-        subprocess.Popen([sys.executable, f'{os.getcwd()}/system/updater/updater.py', self.version])
+        def check_update_status(queue, updater):
+            updater.start()
+            queue.put(self.version)
 
-        self.sidebar.button_7.pack_forget()
+            while self.running:
+                if not queue.empty():
+                    data = queue.get(block=False)
+
+                    try:
+                        self.sidebar.label_3.pack_forget()
+                        self.sidebar.label_4.pack_forget()
+                        self.sidebar.label_5.pack_forget()
+                    except Exception as f:
+                        print(f)
+
+                    if all(data):
+                        self.sidebar.button_7.pack_forget()
+                        break
+                    else:
+                        self.sidebar.button_7.configure(state='normal')
+
+                    if not data[0]:
+                        self.sidebar.label_3.pack(padx=20, pady=(10, 20), ipadx=5, ipady=5, side='bottom', fill='x')
+
+                    if not data[1]:
+                        self.sidebar.label_4.pack(padx=20, pady=(10, 20), ipadx=5, ipady=5, side='bottom', fill='x')
+
+                    if not data[2]:
+                        self.sidebar.label_5.pack(padx=20, pady=(10, 20), ipadx=5, ipady=5, side='bottom', fill='x')
+                else:
+                    time.sleep(2)
+            updater.join()
+            sys.exit()
+
+        queue = multiprocessing.Queue()
+        updater = multiprocessing.Process(target=Updater, args=[queue, ])
+
+        threading.Thread(target=check_update_status, args=[queue, updater, ]).start()
 
     def check_or_create_working_dirs(self):
         """Runs at startup and checks the necessary Directories to run the Program. HAS TO BE MOVED TO BACKEND"""
@@ -477,6 +548,16 @@ class Sidebar(customtkinter.CTkFrame):
         self.button_3 = customtkinter.CTkButton(self, text='Stammdateien', command=lambda: self.parent.stammdaten_())
         self.button_4 = customtkinter.CTkButton(self, text='Rechnungen',
                                                 command=lambda: self.parent.rechnung_loeschen())
+        self.label_1 = customtkinter.CTkLabel(self, text="Couln't reach server\nand check version!", fg_color='orange',
+                                              text_color='black')
+        self.label_2 = customtkinter.CTkLabel(self, text="Couln't reach server and\nupdate version! Try again later!",
+                                              fg_color='orange', text_color='black')
+        self.label_3 = customtkinter.CTkLabel(self, text="Updater Error\nCouldn't read version.txt.\nTry again later!",
+                                              fg_color='orange', text_color='black')
+        self.label_4 = customtkinter.CTkLabel(self, text="Updater Error\nCouldn't read requirements.txt.\nTry again later",
+                                              fg_color='orange', text_color='black')
+        self.label_5 = customtkinter.CTkLabel(self, text="Updater Error\nCouldn't read main.py.\nTry again later",
+                                              fg_color='orange', text_color='black')
         self.button_7 = customtkinter.CTkButton(self, text='Update', fg_color='red',
                                                 command=lambda: self.parent.update_())
         self.button_6 = customtkinter.CTkButton(self, text='clear screen',
