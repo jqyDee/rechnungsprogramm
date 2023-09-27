@@ -42,31 +42,6 @@ default_font = ('Arial', 15, "normal")
 small_heading = ('Arial', 18, "bold")
 large_heading = ('Arial', 28, "bold")
 
-try:
-    search_img = customtkinter.CTkImage(light_image=Image.open('./system/components/images/search-md.png'),
-                                        dark_image=Image.open('./system/components/images/search-md.png'),
-                                        size=(15, 15))
-except FileNotFoundError:
-    search_img = None
-try:
-    open_img = customtkinter.CTkImage(light_image=Image.open('./system/components/images/cursor-01.png'),
-                                      dark_image=Image.open('./system/components/images/cursor-01.png'),
-                                      size=(15, 15))
-except FileNotFoundError:
-    open_img = None
-try:
-    edit_img = customtkinter.CTkImage(light_image=Image.open('./system/components/images/edit-05.png'),
-                                      dark_image=Image.open('./system/components/images/edit-05.png'),
-                                      size=(15, 15))
-except FileNotFoundError:
-    edit_img = None
-try:
-    trash_img = customtkinter.CTkImage(light_image=Image.open('./system/components/images/trash-03.png'),
-                                       dark_image=Image.open('./system/components/images/trash-03.png'),
-                                       size=(15, 15))
-except FileNotFoundError:
-    trash_img = None
-
 
 class App(customtkinter.CTk):
     """Class creating the main window. Responsible for calling the class
@@ -96,6 +71,15 @@ class App(customtkinter.CTk):
 
     # currently active interface
     open_interface = None
+
+    # default update_availability
+    update_available = False
+
+    # default image values
+    search_img = None
+    open_img = None
+    edit_img = None
+    trash_img = None
 
     # request time.sleep
     sleep_time = 30
@@ -316,6 +300,34 @@ class App(customtkinter.CTk):
                         requests.append(True)
                 else:
                     requests.append(True)
+
+        self.import_images()
+
+    def import_images(self):
+        try:
+            self.search_img = customtkinter.CTkImage(light_image=Image.open('./system/components/images/search-md.png'),
+                                                dark_image=Image.open('./system/components/images/search-md.png'),
+                                                size=(15, 15))
+        except FileNotFoundError:
+            self.search_img = None
+        try:
+            self.open_img = customtkinter.CTkImage(light_image=Image.open('./system/components/images/cursor-01.png'),
+                                              dark_image=Image.open('./system/components/images/cursor-01.png'),
+                                              size=(15, 15))
+        except FileNotFoundError:
+            self.open_img = None
+        try:
+            self.edit_img = customtkinter.CTkImage(light_image=Image.open('./system/components/images/edit-05.png'),
+                                              dark_image=Image.open('./system/components/images/edit-05.png'),
+                                              size=(15, 15))
+        except FileNotFoundError:
+            self.edit_img = None
+        try:
+            self.trash_img = customtkinter.CTkImage(light_image=Image.open('./system/components/images/trash-03.png'),
+                                               dark_image=Image.open('./system/components/images/trash-03.png'),
+                                               size=(15, 15))
+        except FileNotFoundError:
+            self.trash_img = None
 
     def check_or_create_working_dirs(self):
         """Runs at startup and checks the necessary Directories to run the Program. HAS TO BE MOVED TO BACKEND"""
@@ -1373,7 +1385,7 @@ class StammdatenInterface(customtkinter.CTkFrame):
                                                                    command=lambda x: self.aktualisieren_event(x))
         self.segmented_button_1.set('Alle')
         self.aktualisieren_button = customtkinter.CTkButton(self.frame_1, width=20, text='suchen',
-                                                            image=search_img,
+                                                            image=self.parent.search_img,
                                                             command=lambda: self.aktualisieren_event())
 
         # Separator
@@ -1447,11 +1459,11 @@ class StammdatenInterface(customtkinter.CTkFrame):
                                                                                   f'{self.parent.stammdaten_location}/{i}')))))),
                             customtkinter.CTkLabel(self.row_frames[index + 1], text=''),
                             customtkinter.CTkButton(self.row_frames[index + 1], width=20,
-                                                    text='öffnen', image=open_img),
+                                                    text='öffnen', image=self.parent.open_img),
                             customtkinter.CTkButton(self.row_frames[index + 1], width=20,
-                                                    text='bearbeiten', image=edit_img),
+                                                    text='bearbeiten', image=self.parent.edit_img),
                             customtkinter.CTkButton(self.row_frames[index + 1], width=20,
-                                                    text='löschen', image=trash_img)]
+                                                    text='löschen', image=self.parent.trash_img)]
 
             self.rows_2d_array.append(row_1d_array)
 
@@ -1764,7 +1776,7 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
                                                                    command=lambda x: self.aktualisieren_event(x))
         self.segmented_button_1.set('Alle')
         self.aktualisieren_button = customtkinter.CTkButton(self.frame_1, width=20, text='suchen',
-                                                            image=search_img,
+                                                            image=self.parent.search_img,
                                                             command=lambda: self.aktualisieren_event())
 
         # Separator
@@ -1838,11 +1850,11 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
                                                                                   f'{i}')))))),
                             customtkinter.CTkLabel(self.row_frames[index + 1], text=''),
                             customtkinter.CTkButton(self.row_frames[index + 1], width=20,
-                                                    text='öffnen', image=open_img),
+                                                    text='öffnen', image=self.parent.open_img),
                             customtkinter.CTkButton(self.row_frames[index + 1], width=20,
-                                                    text='bearbeiten', image=edit_img),
+                                                    text='bearbeiten', image=self.parent.edit_img),
                             customtkinter.CTkButton(self.row_frames[index + 1], width=20,
-                                                    text='löschen', image=trash_img)]
+                                                    text='löschen', image=self.parent.trash_img)]
 
             self.rows_2d_array.append(row_1d_array)
 
