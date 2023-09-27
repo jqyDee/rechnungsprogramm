@@ -12,6 +12,7 @@
 # except
 !main.py
 !README.md
+!setup.py
 !.gitignore
 !/system/components/**
 !/system/updater/updater.py
