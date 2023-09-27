@@ -297,6 +297,8 @@ class App(customtkinter.CTk):
             for item in data[6:]:
                 item.replace('\n', '')
                 item = item.split()
+                if not os.path.exists(os.path.dirname(item[0])):
+                    os.makedirs(os.path.dirname(item[0]))
                 if not os.path.exists(item[0]):
                     try:
                         urllib.request.urlretrieve(item[1], item[0])
