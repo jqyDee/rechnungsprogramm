@@ -113,7 +113,7 @@ class App(customtkinter.CTk):
         self.bottom_nav = BottomNav(self)
 
         self.running = True
-        threading.Thread(target=self.check_for_program_update, daemon=True).start()
+        threading.Thread(target=self.read_version_file, daemon=True).start()
 
         self.mainloop()
 
@@ -122,7 +122,7 @@ class App(customtkinter.CTk):
         if os.path.exists('./system/tmp/version.txt.tmp'):
             os.remove('./system/tmp/version.txt.tmp')
 
-    def check_for_program_update(self):
+    def read_version_file(self):
         i = 0
         while self.running and i < 10:
             i += 1
@@ -146,16 +146,19 @@ class App(customtkinter.CTk):
                 logging.info('HTTP request good!')
 
                 with open('./system/tmp/version.txt.tmp', 'r') as f:
-                    if f.readlines()[0].replace('\n', '') != self.version:
+                    data = f.readlines()
+                    if data[0].replace('\n', '') != self.version:
                         logging.info('Program version not up to date')
                         self.sidebar.button_5.configure(fg_color='red')
                         self.update_available = True
                         threading.Thread(target=self.check_for_updater_update, daemon=True).start()
+                        threading.Thread(target=self.download_components, args=(data, ), daemon = True).start()
                         self.read_version_tmp = True
                         break
                     else:
                         logging.info('Program version up to date')
                         threading.Thread(target=self.check_for_updater_update, daemon=True).start()
+                        threading.Thread(target=self.download_components, args=(data, ), daemon = True).start()
                         self.read_version_tmp = True
                         break
 
@@ -284,6 +287,33 @@ class App(customtkinter.CTk):
         updater = multiprocessing.Process(target=Updater, args=[queue, ])
 
         threading.Thread(target=check_update_status, args=[queue, updater, ], daemon=True).start()
+
+    def download_components(self, data):
+        i = 0
+        requests = [False, '']
+        while self.running and i < 10 and not all(requests):
+            i += 1
+            requests.clear()
+            for item in data[6:]:
+                item.replace('\n', '')
+                item = item.split()
+                if not os.path.exists(item[0]):
+                    try:
+                        urllib.request.urlretrieve(item[1], item[0])
+                    except HTTPError as e:
+                        logging.error('Error code: ', e.code)
+                        time.sleep(self.sleep_time)
+                        requests.append(False)
+
+                    except URLError as e:
+                        logging.error('Reason: ', e.reason)
+                        time.sleep(self.sleep_time)
+                        requests.append(False)
+                    else:
+                        logging.info('HTTP request good!')
+                        requests.append(True)
+                else:
+                    requests.append(True)
 
     def check_or_create_working_dirs(self):
         """Runs at startup and checks the necessary Directories to run the Program. HAS TO BE MOVED TO BACKEND"""
