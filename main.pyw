@@ -91,6 +91,9 @@ class App(customtkinter.CTk):
         self.protocol("WM_DELETE_WINDOW", lambda: self.on_shutdown())
 
         self.check_or_create_working_dirs()
+        logging.debug(
+            f'____________________________ Program Started at {time.strftime("%H:%M:%S")} ____________________________')
+
         self.configure_main_window()
 
         self.sidebar = Sidebar(self)
@@ -105,6 +108,8 @@ class App(customtkinter.CTk):
         self.running = False
         if os.path.exists('./system/tmp/version.txt.tmp'):
             os.remove('./system/tmp/version.txt.tmp')
+        logging.debug(
+            f'____________________________ Program Ended at {time.strftime("%H:%M:%S")} ____________________________\n\n\n\n')
 
     def read_version_file(self):
         i = 0
@@ -370,26 +375,35 @@ class App(customtkinter.CTk):
             self.behandlungsarten_limit = properties_dict['behandlungsarten_limit']
             self.backups_enabled = properties_dict['backups_enabled']
 
+        if not os.path.exists('./system/logs/'):
+            os.makedirs('./system/logs/')
+
         if self.debug_mode:
-            logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+            file_handler = logging.FileHandler(filename=f'./system/logs/{time.strftime("%Y%m%d")}.log')
+            stderr_handler = logging.StreamHandler(stream=sys.stderr)
+
+            logging.basicConfig(format='%(msecs)dms at %(asctime)s -> %(name)s:%(levelname)s:  %(message)s',
+                                datefmt='%H:%M:%S',
+                                level=logging.DEBUG,
+                                handlers=[file_handler, stderr_handler])
         else:
             logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
         logging.debug('App.check_or_create_working_dirs() called')
         if created_properties_yml:
             logging.info('created properties.yml file and dir')
-        logging.info(f'read properties.yml file. \n'
-                     f'version: {self.version};\n'
-                     f'year: {self.year};\n'
-                     f'resizable: {self.window_resizable}\n'
-                     f'width: {self.window_width}\n'
-                     f'height: {self.window_height}\n'
-                     f'Debug: {self.debug_mode}\n'
-                     f'behandlungsarten_limiter: {self.behandlungsarten_limiter}\n'
-                     f'behandlungsarten_limit: {self.behandlungsarten_limit}\n'
-                     f'rechnungen_location: {self.rechnungen_location}\n'
-                     f'stammdaten_location: {self.stammdaten_location}\n'
-                     f'backups_enabled: {self.backups_enabled}\n'
+        logging.info(f'read properties.yml file')
+        logging.info(f'version: {self.version}; '
+                     f'year: {self.year}; '
+                     f'resizable: {self.window_resizable}; '
+                     f'width: {self.window_width}; '
+                     f'height: {self.window_height}; '
+                     f'Debug: {self.debug_mode}; '
+                     f'behandlungsarten_limiter: {self.behandlungsarten_limiter}; '
+                     f'behandlungsarten_limit: {self.behandlungsarten_limit}; '
+                     f'rechnungen_location: {self.rechnungen_location}; '
+                     f'stammdaten_location: {self.stammdaten_location}; '
+                     f'backups_enabled: {self.backups_enabled}; '
                      f'backup_location: {self.backup_location}')
 
         if not os.path.exists(f'{self.rechnungen_location}/rechnungen-{self.year}'):
