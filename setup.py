@@ -6,7 +6,7 @@ from urllib.error import URLError, HTTPError
 
 
 class Setup:
-    version = '1.0.0'
+    version = '2.0.0-beta'
     sleep_time = 5
     data = []
 
@@ -55,7 +55,7 @@ class Setup:
 
     def download_main_program(self):
         try:
-            urllib.request.urlretrieve(self.data[1], 'main.py')
+            urllib.request.urlretrieve(self.data[1], 'main.pyw')
         except HTTPError as e:
             logging.error('Error code: ', e.code)
             time.sleep(self.sleep_time)

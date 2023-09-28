@@ -8,7 +8,7 @@ from urllib.error import URLError, HTTPError
 
 
 class Updater:
-    version = '1.0.0'
+    version = '2.0.0-beta'
     sleep_time = 30
     installed_pip = False
     installed_new_version = False
@@ -112,7 +112,7 @@ class Updater:
                 else:
                     logging.info('HTTP request good!')
 
-                    shutil.move('./system/tmp/main.py.tmp', 'main.py')
+                    shutil.move('./system/tmp/main.py.tmp', 'main.pyw')
                     self.installed_new_version = True
                     break
 
