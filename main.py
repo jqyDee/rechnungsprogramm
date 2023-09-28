@@ -472,7 +472,7 @@ class App(customtkinter.CTk):
 
     def rechnung_loeschen(self):
         """Calls the store_draft function and creates the Rechnung Löschen Interface by
-           calling the class RechnungLoeschenInterface"""
+           calling the class RechnungenInterface"""
 
         logging.debug('App.rechnung_loeschen() called')
         if not self.store_draft():
@@ -480,7 +480,7 @@ class App(customtkinter.CTk):
         self.open_interface = 're'
         if self.rechnung_loeschen_interface is None or not self.rechnung_loeschen_interface.winfo_exists():
             self.clear_interfaces()
-            self.rechnung_loeschen_interface = RechnungLoeschenInterface(self)
+            self.rechnung_loeschen_interface = RechnungenInterface(self)
 
     def einstellungen(self):
         """Calls the store_draft function and creates the Einstellungen Interface by
@@ -1733,8 +1733,8 @@ class StammdatenInterface(customtkinter.CTkFrame):
             self.clear_widgets_part_3()
 
 
-class RechnungLoeschenInterface(customtkinter.CTkFrame):
-    """Creating the RechnungLoeschenInterface frame and widgets_part_1 and
+class RechnungenInterface(customtkinter.CTkFrame):
+    """Creating the RechnungenInterface frame and widgets_part_1 and
        updating the list for the first time"""
 
     def __init__(self, parent):
@@ -1754,9 +1754,9 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
         self.aktualisieren_event()
 
     def create_widgets_part_1(self):
-        """Creating the widgets_part_1 of frame/class RechnungLoeschenInterface"""
+        """Creating the widgets_part_1 of frame/class RechnungenInterface"""
 
-        logging.debug('RechnungLoeschenInterface.create_widgets_part_1() called')
+        logging.debug('RechnungenInterface.create_widgets_part_1() called')
 
         # heading section
         self.heading_1 = customtkinter.CTkLabel(self, text='rechnungen Bearbeiten', font=large_heading)
@@ -1783,9 +1783,9 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
         self.separator_2 = tk.ttk.Separator(self, orient='horizontal')
 
     def create_layout_part_1(self):
-        """Creating the layout_part_1 of frame/class RechnungLoeschenInterface"""
+        """Creating the layout_part_1 of frame/class RechnungenInterface"""
 
-        logging.debug('RechnungLoeschenInterface.create_layout_part_1() called')
+        logging.debug('RechnungenInterface.create_layout_part_1() called')
 
         # heading section
         self.heading_1.pack(side='top', fill='x', expand=False, pady=(20, 30), padx=20)
@@ -1806,7 +1806,7 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
         self.separator_2.pack(fill='x', expand=False)
 
     def create_widgets_part_2(self, basepath: str):
-        """Creating the widgets_part_2 of frame/class RechnungLoeschenInterface
+        """Creating the widgets_part_2 of frame/class RechnungenInterface
            -> being called by aktualisieren_event"""
 
         logging.debug('StammdatenInterface.create_widgets_part_2() called')
@@ -1859,7 +1859,7 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
             self.rows_2d_array.append(row_1d_array)
 
     def create_layout_part_2(self, basepath: str, draft: bool):
-        """Creating the layout_part_2 of frame/class RechnungLoeschenInterface
+        """Creating the layout_part_2 of frame/class RechnungenInterface
            -> being called by aktualisieren_event"""
 
         logging.debug('StammdatenInterface.create_layout_part_2() called')
@@ -1969,7 +1969,7 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
         """being called when open button of specific file is pressed and
            opens the respective file."""
 
-        logging.debug(f'RechnungLoeschenInterface.open_rechnung_button_event() called, row={row}')
+        logging.debug(f'RechnungenInterface.open_rechnung_button_event() called, row={row}')
 
         Backend(self).open_file(
             f'{basepath}{self.files_in_dir[row]}')
@@ -1978,7 +1978,7 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
         """being called when edit button of specific file is pressed. Switches to
         KGRechnungInterface and passes values."""
 
-        logging.debug(f'RechnungLoeschenInterface.edit_rechnung_button_event() called, row={row}')
+        logging.debug(f'RechnungenInterface.edit_rechnung_button_event() called, row={row}')
 
         filepath = f'{basepath}{self.files_in_dir[row]}'
         row_count = 0
@@ -2044,7 +2044,7 @@ class RechnungLoeschenInterface(customtkinter.CTkFrame):
         """being called when delete button of specific file is pressed and
            deletes the respective file. After it calls the aktualisieren event."""
 
-        logging.debug(f'RechnungLoeschenInterface.delete_rechnung() called, row={row}')
+        logging.debug(f'RechnungenInterface.delete_rechnung() called, row={row}')
 
         filepath = f'{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/{self.files_in_dir[row]}'
 
@@ -2507,8 +2507,8 @@ class Backend:
         rechnungsdaten = [self.stammdaten[0], self.rechnungsnummer, self.stammdaten[9], 'km', km_insg, 'km',
                           self.gesamtpreis, 'Euro']
         rechnungsdaten.extend(self.dates)
-        rechnungsdaten.extend(self.behandlungsarten)
-        rechnungsdaten.extend(self.einzelpreise)
+        rechnungsdaten.append(self.behandlungsarten)
+        rechnungsdaten.append(self.einzelpreise)
 
         if not self.clean_remove(
                 f'{self.parent.parent.rechnungen_location}/rechnungen-{self.parent.parent.year}/{self.rechnungsnummer}.pdf',
