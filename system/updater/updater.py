@@ -20,13 +20,15 @@ class Updater:
             self.queue.put([self.installed_version_tmp, self.installed_pip, self.installed_new_version])
         else:
             self.queue.put([self.installed_version_tmp, self.installed_pip, self.installed_new_version])
-        logging.info('Updater finished')
+        logging.info('updater.py finished')
 
     def __init__(self, queue):
         self.queue = queue
         self.program_version = self.queue.get(block=False, timeout=10)
 
         logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+
+        logging.info('updater.py started')
 
         self.running = True
 
