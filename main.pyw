@@ -91,7 +91,7 @@ class App(customtkinter.CTk):
         self.protocol("WM_DELETE_WINDOW", lambda: self.on_shutdown())
 
         self.check_or_create_working_dirs()
-        logging.debug(
+        logging.info(
             f'____________________________ Program Started at {time.strftime("%H:%M:%S")} ____________________________')
 
         self.configure_main_window()
@@ -108,7 +108,7 @@ class App(customtkinter.CTk):
         self.running = False
         if os.path.exists('./system/tmp/version.txt.tmp'):
             os.remove('./system/tmp/version.txt.tmp')
-        logging.debug(
+        logging.info(
             f'____________________________ Program Ended at {time.strftime("%H:%M:%S")} ____________________________\n\n\n\n')
 
     def read_version_file(self):
