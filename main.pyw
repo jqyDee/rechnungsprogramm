@@ -108,8 +108,6 @@ class App(customtkinter.CTk):
         self.running = False
         if os.path.exists('./system/tmp/version.txt.tmp'):
             os.remove('./system/tmp/version.txt.tmp')
-        logging.info(
-            f'____________________________ Program Ended at {time.strftime("%H:%M:%S")} ____________________________\n\n\n\n')
 
     def read_version_file(self):
         """fetching version.txt and comparing current program/updater
@@ -278,6 +276,7 @@ class App(customtkinter.CTk):
                         logging.info('update installed succesfully')
 
                         self.sidebar.button_5.configure(fg_color='#1f538d')
+                        self.sidebar.label_6.pack(padx=20, pady=(10, 20), ipadx=5, ipady=5, side='bottom', fill='x')
                         try:
                             self.einstellungen_interface.update_button.configure(state='disabled', fg_color='#1f538d')
                         except AttributeError:
@@ -432,16 +431,19 @@ class App(customtkinter.CTk):
         if not os.path.exists('./system/logs/'):
             os.makedirs('./system/logs/')
 
-        if self.debug_mode:
-            file_handler = logging.FileHandler(filename=f'./system/logs/{time.strftime("%Y%m%d")}.log')
-            stderr_handler = logging.StreamHandler(stream=sys.stderr)
+        file_handler = logging.FileHandler(filename=f'./system/logs/{time.strftime("%Y%m%d")}.log')
+        stderr_handler = logging.StreamHandler(stream=sys.stderr)
 
+        if self.debug_mode:
             logging.basicConfig(format='%(msecs)dms at %(asctime)s -> %(name)s:%(levelname)s:  %(message)s',
                                 datefmt='%H:%M:%S',
                                 level=logging.DEBUG,
                                 handlers=[file_handler, stderr_handler])
         else:
-            logging.basicConfig(stream=sys.stderr, level=logging.INFO)
+            logging.basicConfig(format='%(msecs)dms at %(asctime)s -> %(name)s:%(levelname)s:  %(message)s',
+                                datefmt='%H:%M:%S',
+                                level=logging.INFO,
+                                handlers=[file_handler, stderr_handler])
 
         logging.debug('App.check_or_create_working_dirs() called')
         if created_properties_yml:
@@ -624,6 +626,9 @@ class App(customtkinter.CTk):
 
         self.destroy()
 
+        logging.info(
+            f'____________________________ Program Ended at {time.strftime("%H:%M:%S")} ____________________________\n\n\n\n')
+
     def store_draft(self) -> bool:
         """Calls store_draft in Backend with the Params:
                     open_interface: str = self.open_interface"""
@@ -666,15 +671,17 @@ class Sidebar(customtkinter.CTkFrame):
         self.button_3 = customtkinter.CTkButton(self, text='Stammdateien', command=lambda: self.parent.stammdaten_())
         self.button_4 = customtkinter.CTkButton(self, text='Rechnungen',
                                                 command=lambda: self.parent.rechnung_loeschen())
-        self.label_1 = customtkinter.CTkLabel(self, text="Couln't reach server\nand check version!", fg_color='orange',
+        self.label_1 = customtkinter.CTkLabel(self, text="Couldn't reach server\nand check version!", fg_color='orange',
                                               text_color='black')
-        self.label_2 = customtkinter.CTkLabel(self, text="Couln't reach server and\nupdate version! Try again later!",
+        self.label_2 = customtkinter.CTkLabel(self, text="Couldn't reach server and\nupdate version! Try again later!",
                                               fg_color='orange', text_color='black')
         self.label_3 = customtkinter.CTkLabel(self, text="Updater Error\nCouldn't read version.txt.\nTry again later!",
                                               fg_color='orange', text_color='black')
         self.label_4 = customtkinter.CTkLabel(self, text="Updater Error\nCouldn't read requirements.txt.\nTry again later",
                                               fg_color='orange', text_color='black')
         self.label_5 = customtkinter.CTkLabel(self, text="Updater Error\nCouldn't read main.py.\nTry again later",
+                                              fg_color='orange', text_color='black')
+        self.label_6 = customtkinter.CTkLabel(self, text="Update Installiert!\n\nProgramm muss neugestartet\nwerden damit Änderungen\nsichtbar sind!",
                                               fg_color='orange', text_color='black')
         self.button_6 = customtkinter.CTkButton(self, text='clear screen',
                                                 command=lambda: self.parent.clear_interfaces())
