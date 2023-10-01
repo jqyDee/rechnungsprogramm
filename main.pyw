@@ -29,7 +29,7 @@ except Exception as f:
 #####################################################
 #                                                   #
 #                                                   #
-#               Version Number 2.0.0                #
+#               Version Number 2.1.0                #
 #                                                   #
 #                                                   #
 #####################################################
@@ -48,7 +48,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.0.0-beta'
+    version = '2.1.0-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -60,6 +60,8 @@ class App(customtkinter.CTk):
     stammdaten_location = f'{os.getcwd()}/stammdaten'
     backups_enabled = True
     backup_location = f'{os.getcwd()}/backups'
+    logs_enabled = True
+    logs_location = f'{os.getcwd()}/system/logs'
 
     # interfaces
     kg_interface = None
@@ -409,7 +411,9 @@ class App(customtkinter.CTk):
                      'stammdaten_location': self.stammdaten_location,
                      'behandlungsarten_limiter': self.behandlungsarten_limiter,
                      'behandlungsarten_limit': self.behandlungsarten_limit,
-                     'backups_enabled': self.backups_enabled}, f)
+                     'backups_enabled': self.backups_enabled,
+                     'logs_enabled': self.logs_enabled,
+                     'logs_location': self.logs_location}, f)
 
             created_properties_yml = True
 
@@ -427,23 +431,37 @@ class App(customtkinter.CTk):
             self.behandlungsarten_limiter = properties_dict['behandlungsarten_limiter']
             self.behandlungsarten_limit = properties_dict['behandlungsarten_limit']
             self.backups_enabled = properties_dict['backups_enabled']
+            self.logs_enabled = properties_dict['logs_enabled']
+            self.logs_location = properties_dict['logs_location']
 
         if not os.path.exists('./system/logs/'):
             os.makedirs('./system/logs/')
 
-        file_handler = logging.FileHandler(filename=f'./system/logs/{time.strftime("%Y%m%d")}.log')
+        self.file_handler = logging.FileHandler(filename=f'{self.logs_location}/{time.strftime("%Y%m%d")}.log')
         stderr_handler = logging.StreamHandler(stream=sys.stderr)
 
         if self.debug_mode:
-            logging.basicConfig(format='%(msecs)dms at %(asctime)s -> %(name)s:%(levelname)s:  %(message)s',
-                                datefmt='%H:%M:%S',
-                                level=logging.DEBUG,
-                                handlers=[file_handler, stderr_handler])
+            if self.logs_enabled:
+                logging.basicConfig(format='%(msecs)dms at %(asctime)s -> %(name)s:%(levelname)s:  %(message)s',
+                                    datefmt='%H:%M:%S',
+                                    level=logging.DEBUG,
+                                    handlers=[self.file_handler, stderr_handler])
+            else:
+                logging.basicConfig(format='%(msecs)dms at %(asctime)s -> %(name)s:%(levelname)s:  %(message)s',
+                                    datefmt='%H:%M:%S',
+                                    level=logging.DEBUG,
+                                    handlers=[stderr_handler])
         else:
-            logging.basicConfig(format='%(msecs)dms at %(asctime)s -> %(name)s:%(levelname)s:  %(message)s',
-                                datefmt='%H:%M:%S',
-                                level=logging.INFO,
-                                handlers=[file_handler, stderr_handler])
+            if self.logs_enabled:
+                logging.basicConfig(format='%(msecs)dms at %(asctime)s -> %(name)s:%(levelname)s:  %(message)s',
+                                    datefmt='%H:%M:%S',
+                                    level=logging.INFO,
+                                    handlers=[self.file_handler, stderr_handler])
+            else:
+                logging.basicConfig(format='%(msecs)dms at %(asctime)s -> %(name)s:%(levelname)s:  %(message)s',
+                                    datefmt='%H:%M:%S',
+                                    level=logging.INFO,
+                                    handlers=[stderr_handler])
 
         logging.debug('App.check_or_create_working_dirs() called')
         if created_properties_yml:
@@ -2161,11 +2179,16 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
             self.frame_3_switch_var_3 = tk.StringVar(value='on')
         else:
             self.frame_3_switch_var_3 = tk.StringVar(value='off')
+        if self.parent.logs_enabled:
+            self.frame_3_switch_var_4 = tk.StringVar(value='on')
+        else:
+            self.frame_3_switch_var_4 = tk.StringVar(value='off')
 
         self.frame_3_behandlungsarten_limit = tk.StringVar(value=f'{self.parent.behandlungsarten_limit}')
         self.frame_3_rechnungen_location_var = tk.StringVar(value=f'{self.parent.rechnungen_location}/')
         self.frame_3_stammdaten_location_var = tk.StringVar(value=f'{self.parent.stammdaten_location}/')
         self.frame_3_backup_folder_location_var = tk.StringVar(value=f'{self.parent.backup_location}/')
+        self.frame_3_logs_folder_location_var = tk.StringVar(value=f'{self.parent.logs_location}')
 
         self.create_widgets_part_1()
         self.create_layout_part_1()
@@ -2198,16 +2221,17 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
 
         # Separator
         self.separator_2 = tk.ttk.Separator(self, orient='horizontal')
+        self.separator_3 = tk.ttk.Separator(self, orient='horizontal')
 
         # About section
         self.frame_2 = customtkinter.CTkFrame(self, fg_color='gray16')
         self.heading_3 = customtkinter.CTkLabel(self.frame_2, text='About', font=small_heading)
         self.about_text_label = customtkinter.CTkLabel(self.frame_2, text=f'Rechnungsprogramm\n\n'
-                                                                          f'Version Number {self.parent.version}\n\n'
+                                                                          f'Version Number: {self.parent.version}\n\n'
                                                                           f'Copyright 2023 | Matti Fischbach')
 
         # Separator
-        self.separator_3 = tk.ttk.Separator(self, orient='horizontal')
+        self.separator_4 = tk.ttk.Separator(self, orient='horizontal')
 
     def create_layout_part_1(self):
         logging.debug('EinstellungInterface.create_layout_part_1() called')
@@ -2230,6 +2254,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
 
         # Separator
         self.separator_2.pack(fill='x', expand=False)
+        self.separator_3.pack(fill='x', expand=False, pady=(40, 0))
 
         # About section
         self.frame_2.grid_columnconfigure(0, weight=1)
@@ -2238,7 +2263,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.about_text_label.grid(row=1, column=0, padx=10, pady=4, sticky='ew')
 
         # Separator
-        self.separator_3.pack(fill='x', expand=False)
+        self.separator_4.pack(fill='x', expand=False)
 
     def create_widgets_part_2(self):
         logging.debug('EinstellungInterface.create_widgets_part_2() called')
@@ -2264,13 +2289,13 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.behandlungsarten_limit_label = customtkinter.CTkLabel(self.frame_3, text='Limit =')
         self.behandlungsarten_limit_entry = customtkinter.CTkEntry(self.frame_3, width=30,
                                                                    textvariable=self.frame_3_behandlungsarten_limit,
-                                                                   validate='key', validatecommand=(
-                self.register(self.behandlungsarten_limit_validation), '%P'))
+                                                                   validate='key',
+                                                                   validatecommand=(self.register(self.behandlungsarten_limit_validation), '%P'))
         if self.frame_3_switch_var_2.get() == 'off':
             self.behandlungsarten_limit_entry.configure(state='disabled', fg_color='gray16')
 
         # Separator
-        self.separator_4 = tk.ttk.Separator(self.frame_3, orient='horizontal')
+        self.separator_5 = tk.ttk.Separator(self.frame_3, orient='horizontal')
 
         # rechnungen location section
         self.rechnungen_location_label = customtkinter.CTkLabel(self.frame_3,
@@ -2290,6 +2315,9 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.stammdaten_location_button = customtkinter.CTkButton(self.frame_3, text='öffnen',
                                                                   command=lambda: self.edit_dirs('stammdaten_location'))
 
+        # Separator
+        self.separator_6 = tk.ttk.Separator(self.frame_3, orient='horizontal')
+
         # Backups enabled and location section
         self.backups_enabled_label = customtkinter.CTkLabel(self.frame_3, text='Backups erstellen?')
         self.backups_enabled_switch = customtkinter.CTkSwitch(self.frame_3, text='', variable=self.frame_3_switch_var_3,
@@ -2303,7 +2331,19 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                                                               command=lambda: self.edit_dirs('backups_location'))
 
         # Separator
-        self.separator_5 = tk.ttk.Separator(self.frame_3, orient='horizontal')
+        self.separator_7 = tk.ttk.Separator(self.frame_3, orient='horizontal')
+
+        # Logs erstellen und location setzen
+        self.logs_enabled_label = customtkinter.CTkLabel(self.frame_3, text='Log speichern?')
+        self.logs_enabled_switch = customtkinter.CTkSwitch(self.frame_3, text='', variable=self.frame_3_switch_var_4,
+                                                              onvalue='on', offvalue='off',
+                                                              command=lambda: self.edit_dirs('logs_enabled'))
+        self.log_location_label = customtkinter.CTkLabel(self.frame_3, text='Log folder location:')
+        self.log_location_entry = customtkinter.CTkEntry(self.frame_3,
+                                                            textvariable=self.frame_3_logs_folder_location_var,
+                                                            state='disabled', fg_color='gray16')
+        self.log_location_button = customtkinter.CTkButton(self.frame_3, text='öffnen',
+                                                              command=lambda: self.edit_dirs('logs_location'))
 
     def create_layout_part_2(self):
         logging.debug('EinstellungInterface.create_layout_part_2() called')
@@ -2315,13 +2355,13 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.debug_mode_label.grid(row=1, column=0, padx=10, pady=4, sticky='w')
         self.debug_mode_switch.grid(row=1, column=1, padx=10, pady=4, sticky='w')
 
-        self.disable_behandlungsarten_limit_label.grid(row=2, column=0, padx=10, pady=(4, 20), sticky='w')
-        self.disable_behandlungsarten_limit_switch.grid(row=2, column=1, padx=10, pady=(4, 20), sticky='w')
-        self.behandlungsarten_limit_label.grid(row=2, column=1, padx=(100, 10), pady=(4, 20), sticky='w')
-        self.behandlungsarten_limit_entry.grid(row=2, column=1, padx=150, pady=(4, 20), sticky='w')
+        self.disable_behandlungsarten_limit_label.grid(row=2, column=0, padx=10, pady=4, sticky='w')
+        self.disable_behandlungsarten_limit_switch.grid(row=2, column=1, padx=10, pady=4, sticky='w')
+        self.behandlungsarten_limit_label.grid(row=2, column=1, padx=(100, 10), pady=4, sticky='w')
+        self.behandlungsarten_limit_entry.grid(row=2, column=1, padx=150, pady=4, sticky='w')
 
         # Separator
-        self.separator_4.grid(row=3, column=0, columnspan=10, pady=20, sticky='ew')
+        self.separator_5.grid(row=3, column=0, columnspan=10, pady=20, sticky='ew')
 
         self.rechnungen_location_label.grid(row=4, column=0, padx=10, pady=4, sticky='w')
         self.rechnungen_location_entry.grid(row=4, column=1, padx=10, pady=4, sticky='ew')
@@ -2332,21 +2372,36 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.stammdaten_location_entry.grid(row=5, column=1, padx=10, pady=4, sticky='ew')
         self.stammdaten_location_button.grid(row=5, column=2, padx=10, pady=4, sticky='w')
 
-        self.backups_enabled_label.grid(row=6, column=0, padx=10, pady=(20, 4), sticky='w')
-        self.backups_enabled_switch.grid(row=6, column=1, padx=10, pady=(20, 4), sticky='w')
-        self.backup_location_label.grid(row=7, column=0, padx=10, pady=4, sticky='w')
-        self.backup_location_entry.grid(row=7, column=1, padx=10, pady=4, sticky='ew')
-        self.backup_location_button.grid(row=7, column=2, padx=10, pady=4, sticky='w')
+        # Separator
+        self.separator_6.grid(row=6, column=0, columnspan=10, pady=20, sticky='ew')
+
+        self.backups_enabled_label.grid(row=7, column=0, padx=10, pady=4, sticky='w')
+        self.backups_enabled_switch.grid(row=7, column=1, padx=10, pady=4, sticky='w')
+        self.backup_location_label.grid(row=8, column=0, padx=10, pady=4, sticky='w')
+        self.backup_location_entry.grid(row=8, column=1, padx=10, pady=4, sticky='ew')
+        self.backup_location_button.grid(row=8, column=2, padx=10, pady=4, sticky='w')
 
         # Separator
-        self.separator_5.grid(row=8, column=0, columnspan=10, pady=20, sticky='ew')
+        self.separator_7.grid(row=9, column=0, columnspan=10, pady=20, sticky='ew')
+
+        self.logs_enabled_label.grid(row=10, column=0, padx=10, pady=4, sticky='w')
+        self.logs_enabled_switch.grid(row=10, column=1, padx=10, pady=4, sticky='w')
+        self.log_location_label.grid(row=11, column=0, padx=10, pady=4, sticky='w')
+        self.log_location_entry.grid(row=11, column=1, padx=10, pady=4, sticky='ew')
+        self.log_location_button.grid(row=11, column=2, padx=10, pady=4, sticky='w')
 
     def advanced_options_switch_event(self):
         logging.debug('EinstellungInterface.advanced_options_switch_event() called')
 
         if self.frame_1_switch_var.get() == 'on':
+            self.frame_2.pack_forget()
+            self.separator_3.pack_forget()
+            self.separator_4.pack_forget()
             self.create_widgets_part_2()
             self.create_layout_part_2()
+            self.separator_3.pack(fill='x', expand=False, pady=(40, 0))
+            self.frame_2.pack(fill='x', expand=False, pady=(15, 15), padx=20)
+
         elif self.frame_1_switch_var.get() == 'off':
             self.frame_3.destroy()
 
@@ -2943,6 +2998,39 @@ class Backend:
                     yaml.dump(properties_dict, f)
             else:
                 self.parent.parent.check_or_create_working_dirs()
+        elif kind == 'logs_enabled':
+            if self.parent.frame_3_switch_var_3.get() == 'off':
+                self.parent.parent.logs_enabled = False
+            else:
+                self.parent.parent.logs_enabled = True
+
+            if os.path.exists('./system/properties.yml'):
+                with open('./system/properties.yml', 'r') as a:
+                    properties_dict = yaml.safe_load(a)
+                    properties_dict['logs_enabled'] = self.parent.parent.logs_enabled
+                with open('./system/properties.yml', 'w') as f:
+                    yaml.dump(properties_dict, f)
+            else:
+                self.parent.parent.check_or_create_working_dirs()
+        elif kind == 'logs_location':
+            dirpath = tk.filedialog.askdirectory(title='Backups Filepath', initialdir='./', )
+            if dirpath == '':
+                return
+            else:
+                for i in os.listdir(self.parent.parent.logs_location):
+                    os.remove(f'{self.parent.parent.logs_location}/{i}')
+
+                self.parent.parent.logs_location = dirpath
+                if os.path.exists('./system/properties.yml'):
+                    with open('./system/properties.yml', 'r') as a:
+                        properties_dict = yaml.safe_load(a)
+                        properties_dict['logs_location'] = self.parent.parent.logs_location
+                    with open('./system/properties.yml', 'w') as f:
+                        yaml.dump(properties_dict, f)
+                    self.parent.frame_3_logs_folder_location_var.set(f'{self.parent.parent.logs_location}/')
+                else:
+                    self.parent.parent.check_or_create_working_dirs()
+                return logging.info('backups location changed successfully')
 
     def create_backup(self):
         logging.debug('Backend.create_backup() called')
