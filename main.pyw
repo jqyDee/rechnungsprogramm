@@ -437,7 +437,7 @@ class App(customtkinter.CTk):
         if not os.path.exists('./system/logs/'):
             os.makedirs('./system/logs/')
 
-        self.file_handler = logging.FileHandler(filename=f'{self.logs_location}/{time.strftime("%Y%m%d")}.log')
+        self.file_handler = logging.FileHandler(filename=f'{self.logs_location}/{time.strftime("%Y%m%d")}.log', mode='a')
         stderr_handler = logging.StreamHandler(stream=sys.stderr)
 
         if self.debug_mode:
@@ -455,7 +455,7 @@ class App(customtkinter.CTk):
             if self.logs_enabled:
                 logging.basicConfig(format='%(msecs)dms at %(asctime)s -> %(name)s:%(levelname)s:  %(message)s',
                                     datefmt='%H:%M:%S',
-                                    level=logging.INFO,
+                                    level=logging.DEBUG,
                                     handlers=[self.file_handler, stderr_handler])
             else:
                 logging.basicConfig(format='%(msecs)dms at %(asctime)s -> %(name)s:%(levelname)s:  %(message)s',
@@ -3001,7 +3001,7 @@ class Backend:
             else:
                 self.parent.parent.check_or_create_working_dirs()
         elif kind == 'logs_enabled':
-            if self.parent.frame_3_switch_var_3.get() == 'off':
+            if self.parent.frame_3_switch_var_4.get() == 'off':
                 self.parent.parent.logs_enabled = False
             else:
                 self.parent.parent.logs_enabled = True
