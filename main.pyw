@@ -26,15 +26,11 @@ try:
 except Exception as f:
     print(f)
 
-#####################################################
-#                                                   #
-#                                                   #
-#               Version Number 2.1.0-beta           #
-#                                                   #
-#                                                   #
+
 #####################################################
 #           Copyright Matti Fischbach 2023          #
 #####################################################
+
 
 customtkinter.set_appearance_mode("dark")
 customtkinter.set_default_color_theme("dark-blue")
@@ -48,7 +44,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.2.0-beta'
+    version = '2.2.2-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -262,6 +258,7 @@ class App(customtkinter.CTk):
             queue.put(self.version)
 
             while self.running:
+                time.sleep(5)
                 logging.debug('checking if queue has value')
                 if not queue.empty():
                     logging.debug('queue has value; fetching data')
@@ -301,7 +298,6 @@ class App(customtkinter.CTk):
                         self.sidebar.label_5.pack(padx=20, pady=(10, 20), ipadx=5, ipady=5, side='bottom', fill='x')
                 else:
                     logging.debug('queue is empty; sleeping 2s')
-                    time.sleep(2)
 
             logging.debug('joining process')
             updater.join()
