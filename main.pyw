@@ -29,7 +29,7 @@ except Exception as f:
 #####################################################
 #                                                   #
 #                                                   #
-#               Version Number 2.1.0                #
+#               Version Number 2.1.0-beta           #
 #                                                   #
 #                                                   #
 #####################################################
@@ -2209,6 +2209,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.change_year_button = customtkinter.CTkButton(self.frame_1, text='Ändern', width=20,
                                                           command=lambda: self.parent.updateyear_interface())
 
+        self.update_label = customtkinter.CTkLabel(self.frame_1, text='Update:')
         self.update_button = customtkinter.CTkButton(self.frame_1, text='Update', width=10,
                                                      command=lambda: self.parent.update_(), state='disabled')
         if self.parent.update_available:
@@ -2243,14 +2244,15 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.separator_1.pack(fill='x', expand=False)
 
         # 'kuerzel-rechnungsdatum' section
-        self.frame_1.grid_columnconfigure(3, weight=1)
+        self.frame_1.grid_columnconfigure(2, weight=1)
         self.frame_1.pack(fill='x', expand=False, pady=(15, 15), padx=20)
         self.heading_2.grid(row=0, column=0, padx=10, pady=4, columnspan=2, sticky='w')
         self.change_year_label.grid(row=1, column=0, padx=10, pady=4, sticky='w')
         self.change_year_button.grid(row=1, column=1, padx=10, pady=4, sticky='w')
-        self.update_button.grid(row=1, column=2, padx=(100, 10), pady=4, sticky='w')
-        self.show_dev_options_label.grid(row=1, column=3, padx=10, pady=4, sticky='e')
-        self.advanced_options_switch.grid(row=1, column=4, padx=10, pady=4, sticky='e')
+        self.update_label.grid(row=2, column=0, padx=10, pady=4, sticky='w')
+        self.update_button.grid(row=2, column=1, padx=10, pady=4, sticky='w')
+        self.show_dev_options_label.grid(row=1, column=2, padx=10, pady=4, sticky='e')
+        self.advanced_options_switch.grid(row=1, column=3, padx=10, pady=4, sticky='e')
 
         # Separator
         self.separator_2.pack(fill='x', expand=False)
