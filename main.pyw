@@ -1123,7 +1123,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
         logging.info('class HPRechnungInterface() called')
 
         self.parent = parent
-        self.parent.bottom_nav.bottom_nav_button.configure(command=lambda: print('Creating HP Rechnung'))
+        self.parent.bottom_nav.bottom_nav_button.configure(command=lambda: self.validate_hp_entrys())
 
         self.configure(fg_color='gray16', corner_radius=0)
 
@@ -1433,6 +1433,175 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
 
         # removing row from row_frame
         self.row_frames.pop(-1)
+
+    def validate_hp_entrys(self):
+        logging.debug('HPRechnungInterface.validate_hp_entrys() called')
+
+        self.parent.bottom_nav.bottom_nav_warning.configure(text='')
+
+        # validate kuerzel + getting stammdaten
+        if len(self.kuerzel_entry.get()) == 4:
+            if os.path.exists(f'{self.parent.stammdaten_location}/{self.kuerzel_entry.get()}.txt'):
+                with open(f'{self.parent.stammdaten_location}/{self.kuerzel_entry.get()}.txt', 'r') as f:
+                    self.stammdaten = f.readlines()
+                    for i, line in enumerate(self.stammdaten):
+                        self.stammdaten[i] = line.replace('\n', '')
+            else:
+                logging.warning(f'kuerzel not found, check code and check kuerzel')
+                messagebox.showwarning('Kürzel Warning', 'Kürzel/Stammdatei nicht gefunden. Versuche es erneut!')
+                self.parent.bottom_nav.bottom_nav_warning.configure(
+                    text=f'Kürzel/Stammdatei nicht gefunden. Versuche es erneut!', fg_color='red')
+                return False
+        logging.debug(f'stammdaten: {self.stammdaten}')
+
+        # validate rechnungsdatum
+        if re.match("(^0[1-9]|[12][0-9]|3[01]).(0[1-9]|1[0-2]).(\d{2}$)", self.rechnungsdatum_entry.get()):
+            self.rechnungsdatum = self.rechnungsdatum_entry.get()
+        else:
+            self.rechnungsdatum_entry.select_range(0, tk.END)
+            logging.info('rechnungsdatum not formatted correctly: mm.dd.yy')
+            self.parent.bottom_nav.bottom_nav_warning.configure(
+                text=f'Rechnungsdatum nicht richtig formatiert: dd.mm.yy', fg_color='red')
+            return False
+        logging.debug(f'rechnungsdatum: {self.rechnungsdatum}')
+
+        # validate Behandlungsdaten
+        self.behandlungsdaten = []
+        self.gesamtpreis = 0
+        for index_1, i in enumerate(self.rows_2d_array):
+            if index_1 == 0:
+                continue
+            row = []
+            lengths = []
+            for index_2, a in enumerate(i):
+                if index_2 in (0, 2, 4, 6):
+                    data = list(filter(None, a.get('0.0', 'end').split()))
+                    if index_2 == 0:
+                        if len(data) != 1:
+                            return self.parent.bottom_nav.bottom_nav_warning.configure(
+                                    text=f'Es wurde in Reihe {index_1} mehr/weniger als 1 Datum eingegeben', fg_color='red')
+                        if not re.match("(^0[1-9]|[12][0-9]|3[01]).(0[1-9]|1[0-2]).(\d{2}$)", data[0]):
+                            return self.parent.bottom_nav.bottom_nav_warning.configure(
+                                    text=f'Datum in Reihe {index_1} nicht richtig formatiert: dd.m.yy', fg_color='red')
+                        data[0] += '\n'
+                        row.extend(data)
+                    if index_2 == 2:
+                        if len(data) == 0:
+                            return self.parent.bottom_nav.bottom_nav_warning.configure(
+                                text=f'Keine Daten in Reihe {index_1} eingegeben!', fg_color='red')
+                        lengths.append(len(data))
+                        data = '\n'.join(data)
+                        row.append(data)
+                    if index_2 == 4:
+                        for i in lengths:
+                            if i != len(data):
+                                return self.parent.bottom_nav.bottom_nav_warning.configure(
+                                    text=f'Die eingegebenen Datenanzahl stimmt nicht mit den anderen in Reihe '
+                                         f'{index_1} überein', fg_color='red')
+                        lengths.append(len(data))
+                        data = '\n'.join(data)
+                        row.append(data)
+                    if index_2 == 6:
+                        for i in lengths:
+                            if i != len(data):
+                                return self.parent.bottom_nav.bottom_nav_warning.configure(
+                                    text=f'Die eingegebenen Datenanzahl stimmt nicht mit den anderen in Reihe '
+                                         f'{index_1} überein', fg_color='red')
+                        lengths.append(len(data))
+                        for index_3, i in enumerate(data):
+                            try:
+                                i = float(i)
+                            except ValueError:
+                                logging.debug(f'Preis {index_3} in Reihe {index_1} not convertable to float')
+                                return self.parent.bottom_nav.bottom_nav_warning.configure(
+                                    text=f'Einzelpreis {index_3} in Reihe {index_1} keine Zahl: {i} -> z.B. 3.40',
+                                    fg_color='red')
+                            self.gesamtpreis += i
+                        data = '\n'.join(data)
+                        row.append(data)
+
+            self.behandlungsdaten.append(row)
+
+        logging.debug(f'behandlungdaten: {self.behandlungsdaten}')
+        logging.debug(f'self.gesamtpreis: {self.gesamtpreis}')
+
+        # validate Diagnose
+        self.diagnose = self.diagnose_textbox.get('0.0', 'end')
+        logging.debug(f'diagnose: {self.diagnose}')
+
+        # validate Stammdatei
+        for index, i in enumerate(self.stammdaten):
+            if index == 9:
+                try:
+                    float(i)
+                except ValueError:
+                    logging.debug(f'Stammdatei/Kilometer zu Fahren has non float convertible value, exiting')
+                    self.parent.bottom_nav.bottom_nav_warning.configure(
+                        text=f'Stammdatei - Kilometer keine Zahl: -> z.B. 3.40 oder 10; Ändern unter stammdaten!',
+                        fg_color='red')
+                    return False
+            if i == '':
+                if index == 8:
+                    pass
+                else:
+                    logging.debug(f'Stammdatei has no value in line {index + 1}, exiting')
+                    self.parent.bottom_nav.bottom_nav_warning.configure(
+                        text=f'Stammdatei hat keinen Wert in Linie {index + 1}. Stammdatei überprüfen!',
+                        fg_color='red')
+                    return False
+            logging.debug(f'Stammdatei[{index}]: {i}')
+
+        self.parent.bottom_nav.bottom_nav_warning.configure(fg_color='transparent')
+
+        if not self.store_hp_data():
+            self.parent.parent.bottom_nav.bottom_nav_warning.configure(
+                text=f'Rechnung wurde nicht überschrieben!',
+                fg_color='orange')
+            return False
+        else:
+            if self.create_hp_pdf():
+                return True
+
+    def store_hp_data(self):
+        logging.debug('HPRechnungInterface.store_hp_data() called')
+
+        # validate Rechnungsnummer
+        self.rechnungsnummer = f'{self.stammdaten[0]}{self.rechnungsdatum.replace(".", "")}H'
+        logging.debug(f'rechnungsnummer: {self.rechnungsnummer}')
+
+        # calculating km total
+        km_insg = 2 * float(self.stammdaten[9]) * float(len(self.rows_2d_array) - 1)
+        logging.debug(f'km insgesamt: {km_insg}')
+
+        rechnungsdaten = [self.stammdaten[0], self.rechnungsnummer, self.stammdaten[9], 'km', km_insg, 'km',
+                          self.gesamtpreis, 'Euro']
+        rechnungsdaten.extend(self.behandlungsdaten)
+
+        if not Backend(self).clean_remove(
+                f'{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/{self.rechnungsnummer}.pdf',
+                f'{self.rechnungsnummer}.pdf'):
+            return False
+        else:
+            with open(
+                    f'{self.parent.rechnungen_location}/rechnungen-csv/rechnungen-{self.parent.year}.csv',
+                    'a',
+                    newline='') as f:
+                csvfile = csv.writer(f, delimiter=';')
+                csvfile.writerow(rechnungsdaten)
+                logging.info('wrote new line in RechnungenInsgesamt')
+            return True
+
+    def create_hp_pdf(self):
+        logging.debug('Backend.create_kg_pdf() called')
+
+        filepath = f'{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/{self.rechnungsnummer}.pdf'
+
+        HpRechnung(self.stammdaten, self.rechnungsnummer, self.rechnungsdatum, self.gesamtpreis,
+                   self.behandlungsdaten, self.diagnose, filepath)
+
+        # PDF Öffnen
+        Backend(self).open_file(filepath)
+        return True
 
 
 class StammdatenInterface(customtkinter.CTkFrame):
@@ -3287,13 +3456,12 @@ class HpRechnung(PDF):
     honorar_font_size = 10
     rechnungsempfaenger_offset = 4
 
-    def __init__(self, parent, stammdaten: list, rechnungsnummer: str, rechnungsdatum: str, gesamtpreis: float,
-                 rechnungsdaten: list, diagnose: str):
+    def __init__(self, stammdaten: list, rechnungsnummer: str, rechnungsdatum: str, gesamtpreis: float,
+                 rechnungsdaten: list, diagnose: str, filepath: str):
         super().__init__(rechnungsnummer)
-        self.parent = parent
 
         self.prepare_data(stammdaten, rechnungsnummer, rechnungsdatum, gesamtpreis, rechnungsdaten, diagnose)
-        self.create_pages()
+        self.create_pages(filepath)
 
     def prepare_data(self, stammdaten, rechnungsnummer, rechnungsdatum, gesamtpreis, rechnungsdaten,
                      diagnose):
@@ -3317,8 +3485,11 @@ class HpRechnung(PDF):
         self.TABLE_DATA_1.append([self.kuerzel, rechnungsnummer, rechnungsdatum])
 
         for index, i in enumerate(rechnungsdaten):
-            print(i)
-            i.append('\u00a0')
+            length = len(list(filter(None, i[3].split())))
+            col_5 = []
+            for a in range(length):
+                col_5.append('\u00a0\n')
+            i.insert(4, ''.join(col_5))
             self.TABLE_DATA_2.append(i)
 
         self.gesamtpreis = f'{round(float(gesamtpreis), 2):.2f}'.replace('.', ',')
@@ -3330,7 +3501,7 @@ class HpRechnung(PDF):
         print(self.TABLE_DATA_2)
         print(self.TABLE_DATA_3)
 
-    def create_pages(self):
+    def create_pages(self, filepath):
         self.add_page()
         self.set_margin(25)
         self.set_top_margin(10)
@@ -3386,10 +3557,10 @@ class HpRechnung(PDF):
             dummy.ln(15)
             if self.mafr == 'Mann':
                 dummy.write(txt=f'Sehr geehrter Herr {self.nachname},\n\n'
-                                'hiermit erlaube ich mir, für meine Bemühungen folgendes Honorar zu berechnen:')
+                                f'hiermit erlaube ich mir, für meine Bemühungen folgendes Honorar zu berechnen:')
             if self.mafr == 'Frau':
                 dummy.write(txt=f'Sehr geehrte Frau {self.nachname},\n\n'
-                                'hiermit erlaube ich mir, für meine Bemühungen folgendes Honorar zu berechnen:')
+                                f'hiermit erlaube ich mir, für meine Bemühungen folgendes Honorar zu berechnen:')
             dummy.ln(7)
             dummy.set_font("helvetica", size=self.honorar_font_size)
 
@@ -3448,7 +3619,7 @@ class HpRechnung(PDF):
 
         with self.table(cell_fill_color=230, cell_fill_mode="ROWS",
                         line_height=1.7 * self.font_size,
-                        text_align=('CENTER', 'CENTER', 'LEFT', 'RIGHT', 'LEFT'),
+                        text_align=('CENTER', 'RIGHT', 'LEFT', 'RIGHT', 'LEFT'),
                         col_widths=(10, 8, 70, 10, 3)) as table:
             for data_row in self.TABLE_DATA_2:
                 row = table.row()
@@ -3507,18 +3678,8 @@ class HpRechnung(PDF):
         self.ln(10)
         self.write(txt='Mervi Fischbach')
 
-        # export_filepath = f'{self.parent.parent.parent.rechnungen_location}/rechnungen-{self.parent.parent.parent.year}/{self.rechnungsnummer}H.pdf'
-        export_filepath = './--sample-files/hprechnung2.pdf'
-        self.output(export_filepath)
-        return export_filepath
+        self.output(filepath)
 
 
 if __name__ == "__main__":
     app = App()
-
-    # HpRechnung(1, ['FIMA', 'Mann', 'Fischbach', 'Matti', 'Schulgasse', '9', '86923', 'Finning', '29.11.2004', '10',
-    #                'Dr. Moser', 'matti.fischbach@web.de', 'KG'], 'FIMA232323', '23.23.23', 20,
-    #            [['23.23.23\n ', '100.0\n100.1', 'Allgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\n', '12000,50\n12000,50'],
-    #             ['23.23.23\n ', '100.0\n100.1', 'Allgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\n', '12000,50\n12000,50'],
-    #             ['23.23.23\n ', '100.0\n100.1', 'Allgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\nAllgemeine Untersuchung\n', '12000,50\n12000,50']]
-    #            , 'Hallo was geht ab Freunde ich schriebe jetzt hier einen langen text um zu schauen ob sich der text wrapped')
