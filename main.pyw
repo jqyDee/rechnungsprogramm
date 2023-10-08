@@ -44,7 +44,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.2.2-beta'
+    version = '2.3.0-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -3233,10 +3233,9 @@ class PDF(FPDF):
         self.rechnungsnummer = rechnungsnummer
 
     def header(self):
-        self.set_top_margin(10)
         # Logo
         try:
-            self.image(x=15, y=10, name='./system/components/images/logo.png', w=18, alt_text='Logo')
+            self.image(x=22, y=20, name='./system/components/images/logo.png', w=18, alt_text='Logo')
         except FileNotFoundError:
             pass
         self.set_font('helvetica', 'B', 14)
@@ -3257,7 +3256,7 @@ class PDF(FPDF):
     # Page footer
     def footer(self):
         # Position at 1.5 cm from bottom
-        self.set_y(-15)
+        self.set_y(-25)
         # helvetica italic 8
         self.set_font('helvetica', 'B', 8)
         self.cell(0, 5, 'Bankverbindung ING Diba', align='C')
@@ -3283,6 +3282,8 @@ class KgRechnung(PDF):
                  einzelpreise: list):
         super().__init__(rechnungsnummer)
         self.parent = parent
+
+        self.set_margins(17, 20, 17)
 
         self.prepare_data(stammdaten, rechnungsnummer, rechnungsdatum, gesamtpreis, rechnungsdaten,
                           rechnungsdaten_anzahl, behandlungsarten, einzelpreise)
@@ -3352,7 +3353,7 @@ class KgRechnung(PDF):
         self.write(txt=f'{self.plz} {self.ort}\n')
         self.ln(27)
 
-        self.cell(190, 0, border=1, center=True)
+        self.cell(176, 0, border=1, center=True)
         self.set_font("helvetica", size=self.normal_font_size)
         with self.table(borders_layout='NONE', line_height=1.5 * self.font_size,
                         text_align=('LEFT', 'CENTER', 'RIGHT')) as table:
@@ -3360,7 +3361,7 @@ class KgRechnung(PDF):
                 row = table.row()
                 for datum in data_row:
                     row.cell(datum)
-        self.cell(190, 0, border=1, center=True)
+        self.cell(176, 0, border=1, center=True)
         self.ln(5)
 
         self.set_font("helvetica", style='B', size=self.normal_font_size)
@@ -3408,7 +3409,7 @@ class KgRechnung(PDF):
                     else:
                         row.cell(datum)
 
-        self.cell(190, 0, border=1, center=True)
+        self.cell(176, 0, border=1, center=True)
         with self.table(borders_layout='NONE', col_widths=(9, 70, 12, 14, 3), line_height=1.7 * self.font_size,
                         text_align=('CENTER', 'RIGHT', 'RIGHT', 'RIGHT', 'LEFT'),
                         cell_fill_color=180, cell_fill_mode="NONE", first_row_as_headings=False) as table:
@@ -3456,6 +3457,8 @@ class HpRechnung(PDF):
                  rechnungsdaten: list, diagnose: str, filepath: str):
         super().__init__(rechnungsnummer)
 
+        self.set_margins(17, 20, 17)
+
         self.prepare_data(stammdaten, rechnungsnummer, rechnungsdatum, gesamtpreis, rechnungsdaten, diagnose)
         self.create_pages(filepath)
 
@@ -3499,10 +3502,6 @@ class HpRechnung(PDF):
 
     def create_pages(self, filepath):
         self.add_page()
-        self.set_margin(25)
-        self.set_top_margin(10)
-        self.set_left_margin(10)
-        self.set_right_margin(10)
 
         self.set_font("helvetica", size=7)
         self.cell(self.rechnungsempfaenger_offset)
@@ -3523,7 +3522,7 @@ class HpRechnung(PDF):
         self.write(txt=f'{self.plz} {self.ort}\n')
         self.ln(27)
 
-        self.cell(190, 0, border=1, center=True)
+        self.cell(176, 0, border=1, center=True)
         self.set_font("helvetica", size=self.normal_font_size)
         with self.table(borders_layout='NONE', line_height=1.5 * self.font_size,
                         text_align=('LEFT', 'CENTER', 'RIGHT')) as table:
@@ -3531,7 +3530,7 @@ class HpRechnung(PDF):
                 row = table.row()
                 for datum in data_row:
                     row.cell(datum)
-        self.cell(190, 0, border=1, center=True)
+        self.cell(176, 0, border=1, center=True)
         self.ln(5)
 
         self.set_font("helvetica", style='B', size=self.normal_font_size)
@@ -3626,7 +3625,7 @@ class HpRechnung(PDF):
                         self.set_font("helvetica", style='', size=self.honorar_font_size)
                     else:
                         row.cell(datum)
-        self.cell(190, 0, border=1, center=True)
+        self.cell(176, 0, border=1, center=True)
 
         with self.table(borders_layout='NONE', col_widths=(10, 8, 70, 10, 3), line_height=1.7 * self.font_size,
                         text_align=('CENTER', 'LEFT', 'RIGHT', 'RIGHT', 'LEFT'),
