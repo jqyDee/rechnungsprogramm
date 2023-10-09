@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.4.0-beta'
+    version = '2.4.2-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -1966,8 +1966,6 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
         self.rechnungsdatum_entry.delete(0, tk.END)
         self.rechnungsdatum_entry.insert(0, f'{data[1][4:6]}.{data[1][6:8]}.{data[1][8:10]}')
 
-        print(data)
-
         # checks the amount of given entrys of behandlungsarten
         row_count = len(data[8])
 
@@ -1980,7 +1978,9 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
             else:
                 break
 
-        for index_1, i in enumerate(self.rows_2d_array[1:]):
+        for index_1, i in enumerate(self.rows_2d_array):
+            if index_1 == 0:
+                continue
             index = 0
             for index_2, a in enumerate(i):
                 if index_2 in (0, 2, 4, 6):
