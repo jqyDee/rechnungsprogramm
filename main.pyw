@@ -3383,7 +3383,7 @@ class PDF(FPDF):
     def header(self):
         # Logo
         try:
-            self.image(x=22, y=20, name='./system/components/images/logo.png', w=18, alt_text='Logo')
+            self.image(x=22, y=17, name='./system/components/images/logo.png', w=18, alt_text='Logo')
         except FileNotFoundError:
             pass
         self.set_font('helvetica', 'B', 14)
@@ -3431,7 +3431,7 @@ class KgRechnung(PDF):
         super().__init__(rechnungsnummer)
         self.parent = parent
 
-        self.set_margins(17, 20, 17)
+        self.set_margins(17, 17, 17)
 
         self.prepare_data(stammdaten, rechnungsnummer, rechnungsdatum, gesamtpreis, rechnungsdaten,
                           rechnungsdaten_anzahl, behandlungsarten, einzelpreise)
@@ -3502,7 +3502,7 @@ class KgRechnung(PDF):
         self.write(txt=f'{self.plz} {self.ort}\n')
         self.ln(27)
 
-        self.cell(176, 0, border=1, center=True)
+        self.cell(175, 0, border=1, center=True)
         self.set_font("helvetica", size=self.normal_font_size)
         with self.table(borders_layout='NONE', line_height=1.5 * self.font_size,
                         text_align=('LEFT', 'CENTER', 'RIGHT')) as table:
@@ -3510,7 +3510,7 @@ class KgRechnung(PDF):
                 row = table.row()
                 for datum in data_row:
                     row.cell(datum)
-        self.cell(176, 0, border=1, center=True)
+        self.cell(175, 0, border=1, center=True)
         self.ln(5)
 
         self.set_font("helvetica", style='B', size=self.normal_font_size)
@@ -3558,7 +3558,8 @@ class KgRechnung(PDF):
                     else:
                         row.cell(datum)
 
-        self.cell(176, 0, border=1, center=True)
+        self.ln(1)
+        self.cell(175, 0, border=1, center=True)
         with self.table(borders_layout='NONE', col_widths=(9, 69, 13, 15, 4), line_height=1.7 * self.font_size,
                         text_align=('CENTER', 'RIGHT', 'RIGHT', 'RIGHT', 'LEFT'),
                         cell_fill_color=180, cell_fill_mode="NONE", first_row_as_headings=False) as table:
@@ -3603,7 +3604,7 @@ class HpRechnung(PDF):
                  rechnungsdaten: list, diagnose: str, filepath: str):
         super().__init__(rechnungsnummer)
 
-        self.set_margins(17, 20, 17)
+        self.set_margins(17, 17, 17)
 
         self.prepare_data(stammdaten, rechnungsnummer, rechnungsdatum, gesamtpreis, rechnungsdaten, diagnose)
         self.create_pages(filepath)
@@ -3664,7 +3665,7 @@ class HpRechnung(PDF):
         self.write(txt=f'{self.plz} {self.ort}\n')
         self.ln(27)
 
-        self.cell(176, 0, border=1, center=True)
+        self.cell(175, 0, border=1, center=True)
         self.set_font("helvetica", size=self.normal_font_size)
         with self.table(borders_layout='NONE', line_height=1.5 * self.font_size,
                         text_align=('LEFT', 'CENTER', 'RIGHT')) as table:
@@ -3672,7 +3673,7 @@ class HpRechnung(PDF):
                 row = table.row()
                 for datum in data_row:
                     row.cell(datum)
-        self.cell(176, 0, border=1, center=True)
+        self.cell(175, 0, border=1, center=True)
         self.ln(5)
 
         self.set_font("helvetica", style='B', size=self.normal_font_size)
@@ -3714,6 +3715,7 @@ class HpRechnung(PDF):
                             dummy.set_font("helvetica", style='', size=self.honorar_font_size)
                         else:
                             row.cell(datum)
+            dummy.ln(1)
             dummy.cell(190, 0, border=1, center=True)
 
             # check if page break is triggered by table2
@@ -3767,7 +3769,8 @@ class HpRechnung(PDF):
                         self.set_font("helvetica", style='', size=self.honorar_font_size)
                     else:
                         row.cell(datum)
-        self.cell(176, 0, border=1, center=True)
+        self.ln(1)
+        self.cell(175, 0, border=1, center=True)
 
         with self.table(borders_layout='NONE', col_widths=(10, 8, 70, 10, 4), line_height=1.7 * self.font_size,
                         text_align=('CENTER', 'LEFT', 'RIGHT', 'RIGHT', 'LEFT'),
