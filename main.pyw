@@ -629,7 +629,7 @@ class App(customtkinter.CTk):
 
         self.check_or_create_working_dirs()
 
-        if not Backend(self).create_backup():
+        if not self.create_backup():
             logging.info('No backup created')
         else:
             logging.info('Backup created')
@@ -650,6 +650,21 @@ class App(customtkinter.CTk):
         logging.debug('App.store_draft() called')
 
         return Backend(self).store_draft(self.open_interface)
+
+    def create_backup(self):
+        logging.debug('Backend.create_backup() called')
+
+        if self.backups_enabled:
+            current_date_time = time.strftime('%Y-%m-%d--%H-%M-%S')
+            if not os.path.exists(self.backup_location):
+                os.makedirs(self.backup_location)
+                logging.info(f'created {self.backup_location}')
+            shutil.make_archive(f'{self.backup_location}/backup-rechnungen--{current_date_time}', 'zip',
+                                f'{self.rechnungen_location}/')
+            return True
+        else:
+            return False
+
 
 
 class Sidebar(customtkinter.CTkFrame):
