@@ -26,7 +26,6 @@ try:
 except Exception as f:
     print(f)
 
-
 #####################################################
 #           Copyright Matti Fischbach 2023          #
 #####################################################
@@ -44,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.3.1-beta'
+    version = '2.4.0-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -145,13 +144,13 @@ class App(customtkinter.CTk):
                         self.sidebar.button_5.configure(fg_color='red')
                         self.update_available = True
                         threading.Thread(target=self.check_for_updater_update, daemon=True).start()
-                        threading.Thread(target=self.download_components, args=(data, ), daemon = True).start()
+                        threading.Thread(target=self.download_components, args=(data,), daemon=True).start()
                         self.read_version_tmp = True
                         break
                     else:
                         logging.info('Program version up to date')
                         threading.Thread(target=self.check_for_updater_update, daemon=True).start()
-                        threading.Thread(target=self.download_components, args=(data, ), daemon = True).start()
+                        threading.Thread(target=self.download_components, args=(data,), daemon=True).start()
                         self.read_version_tmp = True
                         break
 
@@ -243,7 +242,7 @@ class App(customtkinter.CTk):
         logging.info('App.update_() called; Program Update initiated')
 
         if not messagebox.askyesno('Soll Update heruntergeladen werden?', 'Beim fortfahren wird ein neues Update '
-                                                                      'heruntergeladen!'):
+                                                                          'heruntergeladen!'):
             logging.debug('Messagebox false')
             return
         else:
@@ -358,29 +357,29 @@ class App(customtkinter.CTk):
 
         try:
             self.search_img = customtkinter.CTkImage(light_image=Image.open('./system/components/images/search-md.png'),
-                                                dark_image=Image.open('./system/components/images/search-md.png'),
-                                                size=(15, 15))
+                                                     dark_image=Image.open('./system/components/images/search-md.png'),
+                                                     size=(15, 15))
         except FileNotFoundError:
             logging.debug("couldn't import search_img")
             self.search_img = None
         try:
             self.open_img = customtkinter.CTkImage(light_image=Image.open('./system/components/images/cursor-01.png'),
-                                              dark_image=Image.open('./system/components/images/cursor-01.png'),
-                                              size=(15, 15))
+                                                   dark_image=Image.open('./system/components/images/cursor-01.png'),
+                                                   size=(15, 15))
         except FileNotFoundError:
             logging.debug("couldn't import open_img")
             self.open_img = None
         try:
             self.edit_img = customtkinter.CTkImage(light_image=Image.open('./system/components/images/edit-05.png'),
-                                              dark_image=Image.open('./system/components/images/edit-05.png'),
-                                              size=(15, 15))
+                                                   dark_image=Image.open('./system/components/images/edit-05.png'),
+                                                   size=(15, 15))
         except FileNotFoundError:
             logging.debug("couldn't import edit_img")
             self.edit_img = None
         try:
             self.trash_img = customtkinter.CTkImage(light_image=Image.open('./system/components/images/trash-03.png'),
-                                               dark_image=Image.open('./system/components/images/trash-03.png'),
-                                               size=(15, 15))
+                                                    dark_image=Image.open('./system/components/images/trash-03.png'),
+                                                    size=(15, 15))
         except FileNotFoundError:
             logging.debug("couldn't import trash_img")
             self.trash_img = None
@@ -433,7 +432,8 @@ class App(customtkinter.CTk):
         if not os.path.exists('./system/logs/'):
             os.makedirs('./system/logs/')
 
-        self.file_handler = logging.FileHandler(filename=f'{self.logs_location}/{time.strftime("%Y%m%d")}.log', mode='a')
+        self.file_handler = logging.FileHandler(filename=f'{self.logs_location}/{time.strftime("%Y%m%d")}.log',
+                                                mode='a')
         stderr_handler = logging.StreamHandler(stream=sys.stderr)
 
         if self.debug_mode:
@@ -515,7 +515,8 @@ class App(customtkinter.CTk):
     def kg_rechnung(self, *args):
         """Calls the store_draft function and creates the interface to create a new KGRechnung by
            calling the class KGRechnungInterface.
-                Param: *args = data out of rechnungen-*.csv or *-DRAFT-*.csv"""
+
+           :type args: data out of rechnungen-*.csv or *-DRAFT-*.csv"""
 
         logging.debug('App.kg_rechnung() called')
         if not self.store_draft():
@@ -530,9 +531,11 @@ class App(customtkinter.CTk):
             except TypeError:
                 pass
 
-    def hp_rechnung(self):
+    def hp_rechnung(self, *args):
         """Calls the store_draft function and creates the interface to create a new HPRechnung by
-           calling the class HPRechnungInterface"""
+           calling the class HPRechnungInterface
+
+           :type args: data out of rechnungen-*.csv or *-DRAFT-*.csv"""
 
         logging.debug('App.hp_rechnung() called')
         if not self.store_draft():
@@ -541,6 +544,11 @@ class App(customtkinter.CTk):
         if self.hp_interface is None or not self.hp_interface.winfo_exists():
             self.clear_interfaces()
             self.hp_interface = HPRechnungInterface(self)
+            try:
+                if len(*args) != 0:
+                    self.hp_interface.insert_data(*args)
+            except TypeError:
+                pass
 
     def stammdaten_(self):
         """Calls the store_draft function and creates the stammdaten Interface by
@@ -732,7 +740,9 @@ class App(customtkinter.CTk):
 
     @staticmethod
     def open_file(filepath):
-        logging.debug('Backend.open_rechnung() called')
+        """opens file in default program of your os"""
+
+        logging.debug('App.open_rechnung() called')
 
         if platform.system() == 'Darwin':  # macOS
             subprocess.call(('open', filepath))
@@ -745,7 +755,9 @@ class App(customtkinter.CTk):
             logging.info('linux: opened file')
 
     def clean_remove(self, filepath, file):
-        logging.debug('Backend.clean_remove() called')
+        """removes rechnungs file and data out of csv file"""
+
+        logging.debug('App.clean_remove() called')
 
         if os.path.exists(filepath):
             if not messagebox.askyesno('Do you want to continue?',
@@ -755,13 +767,17 @@ class App(customtkinter.CTk):
                 return False
             else:
                 logging.debug('Rechnung wird gelöscht')
+                os.remove(filepath)
                 if os.path.exists(
                         f'{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv'):
                     with fileinput.FileInput(
                             f'{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv',
                             inplace=True) as a:
                         for line in a:
-                            if file.replace('.pdf', '') in line:
+                            if line == '':
+                                continue
+                            rechnungsnummer = line.split(';')[1]
+                            if file.replace('.pdf', '') == rechnungsnummer:
                                 print('', end='')
                                 logging.debug('deleted line in RechnungenInsgesamt')
                                 continue
@@ -772,7 +788,7 @@ class App(customtkinter.CTk):
                             f'{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv',
                             'w'):
                         pass
-                os.remove(filepath)
+
         else:
             if os.path.exists(
                     f'{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv'):
@@ -780,7 +796,10 @@ class App(customtkinter.CTk):
                         f'{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv',
                         inplace=True) as a:
                     for line in a:
-                        if file.replace('.pdf', '') in line:
+                        if line == '':
+                            continue
+                        rechnungsnummer = line.split(';')[1]
+                        if file.replace('.pdf', '') == rechnungsnummer:
                             print('', end='')
                             logging.info('deleted line in RechnungenInsgesamt')
                             continue
@@ -844,11 +863,13 @@ class Sidebar(customtkinter.CTkFrame):
                                               fg_color='orange', text_color='black')
         self.label_3 = customtkinter.CTkLabel(self, text="Updater Error\nCouldn't read version.txt.\nTry again later!",
                                               fg_color='orange', text_color='black')
-        self.label_4 = customtkinter.CTkLabel(self, text="Updater Error\nCouldn't read requirements.txt.\nTry again later",
+        self.label_4 = customtkinter.CTkLabel(self,
+                                              text="Updater Error\nCouldn't read requirements.txt.\nTry again later",
                                               fg_color='orange', text_color='black')
         self.label_5 = customtkinter.CTkLabel(self, text="Updater Error\nCouldn't read main.py.\nTry again later",
                                               fg_color='orange', text_color='black')
-        self.label_6 = customtkinter.CTkLabel(self, text="Update Installiert!\n\nProgramm muss neugestartet\nwerden damit Änderungen\nsichtbar sind!",
+        self.label_6 = customtkinter.CTkLabel(self,
+                                              text="Update Installiert!\n\nProgramm muss neugestartet\nwerden damit Änderungen\nsichtbar sind!",
                                               fg_color='orange', text_color='black')
         self.button_6 = customtkinter.CTkButton(self, text='clear screen',
                                                 command=lambda: self.parent.clear_interfaces())
@@ -1270,15 +1291,15 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
                 logging.debug(f'date {index + 1} not formatted correctly, exiting')
                 i.select_range(0, tk.END)
                 self.parent.bottom_nav.bottom_nav_warning.configure(text=f'Datum {index + 1} '
-                                                                                f'nicht richtig formatiert: dd.mm.yy',
-                                                                           fg_color='red')
+                                                                         f'nicht richtig formatiert: dd.mm.yy',
+                                                                    fg_color='red')
                 return False
         if self.datenanzahl == 0:
             if not messagebox.askyesno('Do you want to continue?',
                                        'Keine Behandlungsdaten eingetragen! Trotzdem fortsetzen?'):
                 logging.debug(f'no dates and dont wanting to continue, exiting')
                 self.parent.bottom_nav.bottom_nav_warning.configure(text=f'Rechnung wurde nicht erstellt',
-                                                                           fg_color='orange')
+                                                                    fg_color='orange')
                 return False
         self.dates.extend(empty_dates)
         logging.debug(f'datenanzahl: {self.datenanzahl}')
@@ -1399,8 +1420,8 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
         filepath = f'{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/{self.rechnungsnummer}.pdf'
 
         KgRechnung(self, self.stammdaten, self.rechnungsnummer, self.rechnungsdatum, self.gesamtpreis,
-                              self.dates,
-                              self.datenanzahl, self.behandlungsarten, self.einzelpreise, filepath)
+                   self.dates,
+                   self.datenanzahl, self.behandlungsarten, self.einzelpreise, filepath)
 
         # PDF Öffnen
         self.parent.open_file(filepath)
@@ -1538,7 +1559,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
 
         # table buttons widgets
         self.behandlungsdaten_add_button = customtkinter.CTkButton(self.row_frames[0], text='Hinzufügen',
-                                                                   command=lambda: self.behandlungsdaten_add_button_event())
+                                                                   command=lambda: self.behandlungsdaten_add_event())
         self.behandlungsdaten_delete_button = customtkinter.CTkButton(self.row_frames[0], text='Löschen',
                                                                       state='disabled',
                                                                       command=lambda: self.behandlungsdaten_delete_button_event())
@@ -1700,7 +1721,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                 self.frame_1_warning.configure(text_color='red')
                 return True
 
-    def behandlungsdaten_add_button_event(self):
+    def behandlungsdaten_add_event(self):
         """Adds 1 row to behandlungsdaten"""
 
         logging.debug(f'HPRechnungInterface.behandlungsdaten_add_button_event() called')
@@ -1810,10 +1831,10 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                     if index_2 == 0:
                         if len(data) != 1:
                             return self.parent.bottom_nav.bottom_nav_warning.configure(
-                                    text=f'Es wurde in Reihe {index_1} mehr/weniger als 1 Datum eingegeben', fg_color='red')
+                                text=f'Es wurde in Reihe {index_1} mehr/weniger als 1 Datum eingegeben', fg_color='red')
                         if not re.match("(^0[1-9]|[12][0-9]|3[01]).(0[1-9]|1[0-2]).(\d{2}$)", data[0]):
                             return self.parent.bottom_nav.bottom_nav_warning.configure(
-                                    text=f'Datum in Reihe {index_1} nicht richtig formatiert: dd.m.yy', fg_color='red')
+                                text=f'Datum in Reihe {index_1} nicht richtig formatiert: dd.m.yy', fg_color='red')
                         data[0] += '\n'
                         row.extend(data)
                     if index_2 == 2:
@@ -1858,6 +1879,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
 
         # validate Diagnose
         self.diagnose = self.diagnose_textbox.get('0.0', 'end')
+        self.diagnose.replace('\n', '')
         logging.debug(f'diagnose: {self.diagnose}')
 
         # validate Stammdatei
@@ -1905,8 +1927,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
         logging.debug(f'km insgesamt: {km_insg}')
 
         rechnungsdaten = [self.stammdaten[0], self.rechnungsnummer, self.stammdaten[9], 'km', km_insg, 'km',
-                          self.gesamtpreis, 'Euro']
-        rechnungsdaten.extend(self.behandlungsdaten)
+                          self.gesamtpreis, 'Euro', self.behandlungsdaten, self.diagnose.replace('\n', '')]
 
         if not self.parent.clean_remove(
                 f'{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/{self.rechnungsnummer}.pdf',
@@ -1933,6 +1954,40 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
         # PDF Öffnen
         self.parent.open_file(filepath)
         return True
+
+    def insert_data(self, data: list):
+        """Inserts the data given into the HPRechnungInterface.
+                Params: data: list = data out of rechnungen-*.csv or *-DRAFT-*.csv"""
+
+        logging.debug(f'HPRechnungInterface.insert_data() called')
+
+        # inserts the given kuerzel and rechnungsdatum into the KGRechnungInterface
+        self.kuerzel_entry.insert(0, data[0])
+        self.rechnungsdatum_entry.delete(0, tk.END)
+        self.rechnungsdatum_entry.insert(0, f'{data[1][4:6]}.{data[1][6:8]}.{data[1][8:10]}')
+
+        print(data)
+
+        # checks the amount of given entrys of behandlungsarten
+        row_count = len(data[8])
+
+        # runs the behandlungsdaten_add_event() for the amounf of behandlungsarten
+        while True:
+            if row_count != 1:
+                self.behandlungsdaten_add_event()
+                row_count -= 1
+                continue
+            else:
+                break
+
+        for index_1, i in enumerate(self.rows_2d_array[1:]):
+            index = 0
+            for index_2, a in enumerate(i):
+                if index_2 in (0, 2, 4, 6):
+                    a.insert('0.0', data[8][index_1 - 1][index])
+                    index += 1
+
+        self.diagnose_textbox.insert('0.0', data[-1])
 
 
 class StammdatenInterface(customtkinter.CTkFrame):
@@ -2647,13 +2702,13 @@ class RechnungenInterface(customtkinter.CTkFrame):
         logging.debug(f'RechnungenInterface.edit_rechnung_button_event() called, row={row}')
 
         filepath = f'{basepath}{self.files_in_dir[row]}'
+        path_head_tail = os.path.split(filepath)
         row_count = 0
         data = []
 
         # checks if file is a draft
         if draft:
-            with open(filepath,
-                      newline='') as f:
+            with open(filepath, newline='') as f:
                 csvfile = csv.reader(f, delimiter=';')
                 for index, row_1 in enumerate(csvfile):
                     if index == 0:
@@ -2683,19 +2738,14 @@ class RechnungenInterface(customtkinter.CTkFrame):
 
             if row_count > 1:
                 logging.error(
-                    f'rechnungen-csv Error: rechnungen-{self.parent.year}.csv corruopt. Multiple times Rechnung {self.files_in_dir[row]}!')
+                    f'rechnungen-csv Error: rechnungen-{self.parent.year}.csv corruopt. Rechnung {self.files_in_dir[row]} found multiple times!')
                 return messagebox.showerror('rechnungen-csv Error',
-                                            f'rechnungen-{self.parent.year}.csv korrupt. Mehrfach {self.files_in_dir[row]} gefunden!')
-
-        if '[' in data[18]:
-            data_18 = ast.literal_eval(data[18])
-            data.pop(18)
-            for index, i in enumerate(data_18):
-                data.insert(int(18 + index), str(i))
-            data_end = ast.literal_eval(data[-1])
-            data.pop(-1)
-            for index, i in enumerate(data_end):
-                data.append(str(i))
+                                            f'rechnungen-{self.parent.year}.csv korrupt. {self.files_in_dir[row]} mehrmals gefunden!')
+            elif row_count < 1:
+                logging.error(
+                    f'rechnungen-csv Error: rechnungen-{self.parent.year}.csv corruopt. Rechnung {self.files_in_dir[row]} not found times!')
+                return messagebox.showerror('rechnungen-csv Error',
+                                            f'rechnungen-{self.parent.year}.csv korrupt. {self.files_in_dir[row]} nicht gefunden!')
 
         # checks if stammdatei exists
         if not os.path.exists(f'{self.parent.stammdaten_location}/{data[0]}.txt'):
@@ -2704,7 +2754,33 @@ class RechnungenInterface(customtkinter.CTkFrame):
             return messagebox.showerror('stammdatei Error', f'Stammdatei {data[0]}.txt nicht gefunden. Erneut '
                                                             f'erstellen um Rechnung zu bearbeiten!')
 
-        self.parent.kg_rechnung(data)
+        if os.path.splitext(path_head_tail[1])[0][-1] == 'H':
+            logging.info('editing HPRechnung')
+
+            try:
+                data_8 = ast.literal_eval(data[8])
+                data.pop(8)
+                data.insert(8, data_8)
+            except IndexError:
+                logging.info('There is no Data')
+
+            self.parent.hp_rechnung(data)
+        else:
+            logging.info('editing KGRechnung')
+
+            try:
+                data_18 = ast.literal_eval(data[18])
+                data.pop(18)
+                for index, i in enumerate(data_18):
+                    data.insert(int(18 + index), str(i))
+                data_end = ast.literal_eval(data[-1])
+                data.pop(-1)
+                for index, i in enumerate(data_end):
+                    data.append(str(i))
+            except IndexError:
+                logging.info('There is no Data')
+
+            self.parent.kg_rechnung(data)
 
     def delete_rechnung_button_event(self, row: int, basepath: str):
         """being called when delete button of specific file is pressed and
@@ -2863,7 +2939,8 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.behandlungsarten_limit_entry = customtkinter.CTkEntry(self.frame_3, width=30,
                                                                    textvariable=self.frame_3_behandlungsarten_limit,
                                                                    validate='key',
-                                                                   validatecommand=(self.register(self.behandlungsarten_limit_validation), '%P'))
+                                                                   validatecommand=(self.register(
+                                                                       self.behandlungsarten_limit_validation), '%P'))
         if self.frame_3_switch_var_2.get() == 'off':
             self.behandlungsarten_limit_entry.configure(state='disabled', fg_color='gray16')
 
@@ -2917,8 +2994,8 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                                                            command=lambda: self.edit_property_values('logs_enabled'))
         self.log_location_label = customtkinter.CTkLabel(self.frame_3, text='Log folder location:')
         self.log_location_entry = customtkinter.CTkEntry(self.frame_3,
-                                                            textvariable=self.frame_3_logs_folder_location_var,
-                                                            state='disabled', fg_color='gray16')
+                                                         textvariable=self.frame_3_logs_folder_location_var,
+                                                         state='disabled', fg_color='gray16')
         self.log_location_button = customtkinter.CTkButton(self.frame_3, text='öffnen',
                                                            command=lambda: self.edit_property_values('logs_location'))
 
@@ -3296,6 +3373,7 @@ class Backend:
             return True
         elif draft_yesno is None:
             return False
+
 
 class PDF(FPDF):
     def __init__(self, rechnungsnummer):
