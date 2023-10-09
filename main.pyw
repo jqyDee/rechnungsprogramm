@@ -386,7 +386,7 @@ class App(customtkinter.CTk):
             self.trash_img = None
 
     def check_or_create_working_dirs(self):
-        """Runs at startup and checks the necessary Directories to run the Program. HAS TO BE MOVED TO BACKEND"""
+        """Runs at startup and checks the necessary Directories to run the Program."""
 
         created_properties_yml = False
 
@@ -649,7 +649,72 @@ class App(customtkinter.CTk):
 
         logging.debug('App.store_draft() called')
 
-        return Backend(self).store_draft(self.open_interface)
+        if self.open_interface is None or self.debug_mode:
+            return True
+        if self.open_interface == 'kg':
+            try:
+                data = [self.kg_interface.kuerzel_entry, self.kg_interface.rechnungsdatum_entry,
+                        self.kg_interface.daten_entrys,
+                        self.kg_interface.behandlungsarten_entrys_2d_array]
+            except AttributeError:
+                return True
+
+            found = False
+            for i in data[2]:
+                if i.get() != '':
+                    found = True
+            for i in data[3]:
+                for a in i:
+                    if a.get() != '':
+                        found = True
+            if not found:
+                return True
+
+            rechnungsdaten = [data[0].get(), f'{data[0].get()}{data[1].get().replace(".", "")}', 'km', 'km', 'km', 'km',
+                              'Euro', 'Euro', ]
+            for i in data[2]:
+                rechnungsdaten.append(i.get())
+            behandlungsarten = []
+            einzelpreise = []
+            for i in data[3]:
+                behandlungsarten.append(i[0].get())
+                einzelpreise.append(i[1].get())
+            rechnungsdaten.extend(behandlungsarten)
+            rechnungsdaten.extend(einzelpreise)
+        else:
+            return True
+
+        # check if draft exist and check value
+        if os.path.exists(f'{self.rechnungen_location}/drafts/{rechnungsdaten[1]}DRAFT.csv'):
+            data = []
+            with open(f'{self.rechnungen_location}/drafts/{rechnungsdaten[1]}DRAFT.csv', newline='') as f:
+                csvfile = csv.reader(f, delimiter=';')
+                for index, row_1 in enumerate(csvfile):
+                    if index == 0:
+                        data.extend(row_1)
+            if data == rechnungsdaten:
+                return True
+
+        # check if rechnung to rechnungsnummer exists
+        if os.path.exists(
+                f'{self.rechnungen_location}/rechnungen-{self.year}/{rechnungsdaten[1].upper()}.pdf'):
+            return True
+
+        # ask if draft should be safed
+        draft_yesno = messagebox.askyesnocancel('Do you want to continue?', 'Soll ein Entwurf gespeicher werden?')
+        if draft_yesno:
+            if not os.path.exists(f'{self.rechnungen_location}/drafts/'):
+                os.mkdir(f'{self.rechnungen_location}/drafts/')
+            with open(f'{self.rechnungen_location}/drafts/{rechnungsdaten[1].upper()}DRAFT.csv', 'w',
+                      newline='') as f:
+                csvfile = csv.writer(f, delimiter=';')
+                csvfile.writerow(rechnungsdaten)
+                logging.info('created draft')
+            return True
+        elif draft_yesno is False:
+            return True
+        elif draft_yesno is None:
+            return False
 
     def create_backup(self):
         logging.debug('Backend.create_backup() called')
@@ -665,6 +730,79 @@ class App(customtkinter.CTk):
         else:
             return False
 
+    @staticmethod
+    def open_file(filepath):
+        logging.debug('Backend.open_rechnung() called')
+
+        if platform.system() == 'Darwin':  # macOS
+            subprocess.call(('open', filepath))
+            logging.info('macOS: opened file')
+        elif platform.system() == 'Windows':  # Windows
+            subprocess.Popen(filepath, shell=True)
+            logging.info('Windows: opened file')
+        else:  # linux variants
+            subprocess.call(('xdg-open', filepath))
+            logging.info('linux: opened file')
+
+    def clean_remove(self, filepath, file):
+        logging.debug('Backend.clean_remove() called')
+
+        if os.path.exists(filepath):
+            if not messagebox.askyesno('Do you want to continue?',
+                                       f'Beim fortfahren wird die Rechnung {file} '
+                                       f'gelöscht/überschrieben!'):
+                logging.debug('Rechnung wird nicht gelöscht, exiting')
+                return False
+            else:
+                logging.debug('Rechnung wird gelöscht')
+                if os.path.exists(
+                        f'{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv'):
+                    with fileinput.FileInput(
+                            f'{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv',
+                            inplace=True) as a:
+                        for line in a:
+                            if file.replace('.pdf', '') in line:
+                                print('', end='')
+                                logging.debug('deleted line in RechnungenInsgesamt')
+                                continue
+                            else:
+                                print(line, end='')
+                else:
+                    with open(
+                            f'{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv',
+                            'w'):
+                        pass
+                os.remove(filepath)
+        else:
+            if os.path.exists(
+                    f'{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv'):
+                with fileinput.FileInput(
+                        f'{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv',
+                        inplace=True) as a:
+                    for line in a:
+                        if file.replace('.pdf', '') in line:
+                            print('', end='')
+                            logging.info('deleted line in RechnungenInsgesamt')
+                            continue
+                        else:
+                            print(line, end='')
+            else:
+                with open(
+                        f'{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv',
+                        'w'):
+                    pass
+            logging.info("File didn't exist. Cleared RechnungenInsgesamt!")
+
+        try:
+            draft_files = os.listdir(f'{self.rechnungen_location}/drafts/')
+            file_without_extension = os.path.splitext(file)[0]
+            for i in draft_files:
+                if file_without_extension.lower() in i.lower():
+                    os.remove(f'{self.rechnungen_location}/drafts/{i}')
+        except FileNotFoundError:
+            pass
+
+        return True
 
 
 class Sidebar(customtkinter.CTkFrame):
@@ -1068,16 +1206,13 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
         self.behandlungsarten_add_button.configure(state='normal')
 
     def kg_rechnung_erstellen_button_event(self):
-        """triggers the class Backend and the function of validate_kg_entrys of Backend.
+        """triggers the class Backend and the function of validate_kg_entrys.
            Checks the return value."""
 
         logging.debug('KGRechnungInterface.kg_rechnung_erstellen_button_event() called')
 
         # KG Rechnung erstellt
-        if Backend(self, kuerzel=self.kuerzel_entry, rechnungsdatum=self.rechnungsdatum_entry,
-                   dates=self.daten_entrys,
-                   behandlungsarten=self.behandlungsarten_entrys_2d_array).validate_kg_entrys():
-
+        if self.validate_kg_entrys():
             self.kuerzel_entry.delete(0, tk.END)
             self.rechnungsdatum_entry.delete(0, tk.END)
             self.rechnungsdatum_entry.insert(0, f'{time.strftime("%d.%m.%y")}')
@@ -1086,6 +1221,191 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
         # KG Rechnung nicht erstellt
         else:
             return False
+
+    def validate_kg_entrys(self):
+        """Validates the given entries and passes them on to be stored."""
+
+        logging.debug('KGRechnungInterface.validate_kg_entrys() called')
+
+        self.parent.bottom_nav.bottom_nav_warning.configure(text='')
+
+        # validate kuerzel + getting stammdaten
+        if len(self.kuerzel_entry.get()) == 4:
+            if os.path.exists(f'{self.parent.stammdaten_location}/{self.kuerzel_entry.get()}.txt'):
+                with open(f'{self.parent.stammdaten_location}/{self.kuerzel_entry.get()}.txt', 'r') as f:
+                    self.stammdaten = f.readlines()
+                    for i, line in enumerate(self.stammdaten):
+                        self.stammdaten[i] = line.replace('\n', '')
+            else:
+                logging.warning(f'kuerzel not found, check code and check kuerzel')
+                messagebox.showwarning('Kürzel Warning', 'Kürzel/Stammdatei nicht gefunden. Versuche es erneut!')
+                self.parent.bottom_nav.bottom_nav_warning.configure(
+                    text=f'Kürzel/Stammdatei nicht gefunden. Versuche es erneut!', fg_color='red')
+                return False
+        logging.debug(f'stammdaten: {self.stammdaten}')
+
+        # validate rechnungsdatum
+        if re.match("(^0[1-9]|[12][0-9]|3[01]).(0[1-9]|1[0-2]).(\d{2}$)", self.rechnungsdatum_entry.get()):
+            self.rechnungsdatum = self.rechnungsdatum_entry.get()
+        else:
+            self.rechnungsdatum_entry.select_range(0, tk.END)
+            logging.info('rechnungsdatum not formatted correctly: mm.dd.yy')
+            self.parent.bottom_nav.bottom_nav_warning.configure(
+                text=f'Rechnungsdatum nicht richtig formatiert: dd.mm.yy', fg_color='red')
+            return False
+        logging.debug(f'rechnungsdatum: {self.rechnungsdatum}')
+
+        # validate dates
+        self.datenanzahl = 0
+        self.dates = []
+        empty_dates = []
+        for index, i in enumerate(self.daten_entrys):
+            if re.match("(^0[1-9]|[12][0-9]|3[01]).(0[1-9]|1[0-2]).(\d{2}$)", i.get()):
+                self.dates.append(str(i.get()))
+                self.datenanzahl += 1
+            elif i.get() == '':
+                logging.debug(f'date {index + 1} no value')
+                empty_dates.append(str(i.get()))
+            else:
+                logging.debug(f'date {index + 1} not formatted correctly, exiting')
+                i.select_range(0, tk.END)
+                self.parent.bottom_nav.bottom_nav_warning.configure(text=f'Datum {index + 1} '
+                                                                                f'nicht richtig formatiert: dd.mm.yy',
+                                                                           fg_color='red')
+                return False
+        if self.datenanzahl == 0:
+            if not messagebox.askyesno('Do you want to continue?',
+                                       'Keine Behandlungsdaten eingetragen! Trotzdem fortsetzen?'):
+                logging.debug(f'no dates and dont wanting to continue, exiting')
+                self.parent.bottom_nav.bottom_nav_warning.configure(text=f'Rechnung wurde nicht erstellt',
+                                                                           fg_color='orange')
+                return False
+        self.dates.extend(empty_dates)
+        logging.debug(f'datenanzahl: {self.datenanzahl}')
+        logging.debug(f'dates: {self.dates}')
+
+        # validate behandlungsdaten
+        self.behandlungsarten = []
+        self.einzelpreise = []
+        for index_1, i in enumerate(self.behandlungsarten_entrys_2d_array):
+            for index_2, a in enumerate(i):
+                if index_2 == 0:
+                    if not a.get() == '':
+                        self.behandlungsarten.append(a.get())
+                    else:
+                        logging.debug(f'Behandlungsart {index_1 + 1} has no value, exiting')
+                        self.parent.bottom_nav.bottom_nav_warning.configure(
+                            text=f'Behandlungsart {index_1 + 1} braucht eine Eingabe!',
+                            fg_color='red')
+                        return False
+                elif index_2 == 1:
+                    if not a.get() == '':
+                        try:
+                            self.einzelpreise.append(float(a.get()))
+                        except ValueError:
+                            logging.debug(f'Einzelpreis {index_1 + 1} not convertable to float, exiting')
+                            a.select_range(0, tk.END)
+                            self.parent.bottom_nav.bottom_nav_warning.configure(
+                                text=f'Einzelpreis {index_1 + 1} keine Zahl: {a.get()} -> z.B. 3.40',
+                                fg_color='red')
+                            return False
+                    else:
+                        logging.debug(f'Einzelpreis {index_1 + 1} has no value, exiting')
+                        self.parent.bottom_nav.bottom_nav_warning.configure(
+                            text=f'Einzelpreis {index_1 + 1} brauch eine Eingabe!',
+                            fg_color='red')
+                        return False
+        logging.debug(f'behandlungsarten: {self.behandlungsarten}')
+        logging.debug(f'einzelpreise: {self.einzelpreise}')
+
+        # validate Stammdatei
+        for index, i in enumerate(self.stammdaten):
+            if index == 9:
+                try:
+                    float(i)
+                except ValueError:
+                    logging.debug(f'Stammdatei/Kilometer zu Fahren has non float convertible value, exiting')
+                    self.parent.bottom_nav.bottom_nav_warning.configure(
+                        text=f'Stammdatei - Kilometer keine Zahl: -> z.B. 3.40 oder 10; Ändern unter stammdaten!',
+                        fg_color='red')
+                    return False
+            if i == '':
+                if index == 8:
+                    pass
+                else:
+                    logging.debug(f'Stammdatei has no value in line {index + 1}, exiting')
+                    self.parent.bottom_nav.bottom_nav_warning.configure(
+                        text=f'Stammdatei hat keinen Wert in Linie {index + 1}. Stammdatei überprüfen!',
+                        fg_color='red')
+                    return False
+            logging.debug(f'Stammdatei[{index}]: {i}')
+
+        self.parent.bottom_nav.bottom_nav_warning.configure(fg_color='transparent')
+
+        if not self.store_kg_data():
+            self.parent.bottom_nav.bottom_nav_warning.configure(
+                text=f'Rechnung wurde nicht überschrieben!',
+                fg_color='orange')
+            return False
+        else:
+            if self.create_kg_pdf():
+                return True
+
+    def store_kg_data(self):
+        """Stores validated entries in csv file."""
+
+        logging.debug('KGRechnungInterface.store_kg_data() called')
+
+        # validate Rechnungsnummer
+        self.rechnungsnummer = f'{self.stammdaten[0]}{self.rechnungsdatum.replace(".", "")}'
+        logging.debug(f'rechnungsnummer: {self.rechnungsnummer}')
+
+        # calculating km total
+        km_insg = 2 * float(self.stammdaten[9]) * float(self.datenanzahl)
+        logging.debug(f'km insgesamt: {km_insg}')
+
+        # calculating gesamtpreis
+        self.gesamtpreis = 0
+        for i, data in enumerate(self.einzelpreise):
+            # Addition of 'Einzelpreise'
+            self.gesamtpreis += self.datenanzahl * float(data)
+        logging.debug(f'gesamtpreis: {self.gesamtpreis}')
+
+        rechnungsdaten = [self.stammdaten[0], self.rechnungsnummer, self.stammdaten[9], 'km', km_insg, 'km',
+                          self.gesamtpreis, 'Euro']
+        rechnungsdaten.extend(self.dates)
+        rechnungsdaten.append(self.behandlungsarten)
+        rechnungsdaten.append(self.einzelpreise)
+
+        if not self.parent.clean_remove(
+                f'{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/{self.rechnungsnummer}.pdf',
+                f'{self.rechnungsnummer}.pdf'):
+            return False
+        else:
+            with open(
+                    f'{self.parent.rechnungen_location}/rechnungen-csv/rechnungen-{self.parent.year}.csv',
+                    'a',
+                    newline='') as f:
+                csvfile = csv.writer(f, delimiter=';')
+                csvfile.writerow(rechnungsdaten)
+                logging.info('wrote new line in RechnungenInsgesamt')
+            return True
+
+    def create_kg_pdf(self):
+        """Creates the KG PDF by calling KgRechnung class."""
+
+        logging.debug('KGRechnungInterface.create_kg_pdf() called')
+
+        filepath = f'{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/{self.rechnungsnummer}.pdf'
+
+        KgRechnung(self, self.stammdaten, self.rechnungsnummer, self.rechnungsdatum, self.gesamtpreis,
+                              self.dates,
+                              self.datenanzahl, self.behandlungsarten, self.einzelpreise, filepath)
+
+        # PDF Öffnen
+        self.parent.open_file(filepath)
+
+        return True
 
     def insert_data(self, data: list):
         """Inserts the data given into the KGRechnungInterface.
@@ -1565,7 +1885,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
         self.parent.bottom_nav.bottom_nav_warning.configure(fg_color='transparent')
 
         if not self.store_hp_data():
-            self.parent.parent.bottom_nav.bottom_nav_warning.configure(
+            self.parent.bottom_nav.bottom_nav_warning.configure(
                 text=f'Rechnung wurde nicht überschrieben!',
                 fg_color='orange')
             return False
@@ -1588,7 +1908,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                           self.gesamtpreis, 'Euro']
         rechnungsdaten.extend(self.behandlungsdaten)
 
-        if not Backend(self).clean_remove(
+        if not self.parent.clean_remove(
                 f'{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/{self.rechnungsnummer}.pdf',
                 f'{self.rechnungsnummer}.pdf'):
             return False
@@ -1611,7 +1931,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                    self.behandlungsdaten, self.diagnose, filepath)
 
         # PDF Öffnen
-        Backend(self).open_file(filepath)
+        self.parent.open_file(filepath)
         return True
 
 
@@ -1629,7 +1949,7 @@ class StammdatenInterface(customtkinter.CTkFrame):
         logging.info('class StammdatenInterface() called')
 
         self.parent = parent
-        self.parent.bottom_nav.bottom_nav_button.configure(command=lambda: self.create_stammdatei_event())
+        self.parent.bottom_nav.bottom_nav_button.configure(command=lambda: self.create_new_stammdatei_button_event())
 
         self.configure(fg_color='gray16', corner_radius=0)
 
@@ -1956,7 +2276,7 @@ class StammdatenInterface(customtkinter.CTkFrame):
 
         logging.debug(f'StammdatenInterface.open_stammdatei_button_event() called, row={row}')
 
-        Backend(self).open_file(f'{self.parent.stammdaten_location}/{self.files_in_dir[row]}')
+        self.parent.open_file(f'{self.parent.stammdaten_location}/{self.files_in_dir[row]}')
 
     def edit_stammdatei_button_event(self, row):
         """being called when edit button of specific file is pressed. Runs create
@@ -1987,7 +2307,7 @@ class StammdatenInterface(customtkinter.CTkFrame):
 
         filepath = f'{self.parent.stammdaten_location}/{self.files_in_dir[row]}'
 
-        Backend(self).clean_remove(filepath, self.files_in_dir[row])
+        self.parent.clean_remove(filepath, self.files_in_dir[row])
 
         self.aktualisieren_event()
 
@@ -2000,12 +2320,84 @@ class StammdatenInterface(customtkinter.CTkFrame):
         self.create_widgets_part_3()
         self.create_layout_part_3()
 
-    def create_stammdatei_event(self):
+    def create_new_stammdatei_button_event(self):
         """being called when save button is pressed. Passes the data from entries
            to Backend and validates them"""
 
-        if Backend(self, stammdaten=self.stammdaten_entrys).validate_stammdaten_entrys():
+        if self.validate_stammdaten_entrys():
             self.clear_widgets_part_3()
+
+    def validate_stammdaten_entrys(self):
+        logging.debug('Backend.validate_stammdaten_entrys() called')
+        self.stammdaten = self.stammdaten_entrys
+
+        self.parent.bottom_nav.bottom_nav_warning.configure(text='')
+
+        if len(self.stammdaten[0].get()) != 4:
+            self.stammdaten[0].select_range(0, tk.END)
+            self.stammdaten[0].focus_set()
+            return self.parent.bottom_nav.bottom_nav_warning.configure(
+                text=f'Kuerzel mehr/weniger als 4 Buchstaben!', fg_color='red')
+
+        if self.stammdaten[1].get() != 'Mann' and self.stammdaten[1].get() != 'Frau':
+            self.stammdaten[1].select_range(0, tk.END)
+            self.stammdaten[1].focus_set()
+            return self.parent.bottom_nav.bottom_nav_warning.configure(
+                text=f'Mann/Frau muss "Mann" oder "Frau" sein', fg_color='red')
+
+        try:
+            float(self.stammdaten[9].get())
+        except ValueError:
+            self.stammdaten[9].select_range(0, tk.END)
+            self.stammdaten[9].focus_set()
+            return self.parent.bottom_nav.bottom_nav_warning.configure(
+                text=f'Kilometer zu fahren muss int oder float sein!', fg_color='red')
+
+        if not self.stammdaten[12].get() == 'HP' and not self.stammdaten[12].get() == 'KG':
+            self.stammdaten[12].select_range(0, tk.END)
+            self.stammdaten[12].focus_set()
+            return self.parent.bottom_nav.bottom_nav_warning.configure(
+                text=f'Nicht HP oder KG eingegeben!', fg_color='red')
+
+        self.parent.bottom_nav.bottom_nav_warning.configure(fg_color='transparent')
+
+        if not self.store_stammdaten_data():
+            self.parent.bottom_nav.bottom_nav_warning.configure(
+                text=f'Stammdatei wurde nicht überschrieben!',
+                fg_color='orange')
+            return False
+        else:
+            self.parent.bottom_nav.bottom_nav_warning.configure(
+                text=f'Stammdatei wurde über-/geschrieben!',
+                fg_color='green')
+            return True
+
+    def store_stammdaten_data(self):
+        logging.debug('Backend.store_stammdaten_data() called')
+
+        if os.path.exists(f'{self.parent.stammdaten_location}/{self.stammdaten[0].get()}.txt'):
+            if not messagebox.askyesno('Do you want to continue?',
+                                       f'Stammdatei zu {self.stammdaten[0].get()} exisitiert bereits und wird beim '
+                                       f'fortsetzen überschrieben! Trotzdem forstetzen?'):
+                logging.debug('Stammdatei wird nicht überschrireben, exiting')
+                return False
+            else:
+                logging.debug('Stammdatei wird überschrieben')
+                with open(f'{self.parent.stammdaten_location}/{self.stammdaten[0].get()}.txt', 'w') as f:
+                    for index, i in enumerate(self.stammdaten):
+                        if index != 12:
+                            f.write(f'{i.get()}\n')
+                        else:
+                            f.write(f'{i.get()}')
+                return True
+        else:
+            with open(f'{self.parent.stammdaten_location}/{self.stammdaten[0].get()}.txt', 'w') as f:
+                for index, i in enumerate(self.stammdaten):
+                    if index != 12:
+                        f.write(f'{i.get()}\n')
+                    else:
+                        f.write(f'{i.get()}')
+            return True
 
 
 class RechnungenInterface(customtkinter.CTkFrame):
@@ -2246,8 +2638,7 @@ class RechnungenInterface(customtkinter.CTkFrame):
 
         logging.debug(f'RechnungenInterface.open_rechnung_button_event() called, row={row}')
 
-        Backend(self).open_file(
-            f'{basepath}{self.files_in_dir[row]}')
+        self.parent.open_file(f'{basepath}{self.files_in_dir[row]}')
 
     def edit_rechnung_button_event(self, row: int, basepath: str, draft: bool):
         """being called when edit button of specific file is pressed. Switches to
@@ -2321,9 +2712,9 @@ class RechnungenInterface(customtkinter.CTkFrame):
 
         logging.debug(f'RechnungenInterface.delete_rechnung() called, row={row}')
 
-        filepath = f'{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/{self.files_in_dir[row]}'
+        filepath = f'{basepath}/{self.files_in_dir[row]}'
 
-        Backend(self).clean_remove(filepath, self.files_in_dir[row])
+        self.parent.clean_remove(filepath, self.files_in_dir[row])
 
         self.aktualisieren_event()
 
@@ -2458,7 +2849,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.debug_mode_label = customtkinter.CTkLabel(self.frame_3, text='Debug Mode:')
         self.debug_mode_switch = customtkinter.CTkSwitch(self.frame_3, text='', variable=self.frame_3_switch_var_1,
                                                          onvalue='on', offvalue='off',
-                                                         command=lambda: self.edit_dirs('debug_mode'))
+                                                         command=lambda: self.edit_property_values('debug_mode'))
 
         # Behandlungsarten limit(-er) section
         self.disable_behandlungsarten_limit_label = customtkinter.CTkLabel(self.frame_3,
@@ -2466,7 +2857,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.disable_behandlungsarten_limit_switch = customtkinter.CTkSwitch(self.frame_3, text='',
                                                                              variable=self.frame_3_switch_var_2,
                                                                              onvalue='on', offvalue='off',
-                                                                             command=lambda: self.edit_dirs(
+                                                                             command=lambda: self.edit_property_values(
                                                                                  'behandlungsarten_limiter'))
         self.behandlungsarten_limit_label = customtkinter.CTkLabel(self.frame_3, text='Limit =')
         self.behandlungsarten_limit_entry = customtkinter.CTkEntry(self.frame_3, width=30,
@@ -2486,7 +2877,8 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                                                                 textvariable=self.frame_3_rechnungen_location_var,
                                                                 state='disabled', fg_color='gray16')
         self.rechnungen_location_button = customtkinter.CTkButton(self.frame_3, text='öffnen',
-                                                                  command=lambda: self.edit_dirs('rechnungen_location'))
+                                                                  command=lambda: self.edit_property_values(
+                                                                      'rechnungen_location'))
 
         # stammdaten location section
         self.stammdaten_location_label = customtkinter.CTkLabel(self.frame_3,
@@ -2495,7 +2887,8 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                                                                 textvariable=self.frame_3_stammdaten_location_var,
                                                                 state='disabled', fg_color='gray16')
         self.stammdaten_location_button = customtkinter.CTkButton(self.frame_3, text='öffnen',
-                                                                  command=lambda: self.edit_dirs('stammdaten_location'))
+                                                                  command=lambda: self.edit_property_values(
+                                                                      'stammdaten_location'))
 
         # Separator
         self.separator_6 = tk.ttk.Separator(self.frame_3, orient='horizontal')
@@ -2504,13 +2897,15 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.backups_enabled_label = customtkinter.CTkLabel(self.frame_3, text='Backups erstellen?')
         self.backups_enabled_switch = customtkinter.CTkSwitch(self.frame_3, text='', variable=self.frame_3_switch_var_3,
                                                               onvalue='on', offvalue='off',
-                                                              command=lambda: self.edit_dirs('backups_enabled'))
+                                                              command=lambda: self.edit_property_values(
+                                                                  'backups_enabled'))
         self.backup_location_label = customtkinter.CTkLabel(self.frame_3, text='Backup folder location:')
         self.backup_location_entry = customtkinter.CTkEntry(self.frame_3,
                                                             textvariable=self.frame_3_backup_folder_location_var,
                                                             state='disabled', fg_color='gray16')
         self.backup_location_button = customtkinter.CTkButton(self.frame_3, text='öffnen',
-                                                              command=lambda: self.edit_dirs('backups_location'))
+                                                              command=lambda: self.edit_property_values(
+                                                                  'backups_location'))
 
         # Separator
         self.separator_7 = tk.ttk.Separator(self.frame_3, orient='horizontal')
@@ -2518,14 +2913,14 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         # Logs erstellen und location setzen
         self.logs_enabled_label = customtkinter.CTkLabel(self.frame_3, text='Log speichern?')
         self.logs_enabled_switch = customtkinter.CTkSwitch(self.frame_3, text='', variable=self.frame_3_switch_var_4,
-                                                              onvalue='on', offvalue='off',
-                                                              command=lambda: self.edit_dirs('logs_enabled'))
+                                                           onvalue='on', offvalue='off',
+                                                           command=lambda: self.edit_property_values('logs_enabled'))
         self.log_location_label = customtkinter.CTkLabel(self.frame_3, text='Log folder location:')
         self.log_location_entry = customtkinter.CTkEntry(self.frame_3,
                                                             textvariable=self.frame_3_logs_folder_location_var,
                                                             state='disabled', fg_color='gray16')
         self.log_location_button = customtkinter.CTkButton(self.frame_3, text='öffnen',
-                                                              command=lambda: self.edit_dirs('logs_location'))
+                                                           command=lambda: self.edit_property_values('logs_location'))
 
     def create_layout_part_2(self):
         logging.debug('EinstellungInterface.create_layout_part_2() called')
@@ -2587,10 +2982,171 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         elif self.frame_1_switch_var.get() == 'off':
             self.frame_3.destroy()
 
-    def edit_dirs(self, kind: str):
+    def edit_property_values(self, kind: str, *args):
         logging.debug('EinstellungInterface.open_dir() called')
 
-        Backend(self).change_properties(kind)
+        if kind == 'stammdaten_location':
+            dirpath = tk.filedialog.askdirectory(title='stammdaten Filepath', initialdir='./', )
+            if dirpath == '':
+                return
+            else:
+                try:
+                    for i in os.listdir(self.parent.stammdaten_location):
+                        shutil.move(f'{self.parent.stammdaten_location}/{i}', dirpath)
+                    os.removedirs(self.parent.stammdaten_location)
+                except FileNotFoundError:
+                    logging.error('stammdaten location not existing')
+
+                self.parent.stammdaten_location = dirpath
+                if os.path.exists('./system/properties.yml'):
+                    with open('./system/properties.yml', 'r') as a:
+                        properties_dict = yaml.safe_load(a)
+                        properties_dict['stammdaten_location'] = self.parent.stammdaten_location
+                    with open('./system/properties.yml', 'w') as f:
+                        yaml.dump(properties_dict, f)
+                    self.parent.frame_3_stammdaten_location_var.set(f'{self.parent.stammdaten_location}/')
+                else:
+                    self.parent.check_or_create_working_dirs()
+                return logging.info('stammdaten location changed successfully')
+        elif kind == 'rechnungen_location':
+            dirpath = tk.filedialog.askdirectory(title='rechnungen Filepath', initialdir='./', )
+            if dirpath == '':
+                return
+            else:
+                try:
+                    for i in os.listdir(self.parent.rechnungen_location):
+                        try:
+                            shutil.move(f'{self.parent.rechnungen_location}/{i}', dirpath)
+                            os.removedirs(self.parent.rechnungen_location)
+                        except shutil.Error:
+                            logging.info('dir already exists and files wont be moved')
+                except FileNotFoundError:
+                    logging.error('rechnungen location not existing')
+
+                self.parent.rechnungen_location = dirpath
+                if os.path.exists('./system/properties.yml'):
+                    with open('./system/properties.yml', 'r') as a:
+                        properties_dict = yaml.safe_load(a)
+                        properties_dict['rechnungen_location'] = self.parent.rechnungen_location
+                    with open('./system/properties.yml', 'w') as f:
+                        yaml.dump(properties_dict, f)
+                    self.parent.frame_3_rechnungen_location_var.set(f'{self.parent.rechnungen_location}/')
+                else:
+                    self.parent.check_or_create_working_dirs()
+                return logging.info('rechnungen location changed successfully')
+        elif kind == 'backups_location':
+            dirpath = tk.filedialog.askdirectory(title='Backups Filepath', initialdir='./', )
+            if dirpath == '':
+                return
+            else:
+                try:
+                    for i in os.listdir(self.parent.backup_location):
+                        shutil.move(f'{self.parent.backup_location}/{i}', dirpath)
+                    os.removedirs(self.parent.backup_location)
+                except FileNotFoundError:
+                    logging.error('backup location not existing')
+
+                self.parent.backup_location = dirpath
+                if os.path.exists('./system/properties.yml'):
+                    with open('./system/properties.yml', 'r') as a:
+                        properties_dict = yaml.safe_load(a)
+                        properties_dict['backup_location'] = self.parent.backup_location
+                    with open('./system/properties.yml', 'w') as f:
+                        yaml.dump(properties_dict, f)
+                    self.parent.frame_3_backup_folder_location_var.set(f'{self.parent.backup_location}/')
+                else:
+                    self.parent.check_or_create_working_dirs()
+                return logging.info('backups location changed successfully')
+        elif kind == 'debug_mode':
+            if self.frame_3_switch_var_1.get() == 'off':
+                self.parent.debug_mode = False
+            else:
+                self.parent.debug_mode = True
+
+            if os.path.exists('./system/properties.yml'):
+                with open('./system/properties.yml', 'r') as a:
+                    properties_dict = yaml.safe_load(a)
+                    properties_dict['debug_mode'] = self.parent.debug_mode
+                with open('./system/properties.yml', 'w') as f:
+                    yaml.dump(properties_dict, f)
+            else:
+                self.parent.check_or_create_working_dirs()
+
+            return messagebox.showinfo('Änderungen gespeichert',
+                                       'Programm muss neu gestartet werden um Änderungen zu sehen!')
+        elif kind == 'behandlungsarten_limiter':
+            if self.frame_3_switch_var_2.get() == 'off':
+                self.parent.behandlungsarten_limiter = False
+                self.behandlungsarten_limit_entry.configure(state='disabled', fg_color='gray16')
+            else:
+                self.parent.behandlungsarten_limiter = True
+                self.behandlungsarten_limit_entry.configure(state='normal', fg_color='#343638')
+
+            if os.path.exists('./system/properties.yml'):
+                with open('./system/properties.yml', 'r') as a:
+                    properties_dict = yaml.safe_load(a)
+                    properties_dict['behandlungsarten_limiter'] = self.parent.behandlungsarten_limiter
+                with open('./system/properties.yml', 'w') as f:
+                    yaml.dump(properties_dict, f)
+            else:
+                self.parent.check_or_create_working_dirs()
+        elif kind == 'behandlungsarten_limit':
+            self.parent.behandlungsarten_limit = int(*args[0])
+            if os.path.exists('./system/properties.yml'):
+                with open('./system/properties.yml', 'r') as a:
+                    properties_dict = yaml.safe_load(a)
+                    properties_dict['behandlungsarten_limit'] = self.parent.behandlungsarten_limit
+                with open('./system/properties.yml', 'w') as f:
+                    yaml.dump(properties_dict, f)
+            else:
+                self.parent.check_or_create_working_dirs()
+        elif kind == 'backups_enabled':
+            if self.frame_3_switch_var_3.get() == 'off':
+                self.parent.backups_enabled = False
+            else:
+                self.parent.backups_enabled = True
+
+            if os.path.exists('./system/properties.yml'):
+                with open('./system/properties.yml', 'r') as a:
+                    properties_dict = yaml.safe_load(a)
+                    properties_dict['backups_enabled'] = self.parent.backups_enabled
+                with open('./system/properties.yml', 'w') as f:
+                    yaml.dump(properties_dict, f)
+            else:
+                self.parent.check_or_create_working_dirs()
+        elif kind == 'logs_enabled':
+            if self.frame_3_switch_var_4.get() == 'off':
+                self.parent.logs_enabled = False
+            else:
+                self.parent.logs_enabled = True
+
+            if os.path.exists('./system/properties.yml'):
+                with open('./system/properties.yml', 'r') as a:
+                    properties_dict = yaml.safe_load(a)
+                    properties_dict['logs_enabled'] = self.parent.logs_enabled
+                with open('./system/properties.yml', 'w') as f:
+                    yaml.dump(properties_dict, f)
+            else:
+                self.parent.check_or_create_working_dirs()
+        elif kind == 'logs_location':
+            dirpath = tk.filedialog.askdirectory(title='Backups Filepath', initialdir='./', )
+            if dirpath == '':
+                return
+            else:
+                for i in os.listdir(self.parent.logs_location):
+                    os.remove(f'{self.parent.logs_location}/{i}')
+
+                self.parent.logs_location = dirpath
+                if os.path.exists('./system/properties.yml'):
+                    with open('./system/properties.yml', 'r') as a:
+                        properties_dict = yaml.safe_load(a)
+                        properties_dict['logs_location'] = self.parent.logs_location
+                    with open('./system/properties.yml', 'w') as f:
+                        yaml.dump(properties_dict, f)
+                    self.parent.frame_3_logs_folder_location_var.set(f'{self.parent.logs_location}/')
+                else:
+                    self.parent.check_or_create_working_dirs()
+                return logging.info('backups location changed successfully')
 
     def behandlungsarten_limit_validation(self, text_after_action: str) -> bool:
         if not text_after_action == '':
@@ -2599,10 +3155,9 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
             except ValueError:
                 logging.info('not int')
                 return False
-            Backend(self).change_properties('behandlungsarten_limit', text_after_action)
+            self.edit_property_values('behandlungsarten_limit', text_after_action)
             return True
         else:
-            Backend(self).change_properties('behandlungsarten_limit', text_after_action)
             return True
 
 
@@ -2674,254 +3229,6 @@ class Backend:
         self.parent = parent
         self.datenanzahl = 0
 
-    def validate_kg_entrys(self):
-        logging.debug('Backend.validate_kg_entrys() called')
-
-        self.parent.parent.bottom_nav.bottom_nav_warning.configure(text='')
-
-        # validate kuerzel + getting stammdaten
-        if len(self.kwargs.get('kuerzel').get()) == 4:
-            if os.path.exists(f'{self.parent.parent.stammdaten_location}/{self.kwargs.get("kuerzel").get()}.txt'):
-                with open(f'{self.parent.parent.stammdaten_location}/{self.kwargs.get("kuerzel").get()}.txt', 'r') as f:
-                    self.stammdaten = f.readlines()
-                    for i, line in enumerate(self.stammdaten):
-                        self.stammdaten[i] = line.replace('\n', '')
-            else:
-                logging.warning(f'kuerzel not found, check code and check kuerzel')
-                messagebox.showwarning('Kürzel Warning', 'Kürzel/Stammdatei nicht gefunden. Versuche es erneut!')
-                self.parent.parent.bottom_nav.bottom_nav_warning.configure(
-                    text=f'Kürzel/Stammdatei nicht gefunden. Versuche es erneut!', fg_color='red')
-                return False
-        logging.debug(f'stammdaten: {self.stammdaten}')
-
-        # validate rechnungsdatum
-        if re.match("(^0[1-9]|[12][0-9]|3[01]).(0[1-9]|1[0-2]).(\d{2}$)", self.kwargs.get('rechnungsdatum').get()):
-            self.rechnungsdatum = self.kwargs.get('rechnungsdatum').get()
-        else:
-            self.parent.rechnungsdatum_entry.select_range(0, tk.END)
-            logging.info('rechnungsdatum not formatted correctly: mm.dd.yy')
-            self.parent.parent.bottom_nav.bottom_nav_warning.configure(
-                text=f'Rechnungsdatum nicht richtig formatiert: dd.mm.yy', fg_color='red')
-            return False
-        logging.debug(f'rechnungsdatum: {self.rechnungsdatum}')
-
-        # validate dates
-        self.dates = []
-        empty_dates = []
-        for index, i in enumerate(self.kwargs.get('dates')):
-            if re.match("(^0[1-9]|[12][0-9]|3[01]).(0[1-9]|1[0-2]).(\d{2}$)", i.get()):
-                self.dates.append(str(i.get()))
-                self.datenanzahl += 1
-            elif i.get() == '':
-                logging.debug(f'date {index} no value')
-                empty_dates.append(str(i.get()))
-            else:
-                logging.debug(f'date {index + 1} not formatted correctly, exiting')
-                i.select_range(0, tk.END)
-                self.parent.parent.bottom_nav.bottom_nav_warning.configure(text=f'Datum {index + 1} '
-                                                                                f'nicht richtig formatiert: dd.mm.yy',
-                                                                           fg_color='red')
-                return False
-        if self.datenanzahl == 0:
-            if not messagebox.askyesno('Do you want to continue?',
-                                       'Keine Behandlungsdaten eingetragen! Trotzdem fortsetzen?'):
-                logging.debug(f'no dates and dont wanting to continue, exiting')
-                self.parent.parent.bottom_nav.bottom_nav_warning.configure(text=f'Rechnung wurde nicht erstellt',
-                                                                           fg_color='orange')
-                return False
-        self.dates.extend(empty_dates)
-        logging.debug(f'datenanzahl: {self.datenanzahl}')
-        logging.debug(f'dates: {self.dates}')
-
-        # validate behandlungsdaten
-        self.behandlungsarten = []
-        self.einzelpreise = []
-        for index_1, i in enumerate(self.kwargs.get('behandlungsarten')):
-            for index_2, a in enumerate(i):
-                if index_2 == 0:
-                    if not a.get() == '':
-                        self.behandlungsarten.append(a.get())
-                    else:
-                        logging.debug(f'Behandlungsart {index_1 + 1} has no value, exiting')
-                        self.parent.parent.bottom_nav.bottom_nav_warning.configure(
-                            text=f'Behandlungsart {index_1 + 1} braucht eine Eingabe!',
-                            fg_color='red')
-                        return False
-                elif index_2 == 1:
-                    if not a.get() == '':
-                        try:
-                            self.einzelpreise.append(float(a.get()))
-                        except ValueError:
-                            logging.debug(f'Einzelpreis {index_1 + 1} not convertable to float, exiting')
-                            a.select_range(0, tk.END)
-                            self.parent.parent.bottom_nav.bottom_nav_warning.configure(
-                                text=f'Einzelpreis {index_1 + 1} keine Zahl: {a.get()} -> z.B. 3.40',
-                                fg_color='red')
-                            return False
-                    else:
-                        logging.debug(f'Einzelpreis {index_1 + 1} has no value, exiting')
-                        self.parent.parent.bottom_nav.bottom_nav_warning.configure(
-                            text=f'Einzelpreis {index_1 + 1} brauch eine Eingabe!',
-                            fg_color='red')
-                        return False
-        logging.debug(f'behandlungsarten: {self.behandlungsarten}')
-        logging.debug(f'einzelpreise: {self.einzelpreise}')
-
-        # validate Stammdatei
-        for index, i in enumerate(self.stammdaten):
-            if index == 9:
-                try:
-                    float(i)
-                except ValueError:
-                    logging.debug(f'Stammdatei/Kilometer zu Fahren has non float convertible value, exiting')
-                    self.parent.parent.bottom_nav.bottom_nav_warning.configure(
-                        text=f'Stammdatei - Kilometer keine Zahl: -> z.B. 3.40 oder 10; Ändern unter stammdaten!',
-                        fg_color='red')
-                    return False
-            if i == '':
-                if index == 8:
-                    pass
-                else:
-                    logging.debug(f'Stammdatei has no value in line {index + 1}, exiting')
-                    self.parent.parent.bottom_nav.bottom_nav_warning.configure(
-                        text=f'Stammdatei hat keinen Wert in Linie {index + 1}. Stammdatei überprüfen!',
-                        fg_color='red')
-                    return False
-            logging.debug(f'Stammdatei[{index}]: {i}')
-
-        self.parent.parent.bottom_nav.bottom_nav_warning.configure(fg_color='transparent')
-
-        if not self.store_kg_data():
-            self.parent.parent.bottom_nav.bottom_nav_warning.configure(
-                text=f'Rechnung wurde nicht überschrieben!',
-                fg_color='orange')
-            return False
-        else:
-            if self.create_kg_pdf():
-                return True
-
-    def store_kg_data(self):
-        logging.debug('Backend.store_kg_data() called')
-
-        # validate Rechnungsnummer
-        self.rechnungsnummer = f'{self.stammdaten[0]}{self.rechnungsdatum.replace(".", "")}'
-        logging.debug(f'rechnungsnummer: {self.rechnungsnummer}')
-
-        # calculating km total
-        km_insg = 2 * float(self.stammdaten[9]) * float(self.datenanzahl)
-        logging.debug(f'km insgesamt: {km_insg}')
-
-        # calculating gesamtpreis
-        self.gesamtpreis = 0
-        for i, data in enumerate(self.einzelpreise):
-            # Addition of 'Einzelpreise'
-            self.gesamtpreis += self.datenanzahl * float(data)
-        logging.debug(f'gesamtpreis: {self.gesamtpreis}')
-
-        rechnungsdaten = [self.stammdaten[0], self.rechnungsnummer, self.stammdaten[9], 'km', km_insg, 'km',
-                          self.gesamtpreis, 'Euro']
-        rechnungsdaten.extend(self.dates)
-        rechnungsdaten.append(self.behandlungsarten)
-        rechnungsdaten.append(self.einzelpreise)
-
-        if not self.clean_remove(
-                f'{self.parent.parent.rechnungen_location}/rechnungen-{self.parent.parent.year}/{self.rechnungsnummer}.pdf',
-                f'{self.rechnungsnummer}.pdf'):
-            return False
-        else:
-            with open(
-                    f'{self.parent.parent.rechnungen_location}/rechnungen-csv/rechnungen-{self.parent.parent.year}.csv',
-                    'a',
-                    newline='') as f:
-                csvfile = csv.writer(f, delimiter=';')
-                csvfile.writerow(rechnungsdaten)
-                logging.info('wrote new line in RechnungenInsgesamt')
-            return True
-
-    def create_kg_pdf(self):
-        logging.debug('Backend.create_kg_pdf() called')
-
-        filepath = KgRechnung(self, self.stammdaten, self.rechnungsnummer, self.rechnungsdatum, self.gesamtpreis,
-                              self.dates,
-                              self.datenanzahl, self.behandlungsarten, self.einzelpreise).create_pages()
-
-        # PDF Öffnen
-        self.open_file(filepath)
-
-        return True
-
-    def validate_stammdaten_entrys(self):
-        logging.debug('Backend.validate_stammdaten_entrys() called')
-        self.stammdaten = self.kwargs.get('stammdaten')
-
-        self.parent.parent.bottom_nav.bottom_nav_warning.configure(text='')
-
-        if len(self.stammdaten[0].get()) != 4:
-            self.stammdaten[0].select_range(0, tk.END)
-            self.stammdaten[0].focus_set()
-            return self.parent.parent.bottom_nav.bottom_nav_warning.configure(
-                text=f'Kuerzel mehr/weniger als 4 Buchstaben!', fg_color='red')
-
-        if self.stammdaten[1].get() != 'Mann' and self.stammdaten[1].get() != 'Frau':
-            self.stammdaten[1].select_range(0, tk.END)
-            self.stammdaten[1].focus_set()
-            return self.parent.parent.bottom_nav.bottom_nav_warning.configure(
-                text=f'Mann/Frau muss "Mann" oder "Frau" sein', fg_color='red')
-
-        try:
-            float(self.stammdaten[9].get())
-        except ValueError:
-            self.stammdaten[9].select_range(0, tk.END)
-            self.stammdaten[9].focus_set()
-            return self.parent.parent.bottom_nav.bottom_nav_warning.configure(
-                text=f'Kilometer zu fahren muss int oder float sein!', fg_color='red')
-
-        if not self.stammdaten[12].get() == 'HP' and not self.stammdaten[12].get() == 'KG':
-            self.stammdaten[12].select_range(0, tk.END)
-            self.stammdaten[12].focus_set()
-            return self.parent.parent.bottom_nav.bottom_nav_warning.configure(
-                text=f'Nicht HP oder KG eingegeben!', fg_color='red')
-
-        self.parent.parent.bottom_nav.bottom_nav_warning.configure(fg_color='transparent')
-
-        if not self.store_stammdaten_data():
-            self.parent.parent.bottom_nav.bottom_nav_warning.configure(
-                text=f'Stammdatei wurde nicht überschrieben!',
-                fg_color='orange')
-            return False
-        else:
-            self.parent.parent.bottom_nav.bottom_nav_warning.configure(
-                text=f'Stammdatei wurde über-/geschrieben!',
-                fg_color='green')
-            return True
-
-    def store_stammdaten_data(self):
-        logging.debug('Backend.store_stammdaten_data() called')
-
-        if os.path.exists(f'{self.parent.parent.stammdaten_location}/{self.stammdaten[0].get()}.txt'):
-            if not messagebox.askyesno('Do you want to continue?',
-                                       f'Stammdatei zu {self.stammdaten[0].get()} exisitiert bereits und wird beim '
-                                       f'fortsetzen überschrieben! Trotzdem forstetzen?'):
-                logging.debug('Stammdatei wird nicht überschrireben, exiting')
-                return False
-            else:
-                logging.debug('Stammdatei wird überschrieben')
-                with open(f'{self.parent.parent.stammdaten_location}/{self.stammdaten[0].get()}.txt', 'w') as f:
-                    for index, i in enumerate(self.stammdaten):
-                        if index != 12:
-                            f.write(f'{i.get()}\n')
-                        else:
-                            f.write(f'{i.get()}')
-                return True
-        else:
-            with open(f'{self.parent.parent.stammdaten_location}/{self.stammdaten[0].get()}.txt', 'w') as f:
-                for index, i in enumerate(self.stammdaten):
-                    if index != 12:
-                        f.write(f'{i.get()}\n')
-                    else:
-                        f.write(f'{i.get()}')
-            return True
-
     def store_draft(self, interface):
         if interface is None or self.parent.debug_mode:
             return True
@@ -2990,258 +3297,6 @@ class Backend:
         elif draft_yesno is None:
             return False
 
-    def clean_remove(self, filepath, file):
-        logging.debug('Backend.clean_remove() called')
-
-        if os.path.exists(filepath):
-            if not messagebox.askyesno('Do you want to continue?',
-                                       f'Beim fortfahren wird die Rechnung {file} '
-                                       f'gelöscht/überschrieben!'):
-                logging.debug('Rechnung wird nicht gelöscht, exiting')
-                return False
-            else:
-                logging.debug('Rechnung wird gelöscht')
-                if os.path.exists(
-                        f'{self.parent.parent.rechnungen_location}/rechnungen-csv/rechnungen-{self.parent.parent.year}.csv'):
-                    with fileinput.FileInput(
-                            f'{self.parent.parent.rechnungen_location}/rechnungen-csv/rechnungen-{self.parent.parent.year}.csv',
-                            inplace=True) as a:
-                        for line in a:
-                            if file.replace('.pdf', '') in line:
-                                print('', end='')
-                                logging.debug('deleted line in RechnungenInsgesamt')
-                                continue
-                            else:
-                                print(line, end='')
-                else:
-                    with open(
-                            f'{self.parent.parent.rechnungen_location}/rechnungen-csv/rechnungen-{self.parent.parent.year}.csv',
-                            'w'):
-                        pass
-                os.remove(filepath)
-        else:
-            if os.path.exists(
-                    f'{self.parent.parent.rechnungen_location}/rechnungen-csv/rechnungen-{self.parent.parent.year}.csv'):
-                with fileinput.FileInput(
-                        f'{self.parent.parent.rechnungen_location}/rechnungen-csv/rechnungen-{self.parent.parent.year}.csv',
-                        inplace=True) as a:
-                    for line in a:
-                        if file.replace('.pdf', '') in line:
-                            print('', end='')
-                            logging.info('deleted line in RechnungenInsgesamt')
-                            continue
-                        else:
-                            print(line, end='')
-            else:
-                with open(
-                        f'{self.parent.parent.rechnungen_location}/rechnungen-csv/rechnungen-{self.parent.parent.year}.csv',
-                        'w'):
-                    pass
-            logging.info("File didn't exist. Cleared RechnungenInsgesamt!")
-
-        try:
-            draft_files = os.listdir(f'{self.parent.parent.rechnungen_location}/drafts/')
-            file_without_extension = os.path.splitext(file)[0]
-            for i in draft_files:
-                if file_without_extension.lower() in i.lower():
-                    os.remove(f'{self.parent.parent.rechnungen_location}/drafts/{i}')
-        except FileNotFoundError:
-            pass
-
-        return True
-
-    def change_properties(self, kind, *args):
-        if kind == 'stammdaten_location':
-            dirpath = tk.filedialog.askdirectory(title='stammdaten Filepath', initialdir='./', )
-            if dirpath == '':
-                return
-            else:
-                try:
-                    for i in os.listdir(self.parent.parent.stammdaten_location):
-                        shutil.move(f'{self.parent.parent.stammdaten_location}/{i}', dirpath)
-                    os.removedirs(self.parent.parent.stammdaten_location)
-                except FileNotFoundError:
-                    logging.error('stammdaten location not existing')
-
-                self.parent.parent.stammdaten_location = dirpath
-                if os.path.exists('./system/properties.yml'):
-                    with open('./system/properties.yml', 'r') as a:
-                        properties_dict = yaml.safe_load(a)
-                        properties_dict['stammdaten_location'] = self.parent.parent.stammdaten_location
-                    with open('./system/properties.yml', 'w') as f:
-                        yaml.dump(properties_dict, f)
-                    self.parent.frame_3_stammdaten_location_var.set(f'{self.parent.parent.stammdaten_location}/')
-                else:
-                    self.parent.parent.check_or_create_working_dirs()
-                return logging.info('stammdaten location changed successfully')
-        elif kind == 'rechnungen_location':
-            dirpath = tk.filedialog.askdirectory(title='rechnungen Filepath', initialdir='./', )
-            if dirpath == '':
-                return
-            else:
-                try:
-                    for i in os.listdir(self.parent.parent.rechnungen_location):
-                        try:
-                            shutil.move(f'{self.parent.parent.rechnungen_location}/{i}', dirpath)
-                            os.removedirs(self.parent.parent.rechnungen_location)
-                        except shutil.Error:
-                            logging.info('dir already exists and files wont be moved')
-                except FileNotFoundError:
-                    logging.error('rechnungen location not existing')
-
-                self.parent.parent.rechnungen_location = dirpath
-                if os.path.exists('./system/properties.yml'):
-                    with open('./system/properties.yml', 'r') as a:
-                        properties_dict = yaml.safe_load(a)
-                        properties_dict['rechnungen_location'] = self.parent.parent.rechnungen_location
-                    with open('./system/properties.yml', 'w') as f:
-                        yaml.dump(properties_dict, f)
-                    self.parent.frame_3_rechnungen_location_var.set(f'{self.parent.parent.rechnungen_location}/')
-                else:
-                    self.parent.parent.check_or_create_working_dirs()
-                return logging.info('rechnungen location changed successfully')
-        elif kind == 'backups_location':
-            dirpath = tk.filedialog.askdirectory(title='Backups Filepath', initialdir='./', )
-            if dirpath == '':
-                return
-            else:
-                try:
-                    for i in os.listdir(self.parent.parent.backup_location):
-                        shutil.move(f'{self.parent.parent.backup_location}/{i}', dirpath)
-                    os.removedirs(self.parent.parent.backup_location)
-                except FileNotFoundError:
-                    logging.error('backup location not existing')
-
-                self.parent.parent.backup_location = dirpath
-                if os.path.exists('./system/properties.yml'):
-                    with open('./system/properties.yml', 'r') as a:
-                        properties_dict = yaml.safe_load(a)
-                        properties_dict['backup_location'] = self.parent.parent.backup_location
-                    with open('./system/properties.yml', 'w') as f:
-                        yaml.dump(properties_dict, f)
-                    self.parent.frame_3_backup_folder_location_var.set(f'{self.parent.parent.backup_location}/')
-                else:
-                    self.parent.parent.check_or_create_working_dirs()
-                return logging.info('backups location changed successfully')
-        elif kind == 'debug_mode':
-            if self.parent.frame_3_switch_var_1.get() == 'off':
-                self.parent.parent.debug_mode = False
-            else:
-                self.parent.parent.debug_mode = True
-
-            if os.path.exists('./system/properties.yml'):
-                with open('./system/properties.yml', 'r') as a:
-                    properties_dict = yaml.safe_load(a)
-                    properties_dict['debug_mode'] = self.parent.parent.debug_mode
-                with open('./system/properties.yml', 'w') as f:
-                    yaml.dump(properties_dict, f)
-            else:
-                self.parent.parent.check_or_create_working_dirs()
-
-            return messagebox.showinfo('Änderungen gespeichert',
-                                       'Programm muss neu gestartet werden um Änderungen zu sehen!')
-        elif kind == 'behandlungsarten_limiter':
-            if self.parent.frame_3_switch_var_2.get() == 'off':
-                self.parent.parent.behandlungsarten_limiter = False
-                self.parent.behandlungsarten_limit_entry.configure(state='disabled', fg_color='gray16')
-            else:
-                self.parent.parent.behandlungsarten_limiter = True
-                self.parent.behandlungsarten_limit_entry.configure(state='normal', fg_color='#343638')
-
-            if os.path.exists('./system/properties.yml'):
-                with open('./system/properties.yml', 'r') as a:
-                    properties_dict = yaml.safe_load(a)
-                    properties_dict['behandlungsarten_limiter'] = self.parent.parent.behandlungsarten_limiter
-                with open('./system/properties.yml', 'w') as f:
-                    yaml.dump(properties_dict, f)
-            else:
-                self.parent.parent.check_or_create_working_dirs()
-        elif kind == 'behandlungsarten_limit':
-            self.parent.parent.behandlungsarten_limit = int(*args[0])
-            if os.path.exists('./system/properties.yml'):
-                with open('./system/properties.yml', 'r') as a:
-                    properties_dict = yaml.safe_load(a)
-                    properties_dict['behandlungsarten_limit'] = self.parent.parent.behandlungsarten_limit
-                with open('./system/properties.yml', 'w') as f:
-                    yaml.dump(properties_dict, f)
-            else:
-                self.parent.parent.check_or_create_working_dirs()
-        elif kind == 'backups_enabled':
-            if self.parent.frame_3_switch_var_3.get() == 'off':
-                self.parent.parent.backups_enabled = False
-            else:
-                self.parent.parent.backups_enabled = True
-
-            if os.path.exists('./system/properties.yml'):
-                with open('./system/properties.yml', 'r') as a:
-                    properties_dict = yaml.safe_load(a)
-                    properties_dict['backups_enabled'] = self.parent.parent.backups_enabled
-                with open('./system/properties.yml', 'w') as f:
-                    yaml.dump(properties_dict, f)
-            else:
-                self.parent.parent.check_or_create_working_dirs()
-        elif kind == 'logs_enabled':
-            if self.parent.frame_3_switch_var_4.get() == 'off':
-                self.parent.parent.logs_enabled = False
-            else:
-                self.parent.parent.logs_enabled = True
-
-            if os.path.exists('./system/properties.yml'):
-                with open('./system/properties.yml', 'r') as a:
-                    properties_dict = yaml.safe_load(a)
-                    properties_dict['logs_enabled'] = self.parent.parent.logs_enabled
-                with open('./system/properties.yml', 'w') as f:
-                    yaml.dump(properties_dict, f)
-            else:
-                self.parent.parent.check_or_create_working_dirs()
-        elif kind == 'logs_location':
-            dirpath = tk.filedialog.askdirectory(title='Backups Filepath', initialdir='./', )
-            if dirpath == '':
-                return
-            else:
-                for i in os.listdir(self.parent.parent.logs_location):
-                    os.remove(f'{self.parent.parent.logs_location}/{i}')
-
-                self.parent.parent.logs_location = dirpath
-                if os.path.exists('./system/properties.yml'):
-                    with open('./system/properties.yml', 'r') as a:
-                        properties_dict = yaml.safe_load(a)
-                        properties_dict['logs_location'] = self.parent.parent.logs_location
-                    with open('./system/properties.yml', 'w') as f:
-                        yaml.dump(properties_dict, f)
-                    self.parent.frame_3_logs_folder_location_var.set(f'{self.parent.parent.logs_location}/')
-                else:
-                    self.parent.parent.check_or_create_working_dirs()
-                return logging.info('backups location changed successfully')
-
-    def create_backup(self):
-        logging.debug('Backend.create_backup() called')
-
-        if self.parent.backups_enabled:
-            current_date_time = time.strftime('%Y-%m-%d--%H-%M-%S')
-            if not os.path.exists(self.parent.backup_location):
-                os.makedirs(self.parent.backup_location)
-                logging.info(f'created {self.parent.backup_location}')
-            shutil.make_archive(f'{self.parent.backup_location}/backup-rechnungen--{current_date_time}', 'zip',
-                                f'{self.parent.rechnungen_location}/')
-            return True
-        else:
-            return False
-
-    def open_file(self, filepath):
-        logging.debug('Backend.open_rechnung() called')
-
-        if platform.system() == 'Darwin':  # macOS
-            subprocess.call(('open', filepath))
-            logging.info('macOS: opened file')
-        elif platform.system() == 'Windows':  # Windows
-            subprocess.Popen(filepath, shell=True)
-            logging.info('Windows: opened file')
-        else:  # linux variants
-            subprocess.call(('xdg-open', filepath))
-            logging.info('linux: opened file')
-
-
 class PDF(FPDF):
     def __init__(self, rechnungsnummer):
         super().__init__()
@@ -3294,7 +3349,7 @@ class KgRechnung(PDF):
 
     def __init__(self, parent, stammdaten: list, rechnungsnummer: str, rechnungsdatum: str, gesamtpreis: int,
                  rechnungsdaten: list, rechnungsdaten_anzahl: int, behandlungsarten: list,
-                 einzelpreise: list):
+                 einzelpreise: list, filepath: str):
         super().__init__(rechnungsnummer)
         self.parent = parent
 
@@ -3302,6 +3357,7 @@ class KgRechnung(PDF):
 
         self.prepare_data(stammdaten, rechnungsnummer, rechnungsdatum, gesamtpreis, rechnungsdaten,
                           rechnungsdaten_anzahl, behandlungsarten, einzelpreise)
+        self.create_pages(filepath)
 
     def prepare_data(self, stammdaten, rechnungsnummer, rechnungsdatum, gesamtpreis, rechnungsdaten,
                      rechnungsdaten_anzahl, behandlungsarten, einzelpreise):
@@ -3346,7 +3402,7 @@ class KgRechnung(PDF):
         self.gesamtpreis = f'{round(float(gesamtpreis), 2):.2f}'.replace('.', ',')
         self.TABLE_DATA_4.insert(0, ['', 'Gesamtbetrag:', self.gesamtpreis, '\u00a0'])
 
-    def create_pages(self):
+    def create_pages(self, filepath):
         self.add_page()
 
         self.set_font("helvetica", size=7)
@@ -3413,7 +3469,7 @@ class KgRechnung(PDF):
         with self.table(cell_fill_color=230, cell_fill_mode="ROWS",
                         line_height=1.7 * self.font_size,
                         text_align=('CENTER', 'LEFT', 'RIGHT', 'RIGHT', 'LEFT'),
-                        col_widths=(9, 70, 12, 14, 3)) as table:
+                        col_widths=(9, 69, 13, 15, 4)) as table:
             for data_row in self.TABLE_DATA_3:
                 row = table.row()
                 for index, datum in enumerate(data_row):
@@ -3425,7 +3481,7 @@ class KgRechnung(PDF):
                         row.cell(datum)
 
         self.cell(176, 0, border=1, center=True)
-        with self.table(borders_layout='NONE', col_widths=(9, 70, 12, 14, 3), line_height=1.7 * self.font_size,
+        with self.table(borders_layout='NONE', col_widths=(9, 69, 13, 15, 4), line_height=1.7 * self.font_size,
                         text_align=('CENTER', 'RIGHT', 'RIGHT', 'RIGHT', 'LEFT'),
                         cell_fill_color=180, cell_fill_mode="NONE", first_row_as_headings=False) as table:
             for data_row in self.TABLE_DATA_4:
@@ -3457,10 +3513,7 @@ class KgRechnung(PDF):
         self.ln(10)
         self.write(txt='Mervi Fischbach')
 
-        export_filepath = f'{self.parent.parent.parent.rechnungen_location}/rechnungen-{self.parent.parent.parent.year}/{self.rechnungsnummer}.pdf'
-        # export_filepath = './kgrechnung.pdf'
-        self.output(export_filepath)
-        return export_filepath
+        self.output(filepath)
 
 
 class HpRechnung(PDF):
@@ -3626,7 +3679,7 @@ class HpRechnung(PDF):
         with self.table(cell_fill_color=230, cell_fill_mode="ROWS",
                         line_height=1.7 * self.font_size,
                         text_align=('CENTER', 'RIGHT', 'LEFT', 'RIGHT', 'LEFT'),
-                        col_widths=(10, 8, 70, 10, 3)) as table:
+                        col_widths=(10, 8, 70, 10, 4)) as table:
             for data_row in self.TABLE_DATA_2:
                 row = table.row()
                 for index, datum in enumerate(data_row):
@@ -3638,7 +3691,7 @@ class HpRechnung(PDF):
                         row.cell(datum)
         self.cell(176, 0, border=1, center=True)
 
-        with self.table(borders_layout='NONE', col_widths=(10, 8, 70, 10, 3), line_height=1.7 * self.font_size,
+        with self.table(borders_layout='NONE', col_widths=(10, 8, 70, 10, 4), line_height=1.7 * self.font_size,
                         text_align=('CENTER', 'LEFT', 'RIGHT', 'RIGHT', 'LEFT'),
                         cell_fill_color=180, cell_fill_mode="NONE", first_row_as_headings=False) as table:
             for data_row in self.TABLE_DATA_3:
