@@ -44,7 +44,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.3.0-beta'
+    version = '2.3.1-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -2582,7 +2582,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
             try:
                 int(text_after_action)
             except ValueError:
-                print('not int')
+                logging.info('not int')
                 return False
             Backend(self).change_properties('behandlungsarten_limit', text_after_action)
             return True
@@ -3495,10 +3495,6 @@ class HpRechnung(PDF):
         self.TABLE_DATA_3.insert(0, ['', '', 'Gesamtbetrag:', self.gesamtpreis, '\u00a0'])
 
         self.diagnose = diagnose
-
-        print(self.TABLE_DATA_1)
-        print(self.TABLE_DATA_2)
-        print(self.TABLE_DATA_3)
 
     def create_pages(self, filepath):
         self.add_page()
