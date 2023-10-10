@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.4.5-beta'
+    version = '2.4.6-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -1827,15 +1827,15 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
             lengths = []
             for index_2, a in enumerate(i):
                 if index_2 in (0, 2, 4, 6):
-                    data = list(filter(None, a.get('0.0', 'end').split()))
+                    data = list(filter(None, a.get('0.0', 'end').split('\n')))
                     if index_2 == 0:
                         if len(data) != 1:
                             return self.parent.bottom_nav.bottom_nav_warning.configure(
                                 text=f'Es wurde in Reihe {index_1} mehr/weniger als 1 Datum eingegeben', fg_color='red')
-                        if not re.match("(^0[1-9]|[12][0-9]|3[01]).(0[1-9]|1[0-2]).(\d{2}$)", data[0]):
+                        if not re.match("(^0[1-9]|[12][0-9]|3[01]).(0[1-9]|1[0-2]).(\d{2}$)", data[0].replace('\t', '')):
                             return self.parent.bottom_nav.bottom_nav_warning.configure(
                                 text=f'Datum in Reihe {index_1} nicht richtig formatiert: dd.m.yy', fg_color='red')
-                        data[0] += '\n'
+                        # data[0] += '\n\n'
                         row.extend(data)
                     if index_2 == 2:
                         if len(data) == 0:
@@ -1845,8 +1845,8 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                         data = '\n'.join(data)
                         row.append(data)
                     if index_2 == 4:
-                        for i in lengths:
-                            if i != len(data):
+                        for b in lengths:
+                            if b != len(data):
                                 return self.parent.bottom_nav.bottom_nav_warning.configure(
                                     text=f'Die eingegebenen Datenanzahl stimmt nicht mit den anderen in Reihe '
                                          f'{index_1} überein', fg_color='red')
@@ -1854,25 +1854,33 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                         data = '\n'.join(data)
                         row.append(data)
                     if index_2 == 6:
-                        for i in lengths:
-                            if i != len(data):
+                        for b in lengths:
+                            if b != len(data):
                                 return self.parent.bottom_nav.bottom_nav_warning.configure(
                                     text=f'Die eingegebenen Datenanzahl stimmt nicht mit den anderen in Reihe '
                                          f'{index_1} überein', fg_color='red')
                         lengths.append(len(data))
-                        for index_3, i in enumerate(data):
+                        einzelpreise = []
+                        for index_3, c in enumerate(data):
                             try:
-                                i = float(i)
+                                c = float(c.replace(',', '.'))
                             except ValueError:
                                 logging.debug(f'Preis {index_3} in Reihe {index_1} not convertable to float')
                                 return self.parent.bottom_nav.bottom_nav_warning.configure(
                                     text=f'Einzelpreis {index_3} in Reihe {index_1} keine Zahl: {i} -> z.B. 3.40',
                                     fg_color='red')
-                            self.gesamtpreis += i
-                        data = '\n'.join(data)
+                            einzelpreise.append(f'{round(c, 2):.2f}'.replace('.', ','))
+                            self.gesamtpreis += c
+
+                        data = '\n'.join(einzelpreise)
                         row.append(data)
 
             self.behandlungsdaten.append(row)
+
+            if lengths[0] >= 2:
+                self.behandlungsdaten[0][0] += '\n\n'
+            else:
+                self.behandlungsdaten[0][0] += '\n'
 
         logging.debug(f'behandlungdaten: {self.behandlungsdaten}')
         logging.debug(f'self.gesamtpreis: {self.gesamtpreis}')
