@@ -98,14 +98,11 @@ class App(customtkinter.CTk):
 
         self.running = True
         threading.Thread(target=self.read_version_file, daemon=True).start()
+        # TODO (#14)
 
         self.mainloop()
 
-    def __del__(self):
-        self.running = False
-        if os.path.exists('./system/tmp/version.txt.tmp'):
-            os.remove('./system/tmp/version.txt.tmp')
-
+    # Update functions
     def read_version_file(self):
         """fetching version.txt and comparing current program/updater
            versions with version.txt -> starting new thread to update updater.py
@@ -179,7 +176,7 @@ class App(customtkinter.CTk):
                 file = f.readlines()
                 try:
                     if file[2].replace('\n', '') != Updater.version:
-                        logging.info('Updater version not up to date')
+                        logging.info('updater.py version not up to date')
                         try:
                             logging.info('HTTP: trying to fetch updater.py')
                             urllib.request.urlretrieve(str(file[3]), './system/tmp/updater.py')
@@ -193,24 +190,20 @@ class App(customtkinter.CTk):
                             self.installed_updater_updates = False
                         else:
                             logging.info('HTTP request good!')
-
                             if os.path.exists('./system/tmp/updater.py'):
                                 shutil.move('./system/tmp/updater.py', './system/updater/updater.py')
                                 logging.debug('moved updater.py from ./system/tmp/ to ./system/updater/')
 
                             logging.info('updater.py updated')
-
                             self.installed_updater_updates = True
                             break
-
                     else:
-                        logging.info('Updater version up to date')
+                        logging.info('updater.py version up to date')
                         self.installed_updater_updates = True
                         break
 
                 except NameError:
-                    logging.info('Updater not found')
-
+                    logging.info('updater.py not found')
                     try:
                         logging.info('HTTP: trying to fetch updater.py')
                         urllib.request.urlretrieve(str(file[3]), './system/tmp/updater.py')
@@ -224,12 +217,11 @@ class App(customtkinter.CTk):
                         self.installed_updater_updates = False
                     else:
                         logging.info('HTTP request good!')
-
                         if os.path.exists('./system/tmp/updater.py'):
                             shutil.move('./system/tmp/updater.py', './system/updater/updater.py')
                             logging.debug('moved updater.py from ./system/tmp/ to ./system/updater/')
 
-                        logging.info('Updater Installed')
+                        logging.info('updater.py installed')
                         self.installed_updater_updates = True
                         break
 
@@ -349,6 +341,7 @@ class App(customtkinter.CTk):
 
         self.import_images()
 
+    # main/components configuring
     def import_images(self):
         """runs at startup and after every component Install. imports all
            images"""
@@ -512,6 +505,7 @@ class App(customtkinter.CTk):
 
         self.geometry(f'{self.window_width}x{self.window_height}+{x_cordinate}+{y_cordinate}')
 
+    # interfaces
     def kg_rechnung(self, *args):
         """Calls the store_draft function and creates the interface to create a new KGRechnung by
            calling the class KGRechnungInterface.
@@ -629,28 +623,7 @@ class App(customtkinter.CTk):
         except AttributeError:
             pass
 
-    def on_shutdown(self):
-        """Called when program is closing. Checks the integrity of necessary Directories and
-           creates backup when enabled in properties.yml"""
-
-        logging.debug('App.on_shutdown() called')
-
-        self.check_or_create_working_dirs()
-
-        if not self.create_backup():
-            logging.info('No backup created')
-        else:
-            logging.info('Backup created')
-
-        self.running = False
-        if os.path.exists('./system/tmp/version.txt.tmp'):
-            os.remove('./system/tmp/version.txt.tmp')
-
-        self.destroy()
-
-        logging.info(
-            f'____________________________ Program Ended at {time.strftime("%H:%M:%S")} ____________________________\n\n\n\n')
-
+    # universal functions
     def store_draft(self) -> bool:
         """Calls store_draft in Backend with the Params:
                     open_interface: str = self.open_interface"""
@@ -738,8 +711,7 @@ class App(customtkinter.CTk):
         else:
             return False
 
-    @staticmethod
-    def open_file(filepath):
+    def open_file(self, filepath):
         """opens file in default program of your os"""
 
         logging.debug('App.open_rechnung() called')
@@ -822,6 +794,33 @@ class App(customtkinter.CTk):
             pass
 
         return True
+
+    def on_shutdown(self):
+        """Called when program is closing. Checks the integrity of necessary Directories and
+           creates backup when enabled in properties.yml"""
+
+        logging.debug('App.on_shutdown() called')
+
+        self.check_or_create_working_dirs()
+
+        if not self.create_backup():
+            logging.info('No backup created')
+        else:
+            logging.info('Backup created')
+
+        self.running = False
+        if os.path.exists('./system/tmp/version.txt.tmp'):
+            os.remove('./system/tmp/version.txt.tmp')
+
+        self.destroy()
+
+        logging.info(
+            f'____________________________ Program Ended at {time.strftime("%H:%M:%S")} ____________________________\n\n\n\n')
+
+    def __del__(self):
+        self.running = False
+        if os.path.exists('./system/tmp/version.txt.tmp'):
+            os.remove('./system/tmp/version.txt.tmp')
 
 
 class Sidebar(customtkinter.CTkFrame):
@@ -2804,7 +2803,6 @@ class RechnungenInterface(customtkinter.CTkFrame):
 
 
 class EinstellungInterface(customtkinter.CTkScrollableFrame):
-    # TODO Documentation
 
     def __init__(self, parent):
         super().__init__(parent)
