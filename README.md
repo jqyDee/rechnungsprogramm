@@ -1,8 +1,13 @@
-# Rechnungsprogramm HP /  KG
+# Rechnungsprogramm
 
-## Beschreibung
+## Description
+Rechnungsporgramm to write HP and KG invoices.
 
-Version: 2.0.0 
+run setup.py to install requirements and install necessary components.
+
+```
+python3 setup.py
+```
 
 Developer: Matti Fischbach
 
