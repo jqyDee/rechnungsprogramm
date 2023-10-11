@@ -223,6 +223,7 @@ class App(customtkinter.CTk):
 
         def check_update_status(queue, updater):
             logging.info('App.update_.check_update_status() called; running in own thread')
+
             logging.debug('updater process initiated')
             updater.start()
             logging.debug('passed self.version to queue(updater.py)')

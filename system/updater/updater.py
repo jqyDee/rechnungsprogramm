@@ -16,15 +16,20 @@ class Updater:
     def __del__(self):
         self.running = False
 
-        if self.installed_version_tmp and self.installed_pip and self.installed_new_version:
+        try:
             self.queue.put([self.installed_version_tmp, self.installed_pip, self.installed_new_version])
-        else:
-            self.queue.put([self.installed_version_tmp, self.installed_pip, self.installed_new_version])
+        except AttributeError:
+            pass
+
         logging.info('updater.py finished')
 
     def __init__(self, queue):
         self.queue = queue
-        self.program_version = self.queue.get(block=False, timeout=10)
+
+        try:
+            self.main_program_version = self.queue.get(block=False, timeout=10)
+        except AttributeError:
+            self.main_program_version = self.queue
 
         logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
@@ -40,12 +45,10 @@ class Updater:
             except HTTPError as e:
                 logging.error('Error code: ', e.code)
                 time.sleep(self.sleep_time)
-
                 self.installed_version_tmp = False
             except URLError as e:
                 logging.error('Reason: ', e.reason)
                 time.sleep(self.sleep_time)
-
                 self.installed_version_tmp = False
             else:
                 logging.info('HTTP request good!')
@@ -73,16 +76,13 @@ class Updater:
             except HTTPError as e:
                 logging.error('Error code: ', e.code)
                 time.sleep(self.sleep_time)
-
                 self.installed_pip = False
             except URLError as e:
                 logging.error('Reason: ', e.reason)
                 time.sleep(self.sleep_time)
-
                 self.installed_pip = False
             else:
                 logging.info('HTTP request good!')
-
                 os.system('pip install -r ./system/tmp/requirements.txt.tmp')
                 self.installed_pip = True
                 break
@@ -97,27 +97,23 @@ class Updater:
         i = 0
         while self.running and i < 5:
             i += 1
-            if data[1] != self.program_version:
+            if data[1] != self.main_program_version:
                 try:
                     urllib.request.urlretrieve(data[1], './system/tmp/main.py.tmp')
                 except HTTPError as e:
                     logging.error('Error code: ', e.code)
                     time.sleep(self.sleep_time)
-
                     self.installed_new_version = False
                 except URLError as e:
                     logging.error('Reason: ', e.reason)
                     time.sleep(self.sleep_time)
-
                     self.installed_new_version = False
-
                 else:
                     logging.info('HTTP request good!')
-
                     shutil.move('./system/tmp/main.py.tmp', 'main.pyw')
                     self.installed_new_version = True
                     break
 
 
 if __name__ == '__main__':
-    Updater(sys.argv)
+    Updater(1)
