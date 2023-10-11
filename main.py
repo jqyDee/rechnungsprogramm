@@ -144,7 +144,7 @@ class App(customtkinter.CTk):
         """comparing version of main and version of updater with
         version.txt in tmp"""
 
-        logging.info('App.check_for_updates() called')
+        logging.debug('App.check_for_updates() called')
 
         with open('./system/tmp/version.txt.tmp', 'r') as f:
             file = f.readlines()
@@ -168,7 +168,7 @@ class App(customtkinter.CTk):
     def update_updater(self):
         """updates the updater program"""
 
-        logging.info('App.check_for_updater_update() called')
+        logging.debug('App.check_for_updater_update() called')
 
         if not os.path.exists('./system/updater/'):
             os.makedirs('./system/updater/')
@@ -211,7 +211,7 @@ class App(customtkinter.CTk):
     def update_main(self):
         """updates the main program with help of updater.py"""
 
-        logging.info('App.update_() called; Program Update initiated')
+        logging.debug('App.update_() called; Program Update initiated')
 
         if not messagebox.askyesno('Soll Update heruntergeladen werden?', 'Beim fortfahren wird ein neues Update '
                                                                           'heruntergeladen!'):
@@ -285,7 +285,7 @@ class App(customtkinter.CTk):
     def check_components(self):
         """checking if all components are downloaded"""
 
-        logging.info('App.check_components() called')
+        logging.debug('App.check_components() called')
 
         data = []
         with open('./system/tmp/version.txt.tmp', 'r') as f:
@@ -301,7 +301,7 @@ class App(customtkinter.CTk):
     def download_components(self, data):
         """downloads components like images etc."""
 
-        logging.info('App.download_components() called')
+        logging.debug('App.download_components() called')
 
         i = 0
         requests = [False, '']
@@ -332,11 +332,11 @@ class App(customtkinter.CTk):
 
         self.import_images()
 
-    # main/components configuring
+    # main/components configuring/downloading
     def import_images(self):
         """runs after every component install. imports all images"""
 
-        logging.info('App.import_images() called')
+        logging.debug('App.import_images() called')
 
         try:
             self.search_img = customtkinter.CTkImage(light_image=Image.open('./system/components/images/search-md.png'),
