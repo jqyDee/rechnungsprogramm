@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.5.1-beta'
+    version = '2.5.3-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -164,7 +164,7 @@ class App(customtkinter.CTk):
     def update_updater(self):
         """updates the updater program"""
 
-        logging.debug('App.check_for_updater_update() called')
+        logging.debug('App.update_updater() called')
 
         if not os.path.exists('./system/updater/'):
             os.makedirs('./system/updater/')
@@ -198,8 +198,9 @@ class App(customtkinter.CTk):
                     shutil.move('./system/tmp/updater.py', './system/updater/updater.py')
                     logging.debug('moved updater.py from ./system/tmp/ to ./system/updater/')
 
-                    logging.info('updater.py updated')
+                    logging.info('updater.py updated/installed')
                     self.installed_updater_updates = True
+                    break
 
         if not self.installed_updater_updates:
             self.sidebar.label_2.pack(padx=20, pady=(10, 20), ipadx=5, ipady=5, side='bottom', fill='x')
@@ -207,7 +208,7 @@ class App(customtkinter.CTk):
     def update_main(self):
         """updates the main program with help of updater.py"""
 
-        logging.debug('App.update_() called; Program Update initiated')
+        logging.debug('App.update_main() called; Program Update initiated')
 
         if not messagebox.askyesno('Soll Update heruntergeladen werden?', 'Beim fortfahren wird ein neues Update '
                                                                           'heruntergeladen!'):
@@ -294,6 +295,8 @@ class App(customtkinter.CTk):
 
         if data:
             self.download_components(data)
+        else:
+            self.import_components()
 
     def download_components(self, data):
         """downloads components like images etc."""
@@ -327,10 +330,10 @@ class App(customtkinter.CTk):
                     logging.info('HTTP request good!')
                     requests.append(True)
 
-        self.import_images()
+        self.import_components()
 
     # main/components configuring/downloading
-    def import_images(self):
+    def import_components(self):
         """runs after every component install. imports all images"""
 
         logging.debug('App.import_images() called')
@@ -418,23 +421,23 @@ class App(customtkinter.CTk):
 
         if self.debug_mode:
             if self.logs_enabled:
-                logging.basicConfig(format='%(msecs)dms at %(asctime)s -> %(name)s:%(levelname)s:  %(message)s',
+                logging.basicConfig(format='%(msecs)dms at %(asctime)s -> main.py:%(levelname)s:  %(message)s',
                                     datefmt='%H:%M:%S',
                                     level=logging.DEBUG,
                                     handlers=[self.file_handler, stderr_handler])
             else:
-                logging.basicConfig(format='%(msecs)dms at %(asctime)s -> %(name)s:%(levelname)s:  %(message)s',
+                logging.basicConfig(format='%(msecs)dms at %(asctime)s -> main.py:%(levelname)s:  %(message)s',
                                     datefmt='%H:%M:%S',
                                     level=logging.DEBUG,
                                     handlers=[stderr_handler])
         else:
             if self.logs_enabled:
-                logging.basicConfig(format='%(msecs)dms at %(asctime)s -> %(name)s:%(levelname)s:  %(message)s',
+                logging.basicConfig(format='%(msecs)dms at %(asctime)s -> main.py:%(levelname)s:  %(message)s',
                                     datefmt='%H:%M:%S',
                                     level=logging.DEBUG,
                                     handlers=[self.file_handler, stderr_handler])
             else:
-                logging.basicConfig(format='%(msecs)dms at %(asctime)s -> %(name)s:%(levelname)s:  %(message)s',
+                logging.basicConfig(format='%(msecs)dms at %(asctime)s -> main.py:%(levelname)s:  %(message)s',
                                     datefmt='%H:%M:%S',
                                     level=logging.INFO,
                                     handlers=[stderr_handler])
@@ -843,19 +846,20 @@ class Sidebar(customtkinter.CTkFrame):
         self.button_3 = customtkinter.CTkButton(self, text='Stammdateien', command=lambda: self.parent.stammdaten_())
         self.button_4 = customtkinter.CTkButton(self, text='Rechnungen',
                                                 command=lambda: self.parent.rechnung_loeschen())
-        self.label_1 = customtkinter.CTkLabel(self, text="Couldn't reach server\nand check version!", fg_color='orange',
-                                              text_color='black')
-        self.label_2 = customtkinter.CTkLabel(self, text="Couldn't reach server and\nupdate version! Try again later!",
+        self.label_1 = customtkinter.CTkLabel(self, text="Main Error\nCouldn't download version.txt!\nTry again later!",
                                               fg_color='orange', text_color='black')
-        self.label_3 = customtkinter.CTkLabel(self, text="Updater Error\nCouldn't read version.txt.\nTry again later!",
+        self.label_2 = customtkinter.CTkLabel(self, text="Main Error\nCouldn't download updater.py!\nTry again later!",
+                                              fg_color='orange', text_color='black')
+        self.label_3 = customtkinter.CTkLabel(self, text="Updater Error\nCouldn't download version.txt!\n"
+                                                         "Try again later!",
                                               fg_color='orange', text_color='black')
         self.label_4 = customtkinter.CTkLabel(self,
-                                              text="Updater Error\nCouldn't read requirements.txt.\nTry again later",
+                                              text="Updater Error\nCouldn't download requirements.txt!\nTry again later",
                                               fg_color='orange', text_color='black')
-        self.label_5 = customtkinter.CTkLabel(self, text="Updater Error\nCouldn't read main.py.\nTry again later",
+        self.label_5 = customtkinter.CTkLabel(self, text="Updater Error\nCouldn't download main.py!\nTry again later",
                                               fg_color='orange', text_color='black')
-        self.label_6 = customtkinter.CTkLabel(self,
-                                              text="Update Installiert!\n\nProgramm muss neugestartet\nwerden damit Änderungen\nsichtbar sind!",
+        self.label_6 = customtkinter.CTkLabel(self, text="Update Installiert\n\nProgramm muss neugestartet\n"
+                                                         "werden damit Änderungen\nsichtbar sind!",
                                               fg_color='orange', text_color='black')
         self.button_6 = customtkinter.CTkButton(self, text='clear screen',
                                                 command=lambda: self.parent.clear_interfaces())
