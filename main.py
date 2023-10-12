@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.5.0-beta'
+    version = '2.5.1-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -78,7 +78,7 @@ class App(customtkinter.CTk):
     edit_img = None
     trash_img = None
 
-    # request time.sleep
+    # urllib.request time.sleep
     sleep_time = 30
 
     def __init__(self):
@@ -97,31 +97,27 @@ class App(customtkinter.CTk):
         self.bottom_nav = BottomNav(self)
 
         self.running = True
-        threading.Thread(target=self.read_version_file, daemon=True).start()
+        threading.Thread(target=self.download_version_file, daemon=True).start()
 
         self.mainloop()
 
-    def __del__(self):
-        self.running = False
+    # Update functions
+    def download_version_file(self):
+        """downloading version.txt from remote -> saving in tmp"""
+
+        logging.debug('App.download_version_file() called')
+
+        if not os.path.exists('./system/tmp/'):
+            os.makedirs('./system/tmp/')
+            logging.debug('./system/tmp/ created')
+
         if os.path.exists('./system/tmp/version.txt.tmp'):
             os.remove('./system/tmp/version.txt.tmp')
+            logging.debug('old ./system/tmp/version.txt.tmp deleted')
 
-    def read_version_file(self):
-        """fetching version.txt and comparing current program/updater
-           versions with version.txt -> starting new thread to update updater.py
-           and making update availability visible"""
-
-        logging.debug('App.read_version_file() called -> in new thread')
         i = 0
         while self.running and i < 10:
             i += 1
-            if not os.path.exists('./system/tmp/'):
-                os.makedirs('./system/tmp/')
-                logging.debug('./system/tmp/ created')
-
-            if os.path.exists('./system/tmp/version.txt.tmp'):
-                os.remove('./system/tmp/version.txt.tmp')
-                logging.debug('old ./system/tmp/version.txt.tmp deleted')
 
             try:
                 logging.info('HTTP: trying to fetch version.txt')
@@ -136,110 +132,86 @@ class App(customtkinter.CTk):
                 self.read_version_tmp = False
             else:
                 logging.debug('HTTP request good!')
-
-                with open('./system/tmp/version.txt.tmp', 'r') as f:
-                    data = f.readlines()
-                    if data[0].replace('\n', '') != self.version:
-                        logging.info('Program version not up to date')
-                        self.sidebar.button_5.configure(fg_color='red')
-                        self.update_available = True
-                        threading.Thread(target=self.check_for_updater_update, daemon=True).start()
-                        threading.Thread(target=self.download_components, args=(data,), daemon=True).start()
-                        self.read_version_tmp = True
-                        break
-                    else:
-                        logging.info('Program version up to date')
-                        threading.Thread(target=self.check_for_updater_update, daemon=True).start()
-                        threading.Thread(target=self.download_components, args=(data,), daemon=True).start()
-                        self.read_version_tmp = True
-                        break
+                self.read_version_tmp = True
+                threading.Thread(target=self.check_components, args=(), daemon=True).start()
+                self.check_for_updates()
+                break
 
         if not self.read_version_tmp:
             self.sidebar.label_1.pack(padx=20, pady=(10, 20), ipadx=5, ipady=5, side='bottom', fill='x')
 
-    def check_for_updater_update(self):
-        """checks if updater has to be updated, and then updates
-           the updater.py. runs in own thread. """
+    def check_for_updates(self):
+        """comparing version of main and version of updater with
+        version.txt in tmp"""
 
-        logging.info('App.check_for_updater_update() called')
+        logging.debug('App.check_for_updates() called')
+
+        with open('./system/tmp/version.txt.tmp', 'r') as f:
+            file = f.readlines()
+            if file[0].replace('\n', '') != self.version:
+                logging.info('main program version not up to date')
+                self.sidebar.button_5.configure(fg_color='red')
+                self.update_available = True
+            else:
+                logging.info('main program version up to date')
+
+            try:
+                if file[2].replace('\n', '') != Updater.version:
+                    logging.info('updater version not up to date')
+                    threading.Thread(target=self.update_updater, daemon=True).start()
+                else:
+                    logging.info('updater.py version up to date')
+            except NameError:
+                logging.info('updater.py not installed')
+                threading.Thread(target=self.update_updater, daemon=True).start()
+
+    def update_updater(self):
+        """updates the updater program"""
+
+        logging.debug('App.check_for_updater_update() called')
+
+        if not os.path.exists('./system/updater/'):
+            os.makedirs('./system/updater/')
+            logging.debug('./system/updater/ created')
+
+        if os.path.exists('./system/tmp/updater.py'):
+            os.remove('./system/tmp/updater.py')
+            logging.debug('old ./system/tmp/updater.py deleted')
 
         i = 0
         while self.running and i < 10:
             i += 1
 
-            if not os.path.exists('./system/updater/'):
-                os.makedirs('./system/updater/')
-                logging.debug('./system/updater/ created')
-
-            if os.path.exists('./system/tmp/updater.py'):
-                os.remove('./system/tmp/updater.py')
-                logging.debug('old ./system/tmp/updater.py deleted')
-
             with open('./system/tmp/version.txt.tmp', 'r') as f:
                 file = f.readlines()
+
                 try:
-                    if file[2].replace('\n', '') != Updater.version:
-                        logging.info('Updater version not up to date')
-                        try:
-                            logging.info('HTTP: trying to fetch updater.py')
-                            urllib.request.urlretrieve(str(file[3]), './system/tmp/updater.py')
-                        except HTTPError as e:
-                            logging.error('Error code: ', e.code)
-                            time.sleep(self.sleep_time)
-                            self.installed_updater_updates = False
-                        except URLError as e:
-                            logging.error('Reason: ', e.reason)
-                            time.sleep(self.sleep_time)
-                            self.installed_updater_updates = False
-                        else:
-                            logging.info('HTTP request good!')
+                    logging.info('HTTP: trying to fetch updater.py')
+                    urllib.request.urlretrieve(str(file[3]), './system/tmp/updater.py')
+                except HTTPError as e:
+                    logging.error('Error code: ', e.code)
+                    time.sleep(self.sleep_time)
+                    self.installed_updater_updates = False
+                except URLError as e:
+                    logging.error('Reason: ', e.reason)
+                    time.sleep(self.sleep_time)
+                    self.installed_updater_updates = False
+                else:
+                    logging.info('HTTP request good!')
 
-                            if os.path.exists('./system/tmp/updater.py'):
-                                shutil.move('./system/tmp/updater.py', './system/updater/updater.py')
-                                logging.debug('moved updater.py from ./system/tmp/ to ./system/updater/')
+                    shutil.move('./system/tmp/updater.py', './system/updater/updater.py')
+                    logging.debug('moved updater.py from ./system/tmp/ to ./system/updater/')
 
-                            logging.info('updater.py updated')
-
-                            self.installed_updater_updates = True
-                            break
-
-                    else:
-                        logging.info('Updater version up to date')
-                        self.installed_updater_updates = True
-                        break
-
-                except NameError:
-                    logging.info('Updater not found')
-
-                    try:
-                        logging.info('HTTP: trying to fetch updater.py')
-                        urllib.request.urlretrieve(str(file[3]), './system/tmp/updater.py')
-                    except HTTPError as e:
-                        logging.error('Error code: ', e.code)
-                        time.sleep(self.sleep_time)
-                        self.installed_updater_updates = False
-                    except URLError as e:
-                        logging.error('Reason: ', e.reason)
-                        time.sleep(self.sleep_time)
-                        self.installed_updater_updates = False
-                    else:
-                        logging.info('HTTP request good!')
-
-                        if os.path.exists('./system/tmp/updater.py'):
-                            shutil.move('./system/tmp/updater.py', './system/updater/updater.py')
-                            logging.debug('moved updater.py from ./system/tmp/ to ./system/updater/')
-
-                        logging.info('Updater Installed')
-                        self.installed_updater_updates = True
-                        break
+                    logging.info('updater.py updated')
+                    self.installed_updater_updates = True
 
         if not self.installed_updater_updates:
             self.sidebar.label_2.pack(padx=20, pady=(10, 20), ipadx=5, ipady=5, side='bottom', fill='x')
 
-    def update_(self):
+    def update_main(self):
         """updates the main program with help of updater.py"""
 
-        logging.info('App.update_() called; Program Update initiated')
+        logging.debug('App.update_() called; Program Update initiated')
 
         if not messagebox.askyesno('Soll Update heruntergeladen werden?', 'Beim fortfahren wird ein neues Update '
                                                                           'heruntergeladen!'):
@@ -251,6 +223,7 @@ class App(customtkinter.CTk):
 
         def check_update_status(queue, updater):
             logging.info('App.update_.check_update_status() called; running in own thread')
+
             logging.debug('updater process initiated')
             updater.start()
             logging.debug('passed self.version to queue(updater.py)')
@@ -310,50 +283,61 @@ class App(customtkinter.CTk):
 
         threading.Thread(target=check_update_status, args=[queue, updater, ], daemon=True).start()
 
+    def check_components(self):
+        """checking if all components are downloaded"""
+
+        logging.debug('App.check_components() called')
+
+        data = []
+        with open('./system/tmp/version.txt.tmp', 'r') as f:
+            file = f.readlines()[6:]
+            for index, line in enumerate(file):
+                component_path = line.split()[0]
+                if not os.path.exists(component_path):
+                    data.append(line)
+
+        if data:
+            self.download_components(data)
+
     def download_components(self, data):
         """downloads components like images etc."""
 
-        logging.info('App.download_components() called; running in own thread')
+        logging.debug('App.download_components() called')
 
         i = 0
         requests = [False, '']
         while self.running and i < 10 and not all(requests):
             i += 1
             requests.clear()
-            for item in data[6:]:
-                item.replace('\n', '')
-                item = item.split()
+            for line in data:
+                line = line.split()
 
-                if not os.path.exists(os.path.dirname(item[0])):
-                    os.makedirs(os.path.dirname(item[0]))
+                if not os.path.exists(os.path.dirname(line[0])):
+                    os.makedirs(os.path.dirname(line[0]))
                     logging.debug('compononents dir created: os.path.dirname(item[0])')
 
-                if not os.path.exists(item[0]):
-                    try:
-                        logging.info('HTTP: trying to fetch component')
-                        urllib.request.urlretrieve(item[1], item[0])
-                    except HTTPError as e:
-                        logging.error('Error code: ', e.code)
-                        time.sleep(self.sleep_time)
-                        requests.append(False)
-
-                    except URLError as e:
-                        logging.error('Reason: ', e.reason)
-                        time.sleep(self.sleep_time)
-                        requests.append(False)
-                    else:
-                        logging.info('HTTP request good!')
-                        requests.append(True)
+                try:
+                    logging.info('HTTP: trying to fetch component')
+                    urllib.request.urlretrieve(line[1].replace('\n', ''), line[0])
+                except HTTPError as e:
+                    logging.error('Error code: ', e.code)
+                    time.sleep(self.sleep_time)
+                    requests.append(False)
+                except URLError as e:
+                    logging.error('Reason: ', e.reason)
+                    time.sleep(self.sleep_time)
+                    requests.append(False)
                 else:
+                    logging.info('HTTP request good!')
                     requests.append(True)
 
         self.import_images()
 
+    # main/components configuring/downloading
     def import_images(self):
-        """runs at startup and after every component Install. imports all
-           images"""
+        """runs after every component install. imports all images"""
 
-        logging.info('App.import_images() called')
+        logging.debug('App.import_images() called')
 
         try:
             self.search_img = customtkinter.CTkImage(light_image=Image.open('./system/components/images/search-md.png'),
@@ -363,8 +347,8 @@ class App(customtkinter.CTk):
             logging.debug("couldn't import search_img")
             self.search_img = None
         try:
-            self.open_img = customtkinter.CTkImage(light_image=Image.open('./system/components/images/cursor-01.png'),
-                                                   dark_image=Image.open('./system/components/images/cursor-01.png'),
+            self.open_img = customtkinter.CTkImage(light_image=Image.open('cursor-01.png'),
+                                                   dark_image=Image.open('cursor-01.png'),
                                                    size=(15, 15))
         except FileNotFoundError:
             logging.debug("couldn't import open_img")
@@ -512,6 +496,7 @@ class App(customtkinter.CTk):
 
         self.geometry(f'{self.window_width}x{self.window_height}+{x_cordinate}+{y_cordinate}')
 
+    # interfaces
     def kg_rechnung(self, *args):
         """Calls the store_draft function and creates the interface to create a new KGRechnung by
            calling the class KGRechnungInterface.
@@ -629,28 +614,7 @@ class App(customtkinter.CTk):
         except AttributeError:
             pass
 
-    def on_shutdown(self):
-        """Called when program is closing. Checks the integrity of necessary Directories and
-           creates backup when enabled in properties.yml"""
-
-        logging.debug('App.on_shutdown() called')
-
-        self.check_or_create_working_dirs()
-
-        if not self.create_backup():
-            logging.info('No backup created')
-        else:
-            logging.info('Backup created')
-
-        self.running = False
-        if os.path.exists('./system/tmp/version.txt.tmp'):
-            os.remove('./system/tmp/version.txt.tmp')
-
-        self.destroy()
-
-        logging.info(
-            f'____________________________ Program Ended at {time.strftime("%H:%M:%S")} ____________________________\n\n\n\n')
-
+    # universal functions
     def store_draft(self) -> bool:
         """Calls store_draft in Backend with the Params:
                     open_interface: str = self.open_interface"""
@@ -738,8 +702,7 @@ class App(customtkinter.CTk):
         else:
             return False
 
-    @staticmethod
-    def open_file(filepath):
+    def open_file(self, filepath):
         """opens file in default program of your os"""
 
         logging.debug('App.open_rechnung() called')
@@ -822,6 +785,33 @@ class App(customtkinter.CTk):
             pass
 
         return True
+
+    def on_shutdown(self):
+        """Called when program is closing. Checks the integrity of necessary Directories and
+           creates backup when enabled in properties.yml"""
+
+        logging.debug('App.on_shutdown() called')
+
+        self.check_or_create_working_dirs()
+
+        if not self.create_backup():
+            logging.info('No backup created')
+        else:
+            logging.info('Backup created')
+
+        self.running = False
+        if os.path.exists('./system/tmp/version.txt.tmp'):
+            os.remove('./system/tmp/version.txt.tmp')
+
+        self.destroy()
+
+        logging.info(
+            f'____________________________ Program Ended at {time.strftime("%H:%M:%S")} ____________________________\n\n\n\n')
+
+    def __del__(self):
+        self.running = False
+        if os.path.exists('./system/tmp/version.txt.tmp'):
+            os.remove('./system/tmp/version.txt.tmp')
 
 
 class Sidebar(customtkinter.CTkFrame):
@@ -2804,7 +2794,6 @@ class RechnungenInterface(customtkinter.CTkFrame):
 
 
 class EinstellungInterface(customtkinter.CTkScrollableFrame):
-    # TODO Documentation
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -2866,7 +2855,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
 
         self.update_label = customtkinter.CTkLabel(self.frame_1, text='Update:')
         self.update_button = customtkinter.CTkButton(self.frame_1, text='Update', width=10,
-                                                     command=lambda: self.parent.update_(), state='disabled')
+                                                     command=lambda: self.parent.update_main(), state='disabled')
         if self.parent.update_available:
             self.update_button.configure(state='normal', fg_color='red')
 
