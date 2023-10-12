@@ -79,7 +79,7 @@ class App(customtkinter.CTk):
     trash_img = None
 
     # urllib.request time.sleep
-    sleep_time = 30
+    sleep_time = 10
 
     def __init__(self):
         super().__init__()
@@ -110,10 +110,6 @@ class App(customtkinter.CTk):
         if not os.path.exists('./system/tmp/'):
             os.makedirs('./system/tmp/')
             logging.debug('./system/tmp/ created')
-
-        if os.path.exists('./system/tmp/version.txt.tmp'):
-            os.remove('./system/tmp/version.txt.tmp')
-            logging.debug('old ./system/tmp/version.txt.tmp deleted')
 
         i = 0
         while self.running and i < 10:
