@@ -298,7 +298,7 @@ class App(customtkinter.CTk):
         else:
             self.import_components()
 
-    def download_components(self, data):
+    def download_components(self, data: list):
         """downloads components like images etc."""
 
         logging.debug('App.download_components() called')
@@ -587,31 +587,33 @@ class App(customtkinter.CTk):
         self.bottom_nav.bottom_nav_button.configure(state='disabled')
         self.bottom_nav.bottom_nav_button_2.configure(state='disabled')
         self.bottom_nav.bottom_nav_warning.configure(text='', fg_color='transparent')
+
         try:
             self.kg_interface.destroy()
-            self.kg_interface = None
         except AttributeError:
             pass
         try:
             self.hp_interface.destroy()
-            self.kg_interface = None
         except AttributeError:
             pass
         try:
             self.stammdaten_interface.destroy()
-            self.stammdaten_interface = None
         except AttributeError:
             pass
         try:
             self.rechnung_loeschen_interface.destroy()
-            self.rechnung_loeschen_interface = None
         except AttributeError:
             pass
         try:
             self.einstellungen_interface.destroy()
-            self.einstellungen_interface = None
         except AttributeError:
             pass
+
+        self.kg_interface = None
+        self.hp_interface = None
+        self.stammdaten_interface = None
+        self.rechnung_loeschen_interface = None
+        self.einstellungen_interface = None
 
     # universal functions
     def store_draft(self) -> bool:
@@ -619,6 +621,20 @@ class App(customtkinter.CTk):
                     open_interface: str = self.open_interface"""
 
         logging.debug('App.store_draft() called')
+
+        # rewrite -> Not ready
+        # interfaces = [self.kg_interface, self.hp_interface]
+        # if not self.debug_mode and any(interfaces):
+        #     if interfaces[0]:
+        #         logging.debug('KG Interface was open before')
+        #         try:
+        #             data = [self.kg_interface.kuerzel_entry, self.kg_interface.rechnungsdatum_entry,
+        #                     self.kg_interface.daten_entrys,
+        #                     self.kg_interface.behandlungsarten_entrys_2d_array]
+        #         except AttributeError:
+        #             return True
+        #     elif interfaces[1]:
+        #         logging.debug('HP Interface was open before')
 
         if self.open_interface is None or self.debug_mode:
             return True
@@ -688,7 +704,9 @@ class App(customtkinter.CTk):
             return False
 
     def create_backup(self):
-        logging.debug('Backend.create_backup() called')
+        """Creates Backup if enabled in properties.yml."""
+
+        logging.debug('App.create_backup() called')
 
         if self.backups_enabled:
             current_date_time = time.strftime('%Y-%m-%d--%H-%M-%S')
@@ -701,7 +719,7 @@ class App(customtkinter.CTk):
         else:
             return False
 
-    def open_file(self, filepath):
+    def open_file(self, filepath: str):
         """opens file in default program of your os"""
 
         logging.debug('App.open_rechnung() called')
@@ -716,7 +734,7 @@ class App(customtkinter.CTk):
             subprocess.call(('xdg-open', filepath))
             logging.info('linux: opened file')
 
-    def clean_remove(self, filepath, file):
+    def clean_remove(self, filepath: str, file: str):
         """removes rechnungs file and data out of csv file"""
 
         logging.debug('App.clean_remove() called')
@@ -787,7 +805,7 @@ class App(customtkinter.CTk):
 
     def on_shutdown(self):
         """Called when program is closing. Checks the integrity of necessary Directories and
-           creates backup when enabled in properties.yml"""
+           creates backup when enabled in properties.yml. Makes sure all threads are closed"""
 
         logging.debug('App.on_shutdown() called')
 
@@ -808,6 +826,11 @@ class App(customtkinter.CTk):
             f'____________________________ Program Ended at {time.strftime("%H:%M:%S")} ____________________________\n\n\n\n')
 
     def __del__(self):
+        """App destructor. Makes sure all threads are closed and removes version.txt
+        out of tmp dir!"""
+
+        logging.debug('App.__del__()/App destructor called')
+
         self.running = False
         if os.path.exists('./system/tmp/version.txt.tmp'):
             os.remove('./system/tmp/version.txt.tmp')
