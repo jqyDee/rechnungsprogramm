@@ -3351,7 +3351,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
 
                     with open('./system/user_data.yml', 'r') as a:
                         user_dict = yaml.safe_load(a)
-                        user_dict['bic'] = self.parent.iban
+                        user_dict['bic'] = self.parent.bic
                     with open('./system/user_data.yml', 'w') as f:
                         yaml.dump(user_dict, f)
 
