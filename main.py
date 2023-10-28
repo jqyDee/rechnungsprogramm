@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.5.3-beta'
+    version = '2.6.0-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -1994,7 +1994,8 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
         filepath = f'{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/{self.rechnungsnummer}.pdf'
 
         HpRechnung(self.stammdaten, self.rechnungsnummer, self.rechnungsdatum, self.gesamtpreis,
-                   self.behandlungsdaten, self.diagnose, filepath)
+                   self.behandlungsdaten, self.diagnose, filepath, self.parent.steuer_id,
+                   self.parent.iban, self.parent.bic)
 
         # PDF Öffnen
         self.parent.open_file(filepath)
