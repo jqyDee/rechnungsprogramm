@@ -2926,14 +2926,14 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.heading_5 = customtkinter.CTkLabel(self.frame_4, text='Variablen', font=small_heading)
         self.steuer_id_label = customtkinter.CTkLabel(self.frame_4, text='Steuer-ID:')
         self.steuer_id_entry = customtkinter.CTkEntry(self.frame_4, textvariable=self.frame_4_steuer_id_var,
-                                                      validate='key',
+                                                      validate='key', width=200,
                                                       validatecommand=(
                                                           self.register(self.detect_change), '%P', 'steuer_id'))
         self.iban_label = customtkinter.CTkLabel(self.frame_4, text='IBAN:')
-        self.iban_entry = customtkinter.CTkEntry(self.frame_4, textvariable=self.frame_4_iban_var, validate='key',
+        self.iban_entry = customtkinter.CTkEntry(self.frame_4, textvariable=self.frame_4_iban_var, width=200, validate='key',
                                                  validatecommand=(self.register(self.detect_change), '%P', 'iban'))
         self.bic_label = customtkinter.CTkLabel(self.frame_4, text='BIC:')
-        self.bic_entry = customtkinter.CTkEntry(self.frame_4, textvariable=self.frame_4_bic_var, validate='key',
+        self.bic_entry = customtkinter.CTkEntry(self.frame_4, textvariable=self.frame_4_bic_var, width=200, validate='key',
                                                  validatecommand=(self.register(self.detect_change), '%P', 'bic'))
 
         # About section
@@ -3466,7 +3466,7 @@ class PDF(FPDF):
         self.set_y(-25)
         # helvetica italic 8
         self.set_font('helvetica', 'B', 8)
-        self.cell(0, 5, 'Bankverbindung ING Diba', align='C')
+        self.cell(0, 5, 'Bankverbindung', align='C')
         self.ln(3)
         self.cell(0, 5, f'IBAN: {self.iban}', align='C')
         self.ln(3)
