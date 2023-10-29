@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.6.6-beta'
+    version = '2.6.7-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -105,6 +105,8 @@ class App(customtkinter.CTk):
         threading.Thread(target=self.download_version_file, daemon=True).start()
 
         self.load_user_data()
+
+        self.on_startup()
 
         self.mainloop()
 
@@ -826,6 +828,12 @@ class App(customtkinter.CTk):
             pass
 
         return True
+
+    def on_startup(self):
+        """removes not necessary components/files"""
+
+        if os.path.exists('./system/components/images/logo.png'):
+            os.remove('./system/components/images/logo.png')
 
     def on_shutdown(self):
         """Called when program is closing. Checks the integrity of necessary Directories and
@@ -3647,7 +3655,7 @@ class KgRechnung(PDF):
                    txt='innerhalb von 14 Tagen unter Angabe der Rechnungsnummer auf unten stehendes Konto zu überweisen.')
         self.ln(13)
         self.write(txt='Mit freundlichen Grüßen')
-        self.ln(10)
+        self.ln(7)
         self.write(txt='Mervi Fischbach')
 
         self.output(filepath)
@@ -3873,7 +3881,7 @@ class HpRechnung(PDF):
                    txt='innerhalb von 14 Tagen unter Angabe der Rechnungsnummer auf unten stehendes Konto zu überweisen.')
         self.ln(13)
         self.write(txt='Mit freundlichen Grüßen')
-        self.ln(10)
+        self.ln(7)
         self.write(txt='Mervi Fischbach')
 
         self.output(filepath)
