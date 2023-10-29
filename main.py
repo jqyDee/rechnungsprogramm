@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.6.2-beta'
+    version = '2.6.3-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -104,6 +104,8 @@ class App(customtkinter.CTk):
 
         self.running = True
         threading.Thread(target=self.download_version_file, daemon=True).start()
+
+        messagebox.showwarning('Error', 'Momentan können keine Entwürfe gespeichert werden!')
 
         self.mainloop()
 
@@ -641,9 +643,7 @@ class App(customtkinter.CTk):
     def store_draft(self) -> bool:
         """Calls store_draft in Backend with the Params:
                     open_interface: str = self.open_interface"""
-
         return True
-
         logging.debug('App.store_draft() called')
 
         # rewrite -> Not ready
@@ -1389,7 +1389,7 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
                         fg_color='red')
                     return False
             if i == '':
-                if index in (8, 12, 13, 14):
+                if index in (8, 10, 11, 12):
                     pass
                 else:
                     logging.debug(f'Stammdatei has no value in line {index + 1}, exiting')
