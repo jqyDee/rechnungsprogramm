@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.6.5-beta'
+    version = '2.6.6-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -105,7 +105,6 @@ class App(customtkinter.CTk):
         threading.Thread(target=self.download_version_file, daemon=True).start()
 
         self.load_user_data()
-        messagebox.showwarning('Error', 'Momentan können keine Entwürfe gespeichert werden!')
 
         self.mainloop()
 
@@ -499,13 +498,6 @@ class App(customtkinter.CTk):
         self.iban = user_dict['iban']
         self.bic = user_dict['bic']
 
-        if not self.steuer_id:
-            messagebox.showwarning('Warnung', 'Es wurde keine Steuer-Nummer angegeben!')
-        if not self.iban:
-            messagebox.showwarning('Warnung', 'Es wurde keine IBAN angegeben!')
-        if not self.bic:
-            messagebox.showwarning('Warnung', 'Es wurde keine BIC angegeben!')
-
     def configure_main_window(self, title: str = 'Rechnungsprogramm'):
         """Configures the main window Dimensions, title, isResizeable, X-Y-Coordinates)"""
 
@@ -706,7 +698,7 @@ class App(customtkinter.CTk):
         # check if draft exist and check value
         if os.path.exists(f'{self.rechnungen_location}/drafts/{rechnungsdaten[1]}DRAFT.csv'):
             data = []
-            with open(f'{self.rechnungen_location}/drafts/{rechnungsdaten[1]}DRAFT.csv', newline='', encoding='utf-8') as f:
+            with open(f'{self.rechnungen_location}/drafts/{rechnungsdaten[1]}DRAFT.csv', newline='') as f:
                 csvfile = csv.reader(f, delimiter=';')
                 for index, row_1 in enumerate(csvfile):
                     if index == 0:
@@ -725,7 +717,7 @@ class App(customtkinter.CTk):
             if not os.path.exists(f'{self.rechnungen_location}/drafts/'):
                 os.mkdir(f'{self.rechnungen_location}/drafts/')
             with open(f'{self.rechnungen_location}/drafts/{rechnungsdaten[1].upper()}DRAFT.csv', 'w',
-                      newline='', encoding='utf-8') as f:
+                      newline='') as f:
                 csvfile = csv.writer(f, delimiter=';')
                 csvfile.writerow(rechnungsdaten)
                 logging.info('created draft')
@@ -1450,7 +1442,7 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
         else:
             with open(
                     f'{self.parent.rechnungen_location}/rechnungen-csv/rechnungen-{self.parent.year}.csv',
-                    'a', newline='', encoding='utf-8') as f:
+                    'a', newline='') as f:
                 csvfile = csv.writer(f, delimiter=';')
                 csvfile.writerow(rechnungsdaten)
                 logging.info('wrote new line in RechnungenInsgesamt')
@@ -1989,7 +1981,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
         else:
             with open(
                     f'{self.parent.rechnungen_location}/rechnungen-csv/rechnungen-{self.parent.year}.csv',
-                    'a', newline='', encoding='utf-8') as f:
+                    'a', newline='') as f:
                 csvfile = csv.writer(f, delimiter=';')
                 csvfile.writerow(rechnungsdaten)
                 logging.info('wrote new line in RechnungenInsgesamt')
@@ -2761,7 +2753,7 @@ class RechnungenInterface(customtkinter.CTkFrame):
 
         # checks if file is a draft
         if draft:
-            with open(filepath, newline='', encoding='utf-8') as f:
+            with open(filepath, newline='') as f:
                 csvfile = csv.reader(f, delimiter=';')
                 for index, row_1 in enumerate(csvfile):
                     if index == 0:
@@ -2782,7 +2774,7 @@ class RechnungenInterface(customtkinter.CTkFrame):
                                             f'rechnungen-{self.parent.year}.csv wurde nun erstellt. Fehler in der Ablage Struktur!')
 
             with open(f'{self.parent.rechnungen_location}/rechnungen-csv/rechnungen-{self.parent.year}.csv',
-                      newline='', encoding='utf-8') as f:
+                      newline='') as f:
                 csvfile = csv.reader(f, delimiter=';')
                 for row_1 in csvfile:
                     if self.files_in_dir[row].replace('.pdf', '') in row_1:
