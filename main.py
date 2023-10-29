@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.6.4-beta'
+    version = '2.6.5-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -95,7 +95,6 @@ class App(customtkinter.CTk):
         self.check_or_create_working_dirs()
         logging.info(
             f'____________________________ Program Started at {time.strftime("%H:%M:%S")} ____________________________')
-        self.load_user_data()
 
         self.configure_main_window()
 
@@ -105,6 +104,7 @@ class App(customtkinter.CTk):
         self.running = True
         threading.Thread(target=self.download_version_file, daemon=True).start()
 
+        self.load_user_data()
         messagebox.showwarning('Error', 'Momentan können keine Entwürfe gespeichert werden!')
 
         self.mainloop()
@@ -498,6 +498,13 @@ class App(customtkinter.CTk):
         self.steuer_id = user_dict['steuer_id']
         self.iban = user_dict['iban']
         self.bic = user_dict['bic']
+
+        if not self.steuer_id:
+            messagebox.showwarning('Warnung', 'Es wurde keine Steuer-Nummer angegeben!')
+        if not self.iban:
+            messagebox.showwarning('Warnung', 'Es wurde keine IBAN angegeben!')
+        if not self.bic:
+            messagebox.showwarning('Warnung', 'Es wurde keine BIC angegeben!')
 
     def configure_main_window(self, title: str = 'Rechnungsprogramm'):
         """Configures the main window Dimensions, title, isResizeable, X-Y-Coordinates)"""
