@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.6.3-beta'
+    version = '2.6.4-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -2924,7 +2924,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         # Variablen section
         self.frame_4 = customtkinter.CTkFrame(self, fg_color='gray16')
         self.heading_5 = customtkinter.CTkLabel(self.frame_4, text='Variablen', font=small_heading)
-        self.steuer_id_label = customtkinter.CTkLabel(self.frame_4, text='Steuer-ID:')
+        self.steuer_id_label = customtkinter.CTkLabel(self.frame_4, text='Steuer-Nummer:')
         self.steuer_id_entry = customtkinter.CTkEntry(self.frame_4, textvariable=self.frame_4_steuer_id_var,
                                                       validate='key', width=200,
                                                       validatecommand=(
@@ -3559,7 +3559,7 @@ class KgRechnung(PDF):
         self.write(txt=f'{self.strasse} {self.hausnummer}\n')
         self.cell(self.rechnungsempfaenger_offset)
         self.write(txt=f'{self.plz} {self.ort}\n')
-        self.ln(27)
+        self.ln(24)
 
         self.cell(175, 0, border=1, center=True)
         self.set_font("helvetica", size=self.normal_font_size)
