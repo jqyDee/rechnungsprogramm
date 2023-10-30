@@ -92,6 +92,8 @@ class App(customtkinter.CTk):
         self.configure(fg_color='gray16')
         self.protocol("WM_DELETE_WINDOW", lambda: self.on_shutdown())
 
+        self.on_startup()
+
         self.check_or_create_working_dirs()
         logging.info(
             f'____________________________ Program Started at {time.strftime("%H:%M:%S")} ____________________________')
@@ -106,7 +108,6 @@ class App(customtkinter.CTk):
 
         self.load_user_data()
 
-        self.on_startup()
 
         self.mainloop()
 
@@ -899,6 +900,20 @@ class App(customtkinter.CTk):
 
         if os.path.exists('./system/components/images/logo.png'):
             os.remove('./system/components/images/logo.png')
+
+        if os.path.exists('./system/properties.yml'):
+
+            with open('./system/properties.yml', 'r') as f:
+                properties_dict = yaml.safe_load(f)
+                try:
+                    self.log_location = properties_dict['log_location']
+                except KeyError:
+                    properties_dict['log_location'] = properties_dict['logs_location']
+                    properties_dict.pop('logs_location')
+                    self.log_location = properties_dict['log_location']
+
+            with open('./system/properties.yml', 'w') as f:
+                yaml.dump(properties_dict, f)
 
     def on_shutdown(self):
         """Called when program is closing. Checks the integrity of necessary Directories and
