@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.5.3-beta'
+    version = '2.6.8-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -57,6 +57,11 @@ class App(customtkinter.CTk):
     backup_location = f'{os.getcwd()}/backups'
     logs_enabled = True
     logs_location = f'{os.getcwd()}/system/logs'
+
+    # user data
+    iban = None
+    steuer_id = None
+    bic = None
 
     # interfaces
     kg_interface = None
@@ -98,6 +103,10 @@ class App(customtkinter.CTk):
 
         self.running = True
         threading.Thread(target=self.download_version_file, daemon=True).start()
+
+        self.load_user_data()
+
+        self.on_startup()
 
         self.mainloop()
 
@@ -298,7 +307,7 @@ class App(customtkinter.CTk):
         else:
             self.import_components()
 
-    def download_components(self, data):
+    def download_components(self, data: list):
         """downloads components like images etc."""
 
         logging.debug('App.download_components() called')
@@ -475,6 +484,22 @@ class App(customtkinter.CTk):
             os.makedirs(f'{self.backup_location}/')
             logging.info('created backups dir')
 
+    def load_user_data(self):
+        """Loads the user data out of csv file"""
+
+        logging.info('App.load_user_data() called')
+
+        if not os.path.exists(f'./system/user_data.yml'):
+            with open(f'./system/user_data.yml', 'w') as f:
+                yaml.dump({'steuer_id': self.steuer_id, 'iban': self.iban, 'bic': self.bic}, f)
+
+        with open(f'./system/user_data.yml', 'r') as f:
+            user_dict = yaml.safe_load(f)
+
+        self.steuer_id = user_dict['steuer_id']
+        self.iban = user_dict['iban']
+        self.bic = user_dict['bic']
+
     def configure_main_window(self, title: str = 'Rechnungsprogramm'):
         """Configures the main window Dimensions, title, isResizeable, X-Y-Coordinates)"""
 
@@ -587,71 +612,144 @@ class App(customtkinter.CTk):
         self.bottom_nav.bottom_nav_button.configure(state='disabled')
         self.bottom_nav.bottom_nav_button_2.configure(state='disabled')
         self.bottom_nav.bottom_nav_warning.configure(text='', fg_color='transparent')
+
         try:
             self.kg_interface.destroy()
-            self.kg_interface = None
         except AttributeError:
             pass
         try:
             self.hp_interface.destroy()
-            self.kg_interface = None
         except AttributeError:
             pass
         try:
             self.stammdaten_interface.destroy()
-            self.stammdaten_interface = None
         except AttributeError:
             pass
         try:
             self.rechnung_loeschen_interface.destroy()
-            self.rechnung_loeschen_interface = None
         except AttributeError:
             pass
         try:
             self.einstellungen_interface.destroy()
-            self.einstellungen_interface = None
         except AttributeError:
             pass
+
+        self.kg_interface = None
+        self.hp_interface = None
+        self.stammdaten_interface = None
+        self.rechnung_loeschen_interface = None
+        self.einstellungen_interface = None
 
     # universal functions
     def store_draft(self) -> bool:
         """Calls store_draft in Backend with the Params:
                     open_interface: str = self.open_interface"""
 
+        # return True
         logging.debug('App.store_draft() called')
 
-        if self.open_interface is None or self.debug_mode:
-            return True
-        if self.open_interface == 'kg':
-            try:
-                data = [self.kg_interface.kuerzel_entry, self.kg_interface.rechnungsdatum_entry,
-                        self.kg_interface.daten_entrys,
-                        self.kg_interface.behandlungsarten_entrys_2d_array]
-            except AttributeError:
-                return True
+        # rewrite -> Not ready
+        ####################################################
+        data = []
+        draft_interfaces = [self.kg_interface, self.hp_interface, self.einstellungen_interface]
+        if not self.debug_mode and any(draft_interfaces):
+            if draft_interfaces[0]:
+                logging.debug('KG Interface was open before')
+                try:
+                    data = [self.kg_interface.kuerzel_entry, self.kg_interface.rechnungsdatum_entry,
+                            self.kg_interface.daten_entrys,
+                            self.kg_interface.behandlungsarten_entrys_2d_array]
+                except AttributeError:
+                    return True
 
-            found = False
-            for i in data[2]:
-                if i.get() != '':
-                    found = True
-            for i in data[3]:
-                for a in i:
-                    if a.get() != '':
-                        found = True
-            if not found:
-                return True
+                # check if Behandlungsdaten or Behandlungsarten/Einzelpreise has value
+                if any([[True for i in data[2] if i.get() != ''], [True for a in data[3] for i in a if i.get() != '']]):
+                    # Kürzel, Rechnungsnummer
+                    rechnungsdaten = [data[0].get(), f'{data[0].get()}{data[1].get().replace(".", "")}', 'km', 'km',
+                                      'km', 'km',
+                                      'Euro', 'Euro', ]
 
-            rechnungsdaten = [data[0].get(), f'{data[0].get()}{data[1].get().replace(".", "")}', 'km', 'km', 'km', 'km',
-                              'Euro', 'Euro', ]
-            for i in data[2]:
-                rechnungsdaten.append(i.get())
-            behandlungsarten = []
-            einzelpreise = []
-            for i in data[3]:
-                behandlungsarten.append(i[0].get())
-                einzelpreise.append(i[1].get())
-            rechnungsdaten.extend(behandlungsarten)
-            rechnungsdaten.extend(einzelpreise)
+                    # Behandlungsdaten
+                    for i in data[2]:
+                        rechnungsdaten.append(i.get())
+
+                    # Behandlungsdaten und Preise
+                    behandlungsarten = []
+                    einzelpreise = []
+                    for i in data[3]:
+                        behandlungsarten.append(i[0].get())
+                        einzelpreise.append(i[1].get())
+                    rechnungsdaten.extend(behandlungsarten)
+                    rechnungsdaten.extend(einzelpreise)
+                else:
+                    return True
+
+            elif draft_interfaces[1]:
+                logging.debug('HP Interface was open before')
+                try:
+                    data = [self.hp_interface.kuerzel_entry, self.hp_interface.rechnungsdatum_entry,
+                            self.hp_interface.rows_2d_array, self.hp_interface.diagnose_textbox]
+                except AttributeError:
+                    return True
+
+                data_2 = []
+                for index1, a in enumerate(data[2]):
+                    if index1 != 0:
+                        for index2, i in enumerate(a):
+                            if index2 in (0, 2, 4, 6) and i.get('0.0', 'end').replace('\n', '') != '':
+                                data_2.append(True)
+
+                data_3 = []
+                try:
+                    if data[3].get('0.0', 'end').replace('\n', ''):
+                        data_3.append(True)
+                except tk.TclError:
+                    return True
+
+                if any([data_2, data_3]):
+                    # Kürzel, Rechnungsnummer
+                    rechnungsdaten = [data[0].get(), f'{data[0].get()}{data[1].get().replace(".", "")}H', 'km', 'km',
+                                      'km', 'km',
+                                      'Euro', 'Euro', ]
+
+                    # Behandlungsdaten
+                    array_2d = []
+                    for index1, a in enumerate(data[2]):
+                        if index1 != 0:
+                            array_1d = []
+                            for index2, i in enumerate(a):
+                                if index2 in (0, 2, 4, 6):
+                                    if i.get('0.0', 'end')[-1] == '\n':
+                                        array_1d.append(i.get('0.0', 'end')[:-1])
+                                    else:
+                                        array_1d.append(i.get('0.0', 'end'))
+                            array_2d.append(array_1d)
+                    rechnungsdaten.append(array_2d)
+
+                    # Diagnose
+                    if data[3].get('0.0', 'end')[-1] == '\n':
+                        rechnungsdaten.append(data[3].get('0.0', 'end')[:-1])
+                    else:
+                        rechnungsdaten.append(data[3].get('0.0', 'end'))
+                else:
+                    return True
+
+            elif draft_interfaces[2]:
+                logging.debug('Einstellung Inteface was open before')
+
+                if self.einstellungen_interface.changes:
+                    save_changes = messagebox.askyesnocancel('Warnung',
+                                                             'Beim fortfahren gehen alle Änderungen verloren. '
+                                                             'Sollen die Änderungen gespeichert werden?')
+                    if save_changes:
+                        self.einstellungen_interface.save_property_values()
+                        return True
+                    elif save_changes is False:
+                        return True
+                    elif save_changes is None:
+                        return False
+                else:
+                    return True
         else:
             return True
 
@@ -663,6 +761,14 @@ class App(customtkinter.CTk):
                 for index, row_1 in enumerate(csvfile):
                     if index == 0:
                         data.extend(row_1)
+
+            try:
+                data_8 = ast.literal_eval(data[8])
+                data.pop(8)
+                data.insert(8, data_8)
+            except IndexError:
+                logging.info('There is no Data')
+
             if data == rechnungsdaten:
                 return True
 
@@ -688,7 +794,9 @@ class App(customtkinter.CTk):
             return False
 
     def create_backup(self):
-        logging.debug('Backend.create_backup() called')
+        """Creates Backup if enabled in properties.yml."""
+
+        logging.debug('App.create_backup() called')
 
         if self.backups_enabled:
             current_date_time = time.strftime('%Y-%m-%d--%H-%M-%S')
@@ -701,7 +809,7 @@ class App(customtkinter.CTk):
         else:
             return False
 
-    def open_file(self, filepath):
+    def open_file(self, filepath: str):
         """opens file in default program of your os"""
 
         logging.debug('App.open_rechnung() called')
@@ -716,7 +824,7 @@ class App(customtkinter.CTk):
             subprocess.call(('xdg-open', filepath))
             logging.info('linux: opened file')
 
-    def clean_remove(self, filepath, file):
+    def clean_remove(self, filepath: str, file: str):
         """removes rechnungs file and data out of csv file"""
 
         logging.debug('App.clean_remove() called')
@@ -785,9 +893,15 @@ class App(customtkinter.CTk):
 
         return True
 
+    def on_startup(self):
+        """removes not necessary components/files"""
+
+        if os.path.exists('./system/components/images/logo.png'):
+            os.remove('./system/components/images/logo.png')
+
     def on_shutdown(self):
         """Called when program is closing. Checks the integrity of necessary Directories and
-           creates backup when enabled in properties.yml"""
+           creates backup when enabled in properties.yml. Makes sure all threads are closed"""
 
         logging.debug('App.on_shutdown() called')
 
@@ -808,6 +922,11 @@ class App(customtkinter.CTk):
             f'____________________________ Program Ended at {time.strftime("%H:%M:%S")} ____________________________\n\n\n\n')
 
     def __del__(self):
+        """App destructor. Makes sure all threads are closed and removes version.txt
+        out of tmp dir!"""
+
+        logging.debug('App.__del__()/App destructor called')
+
         self.running = False
         if os.path.exists('./system/tmp/version.txt.tmp'):
             os.remove('./system/tmp/version.txt.tmp')
@@ -1341,7 +1460,7 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
                         fg_color='red')
                     return False
             if i == '':
-                if index == 8:
+                if index in (8, 10, 11, 12):
                     pass
                 else:
                     logging.debug(f'Stammdatei has no value in line {index + 1}, exiting')
@@ -1395,8 +1514,7 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
         else:
             with open(
                     f'{self.parent.rechnungen_location}/rechnungen-csv/rechnungen-{self.parent.year}.csv',
-                    'a',
-                    newline='') as f:
+                    'a', newline='') as f:
                 csvfile = csv.writer(f, delimiter=';')
                 csvfile.writerow(rechnungsdaten)
                 logging.info('wrote new line in RechnungenInsgesamt')
@@ -1411,7 +1529,8 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
 
         KgRechnung(self, self.stammdaten, self.rechnungsnummer, self.rechnungsdatum, self.gesamtpreis,
                    self.dates,
-                   self.datenanzahl, self.behandlungsarten, self.einzelpreise, filepath)
+                   self.datenanzahl, self.behandlungsarten, self.einzelpreise, filepath, self.parent.steuer_id,
+                   self.parent.iban, self.parent.bic)
 
         # PDF Öffnen
         self.parent.open_file(filepath)
@@ -1465,7 +1584,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
         logging.info('class HPRechnungInterface() called')
 
         self.parent = parent
-        self.parent.bottom_nav.bottom_nav_button.configure(command=lambda: self.validate_hp_entrys())
+        self.parent.bottom_nav.bottom_nav_button.configure(command=lambda: self.hp_rechnung_erstellen_button_event())
 
         self.configure(fg_color='gray16', corner_radius=0)
 
@@ -1659,11 +1778,12 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
 
             try:
                 self.frame_2.destroy()
-            except AttributeError:
-                pass
-            try:
                 self.frame_3.destroy()
                 self.separator_3.destroy()
+                self.row_frames.clear()
+                self.rows_2d_array.clear()
+                self.diagnose_textbox.destroy()
+                self.row_count = 0
             except AttributeError:
                 pass
 
@@ -1775,6 +1895,23 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
 
         # removing row from row_frame
         self.row_frames.pop(-1)
+
+    def hp_rechnung_erstellen_button_event(self):
+        """triggers the class Backend and the function of validate_hp_entrys.
+           Checks the return value."""
+
+        logging.debug('HPRechnungInterface.hp_rechnung_erstellen_button_event() called')
+
+        # HP Rechnung erstellt
+        if self.validate_hp_entrys():
+            self.kuerzel_entry.delete(0, tk.END)
+            self.rechnungsdatum_entry.delete(0, tk.END)
+            self.rechnungsdatum_entry.insert(0, f'{time.strftime("%d.%m.%y")}')
+            self.parent.bottom_nav.bottom_nav_warning.configure(
+                text=f'Rechnung erstellt und Daten gespeichert!', fg_color='green')
+        # HP Rechnung nicht erstellt
+        else:
+            return False
 
     def validate_hp_entrys(self):
         logging.debug('HPRechnungInterface.validate_hp_entrys() called')
@@ -1892,7 +2029,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                         fg_color='red')
                     return False
             if i == '':
-                if index == 8:
+                if index in (8, 10, 11, 12):
                     pass
                 else:
                     logging.debug(f'Stammdatei has no value in line {index + 1}, exiting')
@@ -1934,8 +2071,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
         else:
             with open(
                     f'{self.parent.rechnungen_location}/rechnungen-csv/rechnungen-{self.parent.year}.csv',
-                    'a',
-                    newline='') as f:
+                    'a', newline='') as f:
                 csvfile = csv.writer(f, delimiter=';')
                 csvfile.writerow(rechnungsdaten)
                 logging.info('wrote new line in RechnungenInsgesamt')
@@ -1947,7 +2083,8 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
         filepath = f'{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/{self.rechnungsnummer}.pdf'
 
         HpRechnung(self.stammdaten, self.rechnungsnummer, self.rechnungsdatum, self.gesamtpreis,
-                   self.behandlungsdaten, self.diagnose, filepath)
+                   self.behandlungsdaten, self.diagnose, filepath, self.parent.steuer_id,
+                   self.parent.iban, self.parent.bic)
 
         # PDF Öffnen
         self.parent.open_file(filepath)
@@ -2736,12 +2873,12 @@ class RechnungenInterface(customtkinter.CTkFrame):
 
             if row_count > 1:
                 logging.error(
-                    f'rechnungen-csv Error: rechnungen-{self.parent.year}.csv corruopt. Rechnung {self.files_in_dir[row]} found multiple times!')
+                    f'rechnungen-csv Error: rechnungen-{self.parent.year}.csv corrupt. Rechnung {self.files_in_dir[row]} found multiple times!')
                 return messagebox.showerror('rechnungen-csv Error',
                                             f'rechnungen-{self.parent.year}.csv korrupt. {self.files_in_dir[row]} mehrmals gefunden!')
             elif row_count < 1:
                 logging.error(
-                    f'rechnungen-csv Error: rechnungen-{self.parent.year}.csv corruopt. Rechnung {self.files_in_dir[row]} not found times!')
+                    f'rechnungen-csv Error: rechnungen-{self.parent.year}.csv corrupt. Rechnung {self.files_in_dir[row]} not found times!')
                 return messagebox.showerror('rechnungen-csv Error',
                                             f'rechnungen-{self.parent.year}.csv korrupt. {self.files_in_dir[row]} nicht gefunden!')
 
@@ -2752,7 +2889,7 @@ class RechnungenInterface(customtkinter.CTkFrame):
             return messagebox.showerror('stammdatei Error', f'Stammdatei {data[0]}.txt nicht gefunden. Erneut '
                                                             f'erstellen um Rechnung zu bearbeiten!')
 
-        if os.path.splitext(path_head_tail[1])[0][-1] == 'H':
+        if os.path.splitext(path_head_tail[1])[0].replace('DRAFT', '')[-1] == 'H':
             logging.info('editing HPRechnung')
 
             try:
@@ -2795,6 +2932,8 @@ class RechnungenInterface(customtkinter.CTkFrame):
 
 class EinstellungInterface(customtkinter.CTkScrollableFrame):
 
+    changes = []
+
     def __init__(self, parent):
         super().__init__(parent)
 
@@ -2806,7 +2945,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
 
         self.place(relx=0.2, y=0, relwidth=0.8, relheight=0.90)
 
-        self.parent.bottom_nav.bottom_nav_button.configure()
+        self.parent.bottom_nav.bottom_nav_button.configure(state='normal', command=lambda: self.save_property_values())
 
         # textvariables
         self.frame_1_warning_var = tk.StringVar()
@@ -2828,11 +2967,14 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         else:
             self.frame_3_switch_var_4 = tk.StringVar(value='off')
 
-        self.frame_3_behandlungsarten_limit = tk.StringVar(value=f'{self.parent.behandlungsarten_limit}')
+        self.frame_3_behandlungsarten_limit_var = tk.StringVar(value=f'{self.parent.behandlungsarten_limit}')
         self.frame_3_rechnungen_location_var = tk.StringVar(value=f'{self.parent.rechnungen_location}/')
         self.frame_3_stammdaten_location_var = tk.StringVar(value=f'{self.parent.stammdaten_location}/')
         self.frame_3_backup_folder_location_var = tk.StringVar(value=f'{self.parent.backup_location}/')
         self.frame_3_logs_folder_location_var = tk.StringVar(value=f'{self.parent.logs_location}')
+        self.frame_4_steuer_id_var = tk.StringVar(value=f'{self.parent.steuer_id}')
+        self.frame_4_iban_var = tk.StringVar(value=f'{self.parent.iban}')
+        self.frame_4_bic_var = tk.StringVar(value=f'{self.parent.bic}')
 
         self.create_widgets_part_1()
         self.create_layout_part_1()
@@ -2868,6 +3010,21 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.separator_2 = tk.ttk.Separator(self, orient='horizontal')
         self.separator_3 = tk.ttk.Separator(self, orient='horizontal')
 
+        # Variablen section
+        self.frame_4 = customtkinter.CTkFrame(self, fg_color='gray16')
+        self.heading_5 = customtkinter.CTkLabel(self.frame_4, text='Variablen', font=small_heading)
+        self.steuer_id_label = customtkinter.CTkLabel(self.frame_4, text='Steuer-Nummer:')
+        self.steuer_id_entry = customtkinter.CTkEntry(self.frame_4, textvariable=self.frame_4_steuer_id_var,
+                                                      validate='key', width=200,
+                                                      validatecommand=(
+                                                          self.register(self.detect_change), '%P', 'steuer_id'))
+        self.iban_label = customtkinter.CTkLabel(self.frame_4, text='IBAN:')
+        self.iban_entry = customtkinter.CTkEntry(self.frame_4, textvariable=self.frame_4_iban_var, width=200, validate='key',
+                                                 validatecommand=(self.register(self.detect_change), '%P', 'iban'))
+        self.bic_label = customtkinter.CTkLabel(self.frame_4, text='BIC:')
+        self.bic_entry = customtkinter.CTkEntry(self.frame_4, textvariable=self.frame_4_bic_var, width=200, validate='key',
+                                                 validatecommand=(self.register(self.detect_change), '%P', 'bic'))
+
         # About section
         self.frame_2 = customtkinter.CTkFrame(self, fg_color='gray16')
         self.heading_3 = customtkinter.CTkLabel(self.frame_2, text='About', font=small_heading)
@@ -2900,6 +3057,18 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
 
         # Separator
         self.separator_2.pack(fill='x', expand=False)
+
+        self.frame_4.grid_columnconfigure(1, weight=1)
+        self.frame_4.pack(fill='x', expand=False, pady=(15, 15), padx=20)
+        self.heading_5.grid(row=0, column=0, padx=10, pady=4, columnspan=2, sticky='w')
+        self.steuer_id_label.grid(row=1, column=0, padx=10, pady=4, sticky='w')
+        self.steuer_id_entry.grid(row=1, column=1, padx=10, pady=4, sticky='w')
+        self.iban_label.grid(row=2, column=0, padx=10, pady=4, sticky='w')
+        self.iban_entry.grid(row=2, column=1, padx=10, pady=4, sticky='w')
+        self.bic_label.grid(row=3, column=0, padx=10, pady=4, sticky='w')
+        self.bic_entry.grid(row=3, column=1, padx=10, pady=4, sticky='w')
+
+        # Separator
         self.separator_3.pack(fill='x', expand=False, pady=(40, 0))
 
         # About section
@@ -2914,6 +3083,8 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
     def create_widgets_part_2(self):
         logging.debug('EinstellungInterface.create_widgets_part_2() called')
 
+        self.separator_8 = tk.ttk.Separator(self, orient='horizontal')
+
         self.frame_3 = customtkinter.CTkFrame(self, fg_color='gray16')
 
         self.heading_4 = customtkinter.CTkLabel(self.frame_3, text='Advanced', font=small_heading)
@@ -2922,7 +3093,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.debug_mode_label = customtkinter.CTkLabel(self.frame_3, text='Debug Mode:')
         self.debug_mode_switch = customtkinter.CTkSwitch(self.frame_3, text='', variable=self.frame_3_switch_var_1,
                                                          onvalue='on', offvalue='off',
-                                                         command=lambda: self.edit_property_values('debug_mode'))
+                                                         command=lambda: self.changes.append('debug_mode'))
 
         # Behandlungsarten limit(-er) section
         self.disable_behandlungsarten_limit_label = customtkinter.CTkLabel(self.frame_3,
@@ -2930,11 +3101,11 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.disable_behandlungsarten_limit_switch = customtkinter.CTkSwitch(self.frame_3, text='',
                                                                              variable=self.frame_3_switch_var_2,
                                                                              onvalue='on', offvalue='off',
-                                                                             command=lambda: self.edit_property_values(
+                                                                             command=lambda: self.changes.append(
                                                                                  'behandlungsarten_limiter'))
-        self.behandlungsarten_limit_label = customtkinter.CTkLabel(self.frame_3, text='Limit =')
+        self.behandlungsarten_limit_label = customtkinter.CTkLabel(self.frame_3, text='Limit:')
         self.behandlungsarten_limit_entry = customtkinter.CTkEntry(self.frame_3, width=30,
-                                                                   textvariable=self.frame_3_behandlungsarten_limit,
+                                                                   textvariable=self.frame_3_behandlungsarten_limit_var,
                                                                    validate='key',
                                                                    validatecommand=(self.register(
                                                                        self.behandlungsarten_limit_validation), '%P'))
@@ -2951,7 +3122,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                                                                 textvariable=self.frame_3_rechnungen_location_var,
                                                                 state='disabled', fg_color='gray16')
         self.rechnungen_location_button = customtkinter.CTkButton(self.frame_3, text='öffnen',
-                                                                  command=lambda: self.edit_property_values(
+                                                                  command=lambda: self.changes.append(
                                                                       'rechnungen_location'))
 
         # stammdaten location section
@@ -2961,7 +3132,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                                                                 textvariable=self.frame_3_stammdaten_location_var,
                                                                 state='disabled', fg_color='gray16')
         self.stammdaten_location_button = customtkinter.CTkButton(self.frame_3, text='öffnen',
-                                                                  command=lambda: self.edit_property_values(
+                                                                  command=lambda: self.changes.append(
                                                                       'stammdaten_location'))
 
         # Separator
@@ -2971,14 +3142,14 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.backups_enabled_label = customtkinter.CTkLabel(self.frame_3, text='Backups erstellen?')
         self.backups_enabled_switch = customtkinter.CTkSwitch(self.frame_3, text='', variable=self.frame_3_switch_var_3,
                                                               onvalue='on', offvalue='off',
-                                                              command=lambda: self.edit_property_values(
+                                                              command=lambda: self.changes.append(
                                                                   'backups_enabled'))
         self.backup_location_label = customtkinter.CTkLabel(self.frame_3, text='Backup folder location:')
         self.backup_location_entry = customtkinter.CTkEntry(self.frame_3,
                                                             textvariable=self.frame_3_backup_folder_location_var,
                                                             state='disabled', fg_color='gray16')
         self.backup_location_button = customtkinter.CTkButton(self.frame_3, text='öffnen',
-                                                              command=lambda: self.edit_property_values(
+                                                              command=lambda: self.changes.append(
                                                                   'backups_location'))
 
         # Separator
@@ -2988,16 +3159,19 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.logs_enabled_label = customtkinter.CTkLabel(self.frame_3, text='Log speichern?')
         self.logs_enabled_switch = customtkinter.CTkSwitch(self.frame_3, text='', variable=self.frame_3_switch_var_4,
                                                            onvalue='on', offvalue='off',
-                                                           command=lambda: self.edit_property_values('logs_enabled'))
+                                                           command=lambda: self.changes.append('logs_enabled'))
         self.log_location_label = customtkinter.CTkLabel(self.frame_3, text='Log folder location:')
         self.log_location_entry = customtkinter.CTkEntry(self.frame_3,
                                                          textvariable=self.frame_3_logs_folder_location_var,
                                                          state='disabled', fg_color='gray16')
         self.log_location_button = customtkinter.CTkButton(self.frame_3, text='öffnen',
-                                                           command=lambda: self.edit_property_values('logs_location'))
+                                                           command=lambda: self.changes.append('logs_location'))
 
     def create_layout_part_2(self):
         logging.debug('EinstellungInterface.create_layout_part_2() called')
+
+        # Separator
+        self.separator_8.pack(fill='x', expand=False, pady=(40, 0))
 
         self.frame_3.grid_columnconfigure(1, weight=1)
         self.frame_3.pack(fill='x', expand=False, pady=(15, 15), padx=20)
@@ -3055,181 +3229,231 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
 
         elif self.frame_1_switch_var.get() == 'off':
             self.frame_3.destroy()
+            self.separator_8.pack_forget()
 
-    def edit_property_values(self, kind: str, *args):
+    def detect_change(self, text_after_action: str, kind: str) -> bool:
+        if not kind in self.changes:
+            if kind == 'steuer_id' and text_after_action != self.parent.steuer_id:
+                self.changes.append(kind)
+            elif kind == 'iban' and text_after_action != self.parent.iban:
+                self.changes.append(kind)
+            elif kind == 'bic' and text_after_action != self.parent.bic:
+                self.changes.append(kind)
+        return True
+
+    def save_property_values(self):
         logging.debug('EinstellungInterface.open_dir() called')
 
-        if kind == 'stammdaten_location':
-            dirpath = tk.filedialog.askdirectory(title='stammdaten Filepath', initialdir='./', )
-            if dirpath == '':
-                return
-            else:
-                try:
-                    for i in os.listdir(self.parent.stammdaten_location):
-                        shutil.move(f'{self.parent.stammdaten_location}/{i}', dirpath)
-                    os.removedirs(self.parent.stammdaten_location)
-                except FileNotFoundError:
-                    logging.error('stammdaten location not existing')
+        logging.debug(f'changes: {self.changes}')
 
-                self.parent.stammdaten_location = dirpath
-                if os.path.exists('./system/properties.yml'):
-                    with open('./system/properties.yml', 'r') as a:
-                        properties_dict = yaml.safe_load(a)
-                        properties_dict['stammdaten_location'] = self.parent.stammdaten_location
-                    with open('./system/properties.yml', 'w') as f:
-                        yaml.dump(properties_dict, f)
-                    self.parent.frame_3_stammdaten_location_var.set(f'{self.parent.stammdaten_location}/')
-                else:
-                    self.parent.check_or_create_working_dirs()
-                return logging.info('stammdaten location changed successfully')
-        elif kind == 'rechnungen_location':
-            dirpath = tk.filedialog.askdirectory(title='rechnungen Filepath', initialdir='./', )
-            if dirpath == '':
-                return
-            else:
-                try:
-                    for i in os.listdir(self.parent.rechnungen_location):
+        if self.changes:
+            for kind in self.changes:
+                if kind == 'stammdaten_location':
+                    dirpath = tk.filedialog.askdirectory(title='stammdaten Filepath', initialdir='./', )
+                    if dirpath == '':
+                        return
+                    else:
                         try:
-                            shutil.move(f'{self.parent.rechnungen_location}/{i}', dirpath)
-                            os.removedirs(self.parent.rechnungen_location)
-                        except shutil.Error:
-                            logging.info('dir already exists and files wont be moved')
-                except FileNotFoundError:
-                    logging.error('rechnungen location not existing')
+                            for i in os.listdir(self.parent.stammdaten_location):
+                                shutil.move(f'{self.parent.stammdaten_location}/{i}', dirpath)
+                            os.removedirs(self.parent.stammdaten_location)
+                        except FileNotFoundError:
+                            logging.error('stammdaten location not existing')
 
-                self.parent.rechnungen_location = dirpath
-                if os.path.exists('./system/properties.yml'):
-                    with open('./system/properties.yml', 'r') as a:
-                        properties_dict = yaml.safe_load(a)
-                        properties_dict['rechnungen_location'] = self.parent.rechnungen_location
-                    with open('./system/properties.yml', 'w') as f:
-                        yaml.dump(properties_dict, f)
-                    self.parent.frame_3_rechnungen_location_var.set(f'{self.parent.rechnungen_location}/')
-                else:
-                    self.parent.check_or_create_working_dirs()
-                return logging.info('rechnungen location changed successfully')
-        elif kind == 'backups_location':
-            dirpath = tk.filedialog.askdirectory(title='Backups Filepath', initialdir='./', )
-            if dirpath == '':
-                return
-            else:
-                try:
-                    for i in os.listdir(self.parent.backup_location):
-                        shutil.move(f'{self.parent.backup_location}/{i}', dirpath)
-                    os.removedirs(self.parent.backup_location)
-                except FileNotFoundError:
-                    logging.error('backup location not existing')
+                        self.parent.stammdaten_location = dirpath
+                        if os.path.exists('./system/properties.yml'):
+                            with open('./system/properties.yml', 'r') as a:
+                                properties_dict = yaml.safe_load(a)
+                                properties_dict['stammdaten_location'] = self.parent.stammdaten_location
+                            with open('./system/properties.yml', 'w') as f:
+                                yaml.dump(properties_dict, f)
+                            self.parent.frame_3_stammdaten_location_var.set(f'{self.parent.stammdaten_location}/')
+                        else:
+                            self.parent.check_or_create_working_dirs()
+                        return logging.info('stammdaten location changed successfully')
+                elif kind == 'rechnungen_location':
+                    dirpath = tk.filedialog.askdirectory(title='rechnungen Filepath', initialdir='./', )
+                    if dirpath == '':
+                        return
+                    else:
+                        try:
+                            for i in os.listdir(self.parent.rechnungen_location):
+                                try:
+                                    shutil.move(f'{self.parent.rechnungen_location}/{i}', dirpath)
+                                    os.removedirs(self.parent.rechnungen_location)
+                                except shutil.Error:
+                                    logging.info('dir already exists and files wont be moved')
+                        except FileNotFoundError:
+                            logging.error('rechnungen location not existing')
 
-                self.parent.backup_location = dirpath
-                if os.path.exists('./system/properties.yml'):
-                    with open('./system/properties.yml', 'r') as a:
-                        properties_dict = yaml.safe_load(a)
-                        properties_dict['backup_location'] = self.parent.backup_location
-                    with open('./system/properties.yml', 'w') as f:
-                        yaml.dump(properties_dict, f)
-                    self.parent.frame_3_backup_folder_location_var.set(f'{self.parent.backup_location}/')
-                else:
-                    self.parent.check_or_create_working_dirs()
-                return logging.info('backups location changed successfully')
-        elif kind == 'debug_mode':
-            if self.frame_3_switch_var_1.get() == 'off':
-                self.parent.debug_mode = False
-            else:
-                self.parent.debug_mode = True
+                        self.parent.rechnungen_location = dirpath
+                        if os.path.exists('./system/properties.yml'):
+                            with open('./system/properties.yml', 'r') as a:
+                                properties_dict = yaml.safe_load(a)
+                                properties_dict['rechnungen_location'] = self.parent.rechnungen_location
+                            with open('./system/properties.yml', 'w') as f:
+                                yaml.dump(properties_dict, f)
+                            self.parent.frame_3_rechnungen_location_var.set(f'{self.parent.rechnungen_location}/')
+                        else:
+                            self.parent.check_or_create_working_dirs()
+                        return logging.info('rechnungen location changed successfully')
+                elif kind == 'backups_location':
+                    dirpath = tk.filedialog.askdirectory(title='Backups Filepath', initialdir='./', )
+                    if dirpath == '':
+                        return
+                    else:
+                        try:
+                            for i in os.listdir(self.parent.backup_location):
+                                shutil.move(f'{self.parent.backup_location}/{i}', dirpath)
+                            os.removedirs(self.parent.backup_location)
+                        except FileNotFoundError:
+                            logging.error('backup location not existing')
 
-            if os.path.exists('./system/properties.yml'):
-                with open('./system/properties.yml', 'r') as a:
-                    properties_dict = yaml.safe_load(a)
-                    properties_dict['debug_mode'] = self.parent.debug_mode
-                with open('./system/properties.yml', 'w') as f:
-                    yaml.dump(properties_dict, f)
-            else:
-                self.parent.check_or_create_working_dirs()
+                        self.parent.backup_location = dirpath
+                        if os.path.exists('./system/properties.yml'):
+                            with open('./system/properties.yml', 'r') as a:
+                                properties_dict = yaml.safe_load(a)
+                                properties_dict['backup_location'] = self.parent.backup_location
+                            with open('./system/properties.yml', 'w') as f:
+                                yaml.dump(properties_dict, f)
+                            self.parent.frame_3_backup_folder_location_var.set(f'{self.parent.backup_location}/')
+                        else:
+                            self.parent.check_or_create_working_dirs()
+                        return logging.info('backups location changed successfully')
+                elif kind == 'debug_mode':
+                    if self.frame_3_switch_var_1.get() == 'off':
+                        self.parent.debug_mode = False
+                    else:
+                        self.parent.debug_mode = True
 
-            return messagebox.showinfo('Änderungen gespeichert',
-                                       'Programm muss neu gestartet werden um Änderungen zu sehen!')
-        elif kind == 'behandlungsarten_limiter':
-            if self.frame_3_switch_var_2.get() == 'off':
-                self.parent.behandlungsarten_limiter = False
-                self.behandlungsarten_limit_entry.configure(state='disabled', fg_color='gray16')
-            else:
-                self.parent.behandlungsarten_limiter = True
-                self.behandlungsarten_limit_entry.configure(state='normal', fg_color='#343638')
+                    if os.path.exists('./system/properties.yml'):
+                        with open('./system/properties.yml', 'r') as a:
+                            properties_dict = yaml.safe_load(a)
+                            properties_dict['debug_mode'] = self.parent.debug_mode
+                        with open('./system/properties.yml', 'w') as f:
+                            yaml.dump(properties_dict, f)
+                    else:
+                        self.parent.check_or_create_working_dirs()
 
-            if os.path.exists('./system/properties.yml'):
-                with open('./system/properties.yml', 'r') as a:
-                    properties_dict = yaml.safe_load(a)
-                    properties_dict['behandlungsarten_limiter'] = self.parent.behandlungsarten_limiter
-                with open('./system/properties.yml', 'w') as f:
-                    yaml.dump(properties_dict, f)
-            else:
-                self.parent.check_or_create_working_dirs()
-        elif kind == 'behandlungsarten_limit':
-            self.parent.behandlungsarten_limit = int(*args[0])
-            if os.path.exists('./system/properties.yml'):
-                with open('./system/properties.yml', 'r') as a:
-                    properties_dict = yaml.safe_load(a)
-                    properties_dict['behandlungsarten_limit'] = self.parent.behandlungsarten_limit
-                with open('./system/properties.yml', 'w') as f:
-                    yaml.dump(properties_dict, f)
-            else:
-                self.parent.check_or_create_working_dirs()
-        elif kind == 'backups_enabled':
-            if self.frame_3_switch_var_3.get() == 'off':
-                self.parent.backups_enabled = False
-            else:
-                self.parent.backups_enabled = True
+                    return messagebox.showinfo('Änderungen gespeichert',
+                                               'Programm muss neu gestartet werden um Änderungen zu sehen!')
+                elif kind == 'behandlungsarten_limiter':
+                    if self.frame_3_switch_var_2.get() == 'off':
+                        self.parent.behandlungsarten_limiter = False
+                        self.behandlungsarten_limit_entry.configure(state='disabled', fg_color='gray16')
+                    else:
+                        self.parent.behandlungsarten_limiter = True
+                        self.behandlungsarten_limit_entry.configure(state='normal', fg_color='#343638')
 
-            if os.path.exists('./system/properties.yml'):
-                with open('./system/properties.yml', 'r') as a:
-                    properties_dict = yaml.safe_load(a)
-                    properties_dict['backups_enabled'] = self.parent.backups_enabled
-                with open('./system/properties.yml', 'w') as f:
-                    yaml.dump(properties_dict, f)
-            else:
-                self.parent.check_or_create_working_dirs()
-        elif kind == 'logs_enabled':
-            if self.frame_3_switch_var_4.get() == 'off':
-                self.parent.logs_enabled = False
-            else:
-                self.parent.logs_enabled = True
+                    if os.path.exists('./system/properties.yml'):
+                        with open('./system/properties.yml', 'r') as a:
+                            properties_dict = yaml.safe_load(a)
+                            properties_dict['behandlungsarten_limiter'] = self.parent.behandlungsarten_limiter
+                        with open('./system/properties.yml', 'w') as f:
+                            yaml.dump(properties_dict, f)
+                    else:
+                        self.parent.check_or_create_working_dirs()
+                elif kind == 'behandlungsarten_limit':
+                    self.parent.behandlungsarten_limit = int(self.frame_3_behandlungsarten_limit_var)
+                    if os.path.exists('./system/properties.yml'):
+                        with open('./system/properties.yml', 'r') as a:
+                            properties_dict = yaml.safe_load(a)
+                            properties_dict['behandlungsarten_limit'] = self.parent.behandlungsarten_limit
+                        with open('./system/properties.yml', 'w') as f:
+                            yaml.dump(properties_dict, f)
+                    else:
+                        self.parent.check_or_create_working_dirs()
+                elif kind == 'backups_enabled':
+                    if self.frame_3_switch_var_3.get() == 'off':
+                        self.parent.backups_enabled = False
+                    else:
+                        self.parent.backups_enabled = True
 
-            if os.path.exists('./system/properties.yml'):
-                with open('./system/properties.yml', 'r') as a:
-                    properties_dict = yaml.safe_load(a)
-                    properties_dict['logs_enabled'] = self.parent.logs_enabled
-                with open('./system/properties.yml', 'w') as f:
-                    yaml.dump(properties_dict, f)
-            else:
-                self.parent.check_or_create_working_dirs()
-        elif kind == 'logs_location':
-            dirpath = tk.filedialog.askdirectory(title='Backups Filepath', initialdir='./', )
-            if dirpath == '':
-                return
-            else:
-                for i in os.listdir(self.parent.logs_location):
-                    os.remove(f'{self.parent.logs_location}/{i}')
+                    if os.path.exists('./system/properties.yml'):
+                        with open('./system/properties.yml', 'r') as a:
+                            properties_dict = yaml.safe_load(a)
+                            properties_dict['backups_enabled'] = self.parent.backups_enabled
+                        with open('./system/properties.yml', 'w') as f:
+                            yaml.dump(properties_dict, f)
+                    else:
+                        self.parent.check_or_create_working_dirs()
+                elif kind == 'logs_enabled':
+                    if self.frame_3_switch_var_4.get() == 'off':
+                        self.parent.logs_enabled = False
+                    else:
+                        self.parent.logs_enabled = True
 
-                self.parent.logs_location = dirpath
-                if os.path.exists('./system/properties.yml'):
-                    with open('./system/properties.yml', 'r') as a:
-                        properties_dict = yaml.safe_load(a)
-                        properties_dict['logs_location'] = self.parent.logs_location
-                    with open('./system/properties.yml', 'w') as f:
-                        yaml.dump(properties_dict, f)
-                    self.parent.frame_3_logs_folder_location_var.set(f'{self.parent.logs_location}/')
-                else:
-                    self.parent.check_or_create_working_dirs()
-                return logging.info('backups location changed successfully')
+                    if os.path.exists('./system/properties.yml'):
+                        with open('./system/properties.yml', 'r') as a:
+                            properties_dict = yaml.safe_load(a)
+                            properties_dict['logs_enabled'] = self.parent.logs_enabled
+                        with open('./system/properties.yml', 'w') as f:
+                            yaml.dump(properties_dict, f)
+                    else:
+                        self.parent.check_or_create_working_dirs()
+                elif kind == 'logs_location':
+                    dirpath = tk.filedialog.askdirectory(title='Backups Filepath', initialdir='./', )
+                    if dirpath == '':
+                        return
+                    else:
+                        for i in os.listdir(self.parent.logs_location):
+                            os.remove(f'{self.parent.logs_location}/{i}')
+
+                        self.parent.logs_location = dirpath
+                        if os.path.exists('./system/properties.yml'):
+                            with open('./system/properties.yml', 'r') as a:
+                                properties_dict = yaml.safe_load(a)
+                                properties_dict['logs_location'] = self.parent.logs_location
+                            with open('./system/properties.yml', 'w') as f:
+                                yaml.dump(properties_dict, f)
+                            self.parent.frame_3_logs_folder_location_var.set(f'{self.parent.logs_location}/')
+                        else:
+                            self.parent.check_or_create_working_dirs()
+                        return logging.info('backups location changed successfully')
+                elif kind == 'steuer_id':
+                    self.parent.steuer_id = self.frame_4_steuer_id_var.get()
+
+                    if not os.path.exists('./system/user_data.yml'):
+                        self.parent.load_user_data()
+
+                    with open('./system/user_data.yml', 'r') as a:
+                        user_dict = yaml.safe_load(a)
+                        user_dict['steuer_id'] = self.parent.steuer_id
+                    with open('./system/user_data.yml', 'w') as f:
+                        yaml.dump(user_dict, f)
+                elif kind == 'iban':
+                    self.parent.iban = self.frame_4_iban_var.get()
+
+                    if not os.path.exists('./system/user_data.yml'):
+                        self.parent.load_user_data()
+
+                    with open('./system/user_data.yml', 'r') as a:
+                        user_dict = yaml.safe_load(a)
+                        user_dict['iban'] = self.parent.iban
+                    with open('./system/user_data.yml', 'w') as f:
+                        yaml.dump(user_dict, f)
+                elif kind == 'bic':
+                    self.parent.bic = self.frame_4_bic_var.get()
+
+                    if not os.path.exists('./system/user_data.yml'):
+                        self.parent.load_user_data()
+
+                    with open('./system/user_data.yml', 'r') as a:
+                        user_dict = yaml.safe_load(a)
+                        user_dict['bic'] = self.parent.bic
+                    with open('./system/user_data.yml', 'w') as f:
+                        yaml.dump(user_dict, f)
+
+        self.changes.clear()
 
     def behandlungsarten_limit_validation(self, text_after_action: str) -> bool:
-        if not text_after_action == '':
+        if not text_after_action == '' and not text_after_action == self.frame_3_behandlungsarten_limit_var.get():
             try:
                 int(text_after_action)
             except ValueError:
-                logging.info('not int')
+                logging.debug('not int')
                 return False
-            self.edit_property_values('behandlungsarten_limit', text_after_action)
+            self.changes.append('behandlungsarten_limit')
             return True
         else:
             return True
@@ -3297,9 +3521,12 @@ class UpdateYearToplevelWindow(customtkinter.CTkToplevel):
 
 
 class PDF(FPDF):
-    def __init__(self, rechnungsnummer):
+    def __init__(self, rechnungsnummer: str, steuer_id: str, iban: str, bic: str):
         super().__init__()
         self.rechnungsnummer = rechnungsnummer
+        self.steuer_id = steuer_id
+        self.iban = iban
+        self.bic = bic
 
     def header(self):
         # Logo
@@ -3328,15 +3555,15 @@ class PDF(FPDF):
         self.set_y(-25)
         # helvetica italic 8
         self.set_font('helvetica', 'B', 8)
-        self.cell(0, 5, 'Bankverbindung ING Diba', align='C')
+        self.cell(0, 5, 'Bankverbindung', align='C')
         self.ln(3)
-        self.cell(0, 5, 'IBAN: DE20 5001 0517 5403 5068 61', align='C')
+        self.cell(0, 5, f'IBAN: {self.iban}', align='C')
         self.ln(3)
-        self.cell(0, 5, 'BIC: INGDDEFFXXX', align='C')
+        self.cell(0, 5, f'BIC: {self.bic}', align='C')
         self.ln(3)
         self.set_font('helvetica', '', 6)
         self.cell(1, 5, f'Rechnungsnummer: {self.rechnungsnummer}', align='L')
-        self.cell(0, 5, 'Steuer Nummer: 131-217-00314 - Ust. Befreit nach §4 UStG', align='C')
+        self.cell(0, 5, f'Steuer Nummer: {self.steuer_id} - Ust. Befreit nach §4 UStG', align='C')
         # Page number
         self.cell(0, 5, 'Seite ' + str(self.page_no()) + ' von {nb}', align='R')
 
@@ -3348,8 +3575,8 @@ class KgRechnung(PDF):
 
     def __init__(self, parent, stammdaten: list, rechnungsnummer: str, rechnungsdatum: str, gesamtpreis: int,
                  rechnungsdaten: list, rechnungsdaten_anzahl: int, behandlungsarten: list,
-                 einzelpreise: list, filepath: str):
-        super().__init__(rechnungsnummer)
+                 einzelpreise: list, filepath: str, steuer_id: str, iban: str, bic: str):
+        super().__init__(rechnungsnummer, steuer_id, iban, bic)
         self.parent = parent
 
         self.set_margins(17, 17, 17)
@@ -3421,7 +3648,7 @@ class KgRechnung(PDF):
         self.write(txt=f'{self.strasse} {self.hausnummer}\n')
         self.cell(self.rechnungsempfaenger_offset)
         self.write(txt=f'{self.plz} {self.ort}\n')
-        self.ln(27)
+        self.ln(24)
 
         self.cell(175, 0, border=1, center=True)
         self.set_font("helvetica", size=self.normal_font_size)
@@ -3510,7 +3737,7 @@ class KgRechnung(PDF):
                    txt='innerhalb von 14 Tagen unter Angabe der Rechnungsnummer auf unten stehendes Konto zu überweisen.')
         self.ln(13)
         self.write(txt='Mit freundlichen Grüßen')
-        self.ln(10)
+        self.ln(7)
         self.write(txt='Mervi Fischbach')
 
         self.output(filepath)
@@ -3522,8 +3749,8 @@ class HpRechnung(PDF):
     rechnungsempfaenger_offset = 4
 
     def __init__(self, stammdaten: list, rechnungsnummer: str, rechnungsdatum: str, gesamtpreis: float,
-                 rechnungsdaten: list, diagnose: str, filepath: str):
-        super().__init__(rechnungsnummer)
+                 rechnungsdaten: list, diagnose: str, filepath: str, steuer_id: str, iban: str, bic: str):
+        super().__init__(rechnungsnummer, steuer_id, iban, bic)
 
         self.set_margins(17, 17, 17)
 
@@ -3736,7 +3963,7 @@ class HpRechnung(PDF):
                    txt='innerhalb von 14 Tagen unter Angabe der Rechnungsnummer auf unten stehendes Konto zu überweisen.')
         self.ln(13)
         self.write(txt='Mit freundlichen Grüßen')
-        self.ln(10)
+        self.ln(7)
         self.write(txt='Mervi Fischbach')
 
         self.output(filepath)
