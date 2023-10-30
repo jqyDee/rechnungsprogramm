@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.6.9-beta'
+    version = '2.6.10-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -56,7 +56,7 @@ class App(customtkinter.CTk):
     backups_enabled = True
     backup_location = f'{os.getcwd()}/backups'
     logs_enabled = True
-    logs_location = f'{os.getcwd()}/system/logs'
+    log_location = f'{os.getcwd()}/system/logs'
 
     # user data
     iban = None
@@ -400,7 +400,7 @@ class App(customtkinter.CTk):
                      'behandlungsarten_limit': self.behandlungsarten_limit,
                      'backups_enabled': self.backups_enabled,
                      'logs_enabled': self.logs_enabled,
-                     'logs_location': self.logs_location}, f)
+                     'log_location': self.log_location}, f)
 
             created_properties_yml = True
 
@@ -419,12 +419,12 @@ class App(customtkinter.CTk):
             self.behandlungsarten_limit = properties_dict['behandlungsarten_limit']
             self.backups_enabled = properties_dict['backups_enabled']
             self.logs_enabled = properties_dict['logs_enabled']
-            self.logs_location = properties_dict['logs_location']
+            self.log_location = properties_dict['log_location']
 
         if not os.path.exists('./system/logs/'):
             os.makedirs('./system/logs/')
 
-        self.file_handler = logging.FileHandler(filename=f'{self.logs_location}/{time.strftime("%Y%m%d")}.log',
+        self.file_handler = logging.FileHandler(filename=f'{self.log_location}/{time.strftime("%Y%m%d")}.log',
                                                 mode='a')
         stderr_handler = logging.StreamHandler(stream=sys.stderr)
 
@@ -2975,8 +2975,6 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
 
     changes = []
 
-    # TODO Finish detect changes!!!!
-
     def __init__(self, parent):
         super().__init__(parent)
 
@@ -3011,10 +3009,10 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
             self.frame_3_switch_var_4 = tk.StringVar(value='off')
 
         self.frame_3_behandlungsarten_limit_var = tk.StringVar(value=f'{self.parent.behandlungsarten_limit}')
-        self.frame_3_rechnungen_location_var = tk.StringVar(value=f'{self.parent.rechnungen_location}/')
-        self.frame_3_stammdaten_location_var = tk.StringVar(value=f'{self.parent.stammdaten_location}/')
-        self.frame_3_backup_folder_location_var = tk.StringVar(value=f'{self.parent.backup_location}/')
-        self.frame_3_logs_folder_location_var = tk.StringVar(value=f'{self.parent.logs_location}')
+        self.frame_3_rechnungen_location_var = tk.StringVar(value=f'{self.parent.rechnungen_location}')
+        self.frame_3_stammdaten_location_var = tk.StringVar(value=f'{self.parent.stammdaten_location}')
+        self.frame_3_backup_folder_location_var = tk.StringVar(value=f'{self.parent.backup_location}')
+        self.frame_3_logs_folder_location_var = tk.StringVar(value=f'{self.parent.log_location}')
         self.frame_4_steuer_id_var = tk.StringVar(value=f'{self.parent.steuer_id}')
         self.frame_4_iban_var = tk.StringVar(value=f'{self.parent.iban}')
         self.frame_4_bic_var = tk.StringVar(value=f'{self.parent.bic}')
@@ -3163,9 +3161,12 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                                                                 text='rechnungen folder location:')
         self.rechnungen_location_entry = customtkinter.CTkEntry(self.frame_3,
                                                                 textvariable=self.frame_3_rechnungen_location_var,
-                                                                state='disabled', fg_color='gray16')
+                                                                validate='key',
+                                                                validatecommand=(
+                                                                self.register(self.detect_change), '%P', 'rechnungen_location'),
+                                                                 fg_color='gray16')
         self.rechnungen_location_button = customtkinter.CTkButton(self.frame_3, text='öffnen',
-                                                                  command=lambda: self.changes.append(
+                                                                  command=lambda: self.change_dirpath(
                                                                       'rechnungen_location'))
 
         # stammdaten location section
@@ -3173,9 +3174,13 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                                                                 text='stammdaten folder location:')
         self.stammdaten_location_entry = customtkinter.CTkEntry(self.frame_3,
                                                                 textvariable=self.frame_3_stammdaten_location_var,
-                                                                state='disabled', fg_color='gray16')
+                                                                validate='key',
+                                                                validatecommand=(
+                                                                    self.register(self.detect_change), '%P',
+                                                                    'stammdaten_location'),
+                                                                 fg_color='gray16')
         self.stammdaten_location_button = customtkinter.CTkButton(self.frame_3, text='öffnen',
-                                                                  command=lambda: self.changes.append(
+                                                                  command=lambda: self.change_dirpath(
                                                                       'stammdaten_location'))
 
         # Separator
@@ -3190,10 +3195,14 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.backup_location_label = customtkinter.CTkLabel(self.frame_3, text='Backup folder location:')
         self.backup_location_entry = customtkinter.CTkEntry(self.frame_3,
                                                             textvariable=self.frame_3_backup_folder_location_var,
-                                                            state='disabled', fg_color='gray16')
+                                                            validate='key',
+                                                            validatecommand=(
+                                                                self.register(self.detect_change), '%P',
+                                                                'backup_location'),
+                                                             fg_color='gray16')
         self.backup_location_button = customtkinter.CTkButton(self.frame_3, text='öffnen',
-                                                              command=lambda: self.changes.append(
-                                                                  'backups_location'))
+                                                              command=lambda: self.change_dirpath(
+                                                                  'backup_location'))
 
         # Separator
         self.separator_7 = tk.ttk.Separator(self.frame_3, orient='horizontal')
@@ -3206,9 +3215,13 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.log_location_label = customtkinter.CTkLabel(self.frame_3, text='Log folder location:')
         self.log_location_entry = customtkinter.CTkEntry(self.frame_3,
                                                          textvariable=self.frame_3_logs_folder_location_var,
-                                                         state='disabled', fg_color='gray16')
+                                                         validate='key',
+                                                         validatecommand=(
+                                                             self.register(self.detect_change), '%P',
+                                                             'log_location'),
+                                                          fg_color='gray16')
         self.log_location_button = customtkinter.CTkButton(self.frame_3, text='öffnen',
-                                                           command=lambda: self.changes.append('logs_location'))
+                                                           command=lambda: self.change_dirpath('log_location'))
 
     def create_layout_part_2(self):
         logging.debug('EinstellungInterface.create_layout_part_2() called')
@@ -3274,14 +3287,79 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
             self.frame_3.destroy()
             self.separator_8.pack_forget()
 
+    def change_dirpath(self, kind):
+        """changes the dirpath displayed in entry field"""
+
+        dirpath = tk.filedialog.askdirectory(title='stammdaten Filepath', initialdir='./', )
+        if dirpath == '':
+            return
+        if kind == 'rechnungen_location':
+            self.frame_3_rechnungen_location_var.set(f'{dirpath}')
+        elif kind == 'stammdaten_location':
+            self.frame_3_stammdaten_location_var.set(f'{dirpath}')
+        elif kind == 'backup_location':
+            self.frame_3_backup_folder_location_var.set(f'{dirpath}')
+        elif kind == 'log_location':
+            self.frame_3_logs_folder_location_var.set(f'{dirpath}')
+
     def detect_change(self, text_after_action: str, kind: str) -> bool:
-        if not kind in self.changes:
-            if kind == 'steuer_id' and text_after_action != self.parent.steuer_id:
+
+        if kind == 'steuer_id':
+            if not kind in self.changes and text_after_action != self.parent.steuer_id:
                 self.changes.append(kind)
-            elif kind == 'iban' and text_after_action != self.parent.iban:
+            else:
+                try:
+                    self.changes.remove(kind)
+                except ValueError:
+                    pass
+        elif kind == 'iban':
+            if not kind in self.changes and text_after_action != self.parent.iban:
                 self.changes.append(kind)
-            elif kind == 'bic' and text_after_action != self.parent.bic:
+            else:
+                try:
+                    self.changes.remove(kind)
+                except ValueError:
+                    pass
+        elif kind == 'bic':
+            if not kind in self.changes and text_after_action != self.parent.bic:
                 self.changes.append(kind)
+            else:
+                try:
+                    self.changes.remove(kind)
+                except ValueError:
+                    pass
+        elif kind == 'rechnungen_location':
+            if not kind in self.changes and text_after_action != self.parent.rechnungen_location:
+                self.changes.append(kind)
+            else:
+                try:
+                    self.changes.remove(kind)
+                except ValueError:
+                    pass
+        elif kind == 'stammdaten_location':
+            if not kind in self.changes and text_after_action != self.parent.stammdaten_location:
+                self.changes.append(kind)
+            else:
+                try:
+                    self.changes.remove(kind)
+                except ValueError:
+                    pass
+        elif kind == 'backup_location':
+            if not kind in self.changes and text_after_action != self.parent.backup_location:
+                self.changes.append(kind)
+            else:
+                try:
+                    self.changes.remove(kind)
+                except ValueError:
+                    pass
+        elif kind == 'log_location':
+            if not kind in self.changes and text_after_action != self.parent.log_location:
+                self.changes.append(kind)
+            else:
+                try:
+                    self.changes.remove(kind)
+                except ValueError:
+                    pass
         return True
 
     def save_property_values(self):
@@ -3291,94 +3369,89 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
 
         if self.changes:
             for kind in self.changes:
-                if kind == 'stammdaten_location':
-                    dirpath = tk.filedialog.askdirectory(title='stammdaten Filepath', initialdir='./', )
-                    if dirpath == '':
-                        return
-                    else:
-                        try:
-                            for i in os.listdir(self.parent.stammdaten_location):
-                                shutil.move(f'{self.parent.stammdaten_location}/{i}', dirpath)
-                            os.removedirs(self.parent.stammdaten_location)
-                        except FileNotFoundError:
-                            logging.error('stammdaten location not existing')
+                if kind == 'rechnungen_location':
+                    self.parent.rechnungen_location = self.frame_3_rechnungen_location_var.get()
 
-                        self.parent.stammdaten_location = dirpath
-                        if os.path.exists('./system/properties.yml'):
-                            with open('./system/properties.yml', 'r') as a:
-                                properties_dict = yaml.safe_load(a)
-                                properties_dict['stammdaten_location'] = self.parent.stammdaten_location
-                            with open('./system/properties.yml', 'w') as f:
-                                yaml.dump(properties_dict, f)
-                            self.parent.frame_3_stammdaten_location_var.set(f'{self.parent.stammdaten_location}/')
-                        else:
-                            self.parent.check_or_create_working_dirs()
-                        return logging.info('stammdaten location changed successfully')
-                elif kind == 'rechnungen_location':
-                    dirpath = tk.filedialog.askdirectory(title='rechnungen Filepath', initialdir='./', )
-                    if dirpath == '':
-                        return
-                    else:
-                        try:
-                            for i in os.listdir(self.parent.rechnungen_location):
-                                try:
-                                    shutil.move(f'{self.parent.rechnungen_location}/{i}', dirpath)
-                                    os.removedirs(self.parent.rechnungen_location)
-                                except shutil.Error:
-                                    logging.info('dir already exists and files wont be moved')
-                        except FileNotFoundError:
-                            logging.error('rechnungen location not existing')
+                    if not os.path.exists(self.parent.rechnungen_location):
+                        os.makedirs(self.parent.rechnungen_location)
 
-                        self.parent.rechnungen_location = dirpath
-                        if os.path.exists('./system/properties.yml'):
-                            with open('./system/properties.yml', 'r') as a:
-                                properties_dict = yaml.safe_load(a)
-                                properties_dict['rechnungen_location'] = self.parent.rechnungen_location
-                            with open('./system/properties.yml', 'w') as f:
-                                yaml.dump(properties_dict, f)
-                            self.parent.frame_3_rechnungen_location_var.set(f'{self.parent.rechnungen_location}/')
-                        else:
-                            self.parent.check_or_create_working_dirs()
-                        return logging.info('rechnungen location changed successfully')
-                elif kind == 'backups_location':
-                    dirpath = tk.filedialog.askdirectory(title='Backups Filepath', initialdir='./', )
-                    if dirpath == '':
-                        return
-                    else:
-                        try:
-                            for i in os.listdir(self.parent.backup_location):
-                                shutil.move(f'{self.parent.backup_location}/{i}', dirpath)
-                            os.removedirs(self.parent.backup_location)
-                        except FileNotFoundError:
-                            logging.error('backup location not existing')
+                    if not os.path.exists('./system/properties.yml'):
+                        self.parent.check_or_create_working_dirs()
 
-                        self.parent.backup_location = dirpath
-                        if os.path.exists('./system/properties.yml'):
-                            with open('./system/properties.yml', 'r') as a:
-                                properties_dict = yaml.safe_load(a)
-                                properties_dict['backup_location'] = self.parent.backup_location
-                            with open('./system/properties.yml', 'w') as f:
-                                yaml.dump(properties_dict, f)
-                            self.parent.frame_3_backup_folder_location_var.set(f'{self.parent.backup_location}/')
-                        else:
-                            self.parent.check_or_create_working_dirs()
-                        return logging.info('backups location changed successfully')
+                    with open('./system/properties.yml', 'r') as a:
+                        properties_dict = yaml.safe_load(a)
+                        properties_dict['rechnungen_location'] = self.parent.rechnungen_location
+                    with open('./system/properties.yml', 'w') as f:
+                            yaml.dump(properties_dict, f)
+
+                    logging.info('rechnungen location changed successfully')
+                elif kind == 'stammdaten_location':
+                    self.parent.stammdaten_location = self.frame_3_stammdaten_location_var.get()
+
+                    if not os.path.exists(self.parent.stammdaten_location):
+                        os.makedirs(self.parent.stammdaten_location)
+
+                    if not os.path.exists('./system/properties.yml'):
+                        self.parent.check_or_create_working_dirs()
+
+                    with open('./system/properties.yml', 'r') as a:
+                        properties_dict = yaml.safe_load(a)
+                        properties_dict['stammdaten_location'] = self.parent.stammdaten_location
+                    with open('./system/properties.yml', 'w') as f:
+                        yaml.dump(properties_dict, f)
+
+                    logging.info('stammdaten location changed successfully')
+                elif kind == 'backup_location':
+                    self.parent.backup_location = self.frame_3_backup_folder_location_var.get()
+
+                    if not os.path.exists(self.parent.backup_location):
+                        os.makedirs(self.parent.backup_location)
+
+                    if not os.path.exists('./system/properties.yml'):
+                        self.parent.check_or_create_working_dirs()
+
+                    with open('./system/properties.yml', 'r') as a:
+                        properties_dict = yaml.safe_load(a)
+                        properties_dict['backup_location'] = self.parent.backup_location
+                    with open('./system/properties.yml', 'w') as f:
+                        yaml.dump(properties_dict, f)
+
+                    logging.info('backup location changed successfully')
+                elif kind == 'log_location':
+                    self.parent.log_location = self.frame_3_logs_folder_location_var.get()
+
+                    if not os.path.exists(self.parent.log_location):
+                        os.makedirs(self.parent.log_location)
+
+                    if not os.path.exists('./system/properties.yml'):
+                        self.parent.check_or_create_working_dirs()
+
+                    with open('./system/properties.yml', 'r') as a:
+                        properties_dict = yaml.safe_load(a)
+                        properties_dict['log_location'] = self.parent.log_location
+                    with open('./system/properties.yml', 'w') as f:
+                        yaml.dump(properties_dict, f)
+
+                    logging.info('log location changed successfully')
+
                 elif kind == 'debug_mode':
                     if self.frame_3_switch_var_1.get() == 'off':
                         self.parent.debug_mode = False
                     else:
                         self.parent.debug_mode = True
 
-                    if os.path.exists('./system/properties.yml'):
-                        with open('./system/properties.yml', 'r') as a:
-                            properties_dict = yaml.safe_load(a)
-                            properties_dict['debug_mode'] = self.parent.debug_mode
-                        with open('./system/properties.yml', 'w') as f:
-                            yaml.dump(properties_dict, f)
-                    else:
+                    if not os.path.exists('./system/properties.yml'):
                         self.parent.check_or_create_working_dirs()
 
-                    return messagebox.showinfo('Änderungen gespeichert',
+                    with open('./system/properties.yml', 'r') as a:
+                        properties_dict = yaml.safe_load(a)
+                        properties_dict['debug_mode'] = self.parent.debug_mode
+                    with open('./system/properties.yml', 'w') as f:
+                        yaml.dump(properties_dict, f)
+
+                    logging.info('debug mode changed successfully')
+
+                    messagebox.showinfo('Änderungen gespeichert',
                                                'Programm muss neu gestartet werden um Änderungen zu sehen!')
                 elif kind == 'behandlungsarten_limiter':
                     if self.frame_3_switch_var_2.get() == 'off':
@@ -3388,71 +3461,64 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                         self.parent.behandlungsarten_limiter = True
                         self.behandlungsarten_limit_entry.configure(state='normal', fg_color='#343638')
 
-                    if os.path.exists('./system/properties.yml'):
-                        with open('./system/properties.yml', 'r') as a:
-                            properties_dict = yaml.safe_load(a)
-                            properties_dict['behandlungsarten_limiter'] = self.parent.behandlungsarten_limiter
-                        with open('./system/properties.yml', 'w') as f:
-                            yaml.dump(properties_dict, f)
-                    else:
+                    if not os.path.exists('./system/properties.yml'):
                         self.parent.check_or_create_working_dirs()
+
+                    with open('./system/properties.yml', 'r') as a:
+                        properties_dict = yaml.safe_load(a)
+                        properties_dict['behandlungsarten_limiter'] = self.parent.behandlungsarten_limiter
+                    with open('./system/properties.yml', 'w') as f:
+                        yaml.dump(properties_dict, f)
+
+                    logging.info('behandlungsarten limiter changed successfully')
                 elif kind == 'behandlungsarten_limit':
-                    self.parent.behandlungsarten_limit = int(self.frame_3_behandlungsarten_limit_var)
-                    if os.path.exists('./system/properties.yml'):
-                        with open('./system/properties.yml', 'r') as a:
-                            properties_dict = yaml.safe_load(a)
-                            properties_dict['behandlungsarten_limit'] = self.parent.behandlungsarten_limit
-                        with open('./system/properties.yml', 'w') as f:
-                            yaml.dump(properties_dict, f)
-                    else:
+                    self.parent.behandlungsarten_limit = int(self.frame_3_behandlungsarten_limit_var.get())
+
+                    if not os.path.exists('./system/properties.yml'):
                         self.parent.check_or_create_working_dirs()
+
+                    with open('./system/properties.yml', 'r') as a:
+                        properties_dict = yaml.safe_load(a)
+                        properties_dict['behandlungsarten_limit'] = self.parent.behandlungsarten_limit
+                    with open('./system/properties.yml', 'w') as f:
+                        yaml.dump(properties_dict, f)
+
+                    logging.info('behandlungsarten limit changed successfully')
                 elif kind == 'backups_enabled':
                     if self.frame_3_switch_var_3.get() == 'off':
                         self.parent.backups_enabled = False
                     else:
                         self.parent.backups_enabled = True
 
-                    if os.path.exists('./system/properties.yml'):
-                        with open('./system/properties.yml', 'r') as a:
-                            properties_dict = yaml.safe_load(a)
-                            properties_dict['backups_enabled'] = self.parent.backups_enabled
-                        with open('./system/properties.yml', 'w') as f:
-                            yaml.dump(properties_dict, f)
-                    else:
+                    if not os.path.exists('./system/properties.yml'):
                         self.parent.check_or_create_working_dirs()
+
+                    with open('./system/properties.yml', 'r') as a:
+                        properties_dict = yaml.safe_load(a)
+                        properties_dict['backups_enabled'] = self.parent.backups_enabled
+                    with open('./system/properties.yml', 'w') as f:
+                        yaml.dump(properties_dict, f)
+
+                    logging.info('backups enabled changed successfully')
                 elif kind == 'logs_enabled':
                     if self.frame_3_switch_var_4.get() == 'off':
                         self.parent.logs_enabled = False
                     else:
                         self.parent.logs_enabled = True
 
-                    if os.path.exists('./system/properties.yml'):
-                        with open('./system/properties.yml', 'r') as a:
-                            properties_dict = yaml.safe_load(a)
-                            properties_dict['logs_enabled'] = self.parent.logs_enabled
-                        with open('./system/properties.yml', 'w') as f:
-                            yaml.dump(properties_dict, f)
-                    else:
+                    if not os.path.exists('./system/properties.yml'):
                         self.parent.check_or_create_working_dirs()
-                elif kind == 'logs_location':
-                    dirpath = tk.filedialog.askdirectory(title='Backups Filepath', initialdir='./', )
-                    if dirpath == '':
-                        return
-                    else:
-                        for i in os.listdir(self.parent.logs_location):
-                            os.remove(f'{self.parent.logs_location}/{i}')
 
-                        self.parent.logs_location = dirpath
-                        if os.path.exists('./system/properties.yml'):
-                            with open('./system/properties.yml', 'r') as a:
-                                properties_dict = yaml.safe_load(a)
-                                properties_dict['logs_location'] = self.parent.logs_location
-                            with open('./system/properties.yml', 'w') as f:
-                                yaml.dump(properties_dict, f)
-                            self.parent.frame_3_logs_folder_location_var.set(f'{self.parent.logs_location}/')
-                        else:
-                            self.parent.check_or_create_working_dirs()
-                        return logging.info('backups location changed successfully')
+                    with open('./system/properties.yml', 'r') as a:
+                        properties_dict = yaml.safe_load(a)
+                        properties_dict['logs_enabled'] = self.parent.logs_enabled
+                    with open('./system/properties.yml', 'w') as f:
+                        yaml.dump(properties_dict, f)
+
+                    logging.info('logs enabled changed successfully')
+
+                    messagebox.showinfo('Änderungen gespeichert',
+                                               'Programm muss neu gestartet werden um Änderungen zu sehen!')
                 elif kind == 'steuer_id':
                     self.parent.steuer_id = self.frame_4_steuer_id_var.get()
 
@@ -3464,6 +3530,8 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                         user_dict['steuer_id'] = self.parent.steuer_id
                     with open('./system/user_data.yml', 'w') as f:
                         yaml.dump(user_dict, f)
+
+                    logging.info('steuer id changed successfully')
                 elif kind == 'iban':
                     self.parent.iban = self.frame_4_iban_var.get()
 
@@ -3475,6 +3543,8 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                         user_dict['iban'] = self.parent.iban
                     with open('./system/user_data.yml', 'w') as f:
                         yaml.dump(user_dict, f)
+
+                    logging.info('iban changed successfully')
                 elif kind == 'bic':
                     self.parent.bic = self.frame_4_bic_var.get()
 
@@ -3487,6 +3557,9 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                     with open('./system/user_data.yml', 'w') as f:
                         yaml.dump(user_dict, f)
 
+                    logging.info('bic changed successfully')
+
+        self.parent.bottom_nav.bottom_nav_warning.configure(text='Änderungen gespeichert!', fg_color='green')
         self.changes.clear()
 
     def behandlungsarten_limit_validation(self, text_after_action: str) -> bool:
