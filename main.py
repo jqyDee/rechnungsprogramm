@@ -762,12 +762,13 @@ class App(customtkinter.CTk):
                     if index == 0:
                         data.extend(row_1)
 
-            try:
-                data_8 = ast.literal_eval(data[8])
-                data.pop(8)
-                data.insert(8, data_8)
-            except IndexError:
-                logging.info('There is no Data')
+            if draft_interfaces[1]:
+                try:
+                    data_8 = ast.literal_eval(data[8])
+                    data.pop(8)
+                    data.insert(8, data_8)
+                except IndexError:
+                    logging.info('There is no Data')
 
             if data == rechnungsdaten:
                 return True
@@ -1064,6 +1065,7 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
 
         # tk variables
         self.frame_1_warning_var = tk.StringVar()
+        self.gesamtpreis_var = tk.StringVar(value='0,00€')
 
         self.create_widgets_part_1()
         self.create_layout_part_1()
@@ -1146,12 +1148,16 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
         self.behandlungsarten_labels_2d_array = []
         self.behandlungsarten_entrys_2d_array = []
 
-        self.behandlungsarten_add_button = customtkinter.CTkButton(self.frame_3, text='Hinzufügen',
+        # Button section
+        self.frame_4 = customtkinter.CTkFrame(self, fg_color='gray16')
+        self.behandlungsarten_add_button = customtkinter.CTkButton(self.frame_4, text='Hinzufügen',
                                                                    command=lambda: self.behandlungsarten_add_event())
-        self.behandlungsarten_delete_button = customtkinter.CTkButton(self.frame_3, text='Löschen',
+        self.behandlungsarten_delete_button = customtkinter.CTkButton(self.frame_4, text='Löschen',
                                                                       command=lambda:
                                                                       self.behandlungsarten_delete_button_event(),
                                                                       state='disabled')
+        self.gesamtpreis_label = customtkinter.CTkLabel(self.frame_4, text='Gesamtpreis:')
+        self.gesamtpreis = customtkinter.CTkLabel(self.frame_4, textvariable=self.gesamtpreis_var)
 
     def create_layout_part_2(self):
         """Creating the layout_part_2 of frame/class KGRechnungInterface"""
@@ -1174,12 +1180,17 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
         self.separator_3.pack(fill='x', expand=False)
 
         # Behandlungsarten section
-
-        self.frame_3.pack(fill='x', expand=False, pady=15, padx=20)
+        self.frame_3.pack(fill='x', expand=False, pady=(15, 0), padx=20)
+        self.frame_3.grid_columnconfigure(2, weight=1)
         self.heading_4.grid(row=0, column=0, padx=10, pady=4, columnspan=2, sticky='w')
 
-        self.behandlungsarten_add_button.grid(row=1, column=0, padx=10, pady=(20, 30))
-        self.behandlungsarten_delete_button.grid(row=1, column=1, padx=10, pady=(20, 30), sticky='w')
+        # Button section
+        self.frame_4.pack(fill='x', expand=False, pady=(0, 15), padx=20)
+        self.frame_4.grid_columnconfigure(2, weight=1)
+        self.behandlungsarten_add_button.grid(row=0, column=0, padx=10, pady=(20, 30))
+        self.behandlungsarten_delete_button.grid(row=0, column=1, padx=10, pady=(20, 30), sticky='w')
+        self.gesamtpreis_label.grid(row=0, column=2, padx=10, pady=4, sticky='e')
+        self.gesamtpreis.grid(row=0, column=3, padx=10, pady=4, sticky='e')
 
     def kuerzel_entry_validation(self, text_after_action: str) -> bool:
         """validating the changes made to kuerzel_entry widgets on keystroke.
@@ -1277,7 +1288,7 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
         # creating widgets
         self.behandlungsarten_labels_1d_array.append(
             customtkinter.CTkLabel(self.frame_3, text=f'Behandlungsart {self.row_count}:'))
-        self.behandlungsarten_entrys_1d_array.append(customtkinter.CTkEntry(self.frame_3, width=500))
+        self.behandlungsarten_entrys_1d_array.append(customtkinter.CTkEntry(self.frame_3, width=550))
         self.behandlungsarten_labels_1d_array.append(
             customtkinter.CTkLabel(self.frame_3, text='Einzelpreis:'))
         self.behandlungsarten_entrys_1d_array.append(customtkinter.CTkEntry(self.frame_3))
@@ -1290,7 +1301,7 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
             if index_1 == self.row_count - 1:
                 for index_2, a in enumerate(i):
                     if index_2 == 0:
-                        a.grid(row=int(self.row_count), column=int(index_2), padx=10, pady=4, sticky='w')
+                        a.grid(row=int(self.row_count), column=int(index_2), padx=10, pady=4)
                     else:
                         a.grid(row=int(self.row_count), column=int(index_2 + 2), padx=10, pady=4)
 
@@ -1298,17 +1309,13 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
             if index_1 == self.row_count - 1:
                 for index_2, a in enumerate(i):
                     if index_2 == 0:
-                        a.grid(row=int(self.row_count), column=int(index_2 + 1), padx=10, pady=4)
+                        a.grid(row=int(self.row_count), column=int(index_2 + 1), padx=10, pady=4, sticky='ew')
                     else:
                         a.grid(row=int(self.row_count), column=int(index_2 + 3), padx=10, pady=4,
                                sticky='w')
+                        a.bind('<FocusOut>', self.gesamtpreis_bind)
 
-        self.behandlungsarten_add_button.grid(row=self.row_count + 1, column=0, padx=10, pady=(20, 30))
-
-        # repacking and configuring add and delete button
         self.behandlungsarten_delete_button.configure(state='normal')
-        self.behandlungsarten_delete_button.grid(row=self.row_count + 1, column=1, padx=10, pady=(20, 30),
-                                                 sticky='w')
 
     def behandlungsarten_delete_button_event(self):
         """Deletes 1 row of behandlungsarten. Exception: row_count is 0"""
@@ -1334,6 +1341,19 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
 
         # configuring add button
         self.behandlungsarten_add_button.configure(state='normal')
+
+    def gesamtpreis_bind(self, event):
+        """binds to the 6th element in every item of self.rows_2d_array (except index 0)
+        and calculates the gesamtpreis of all inserted Einzelpreise"""
+
+        gesamtpreis = 0
+        for i in self.behandlungsarten_entrys_2d_array:
+            try:
+                b = float(i[1].get().replace(',', '.'))
+            except ValueError:
+                continue
+            gesamtpreis += b
+            self.gesamtpreis_var.set(f'{round(gesamtpreis, 2):.2f}€'.replace('.', ','))
 
     def kg_rechnung_erstellen_button_event(self):
         """triggers the class Backend and the function of validate_kg_entrys.
@@ -1592,6 +1612,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
 
         # text variables
         self.frame_1_warning_var = tk.StringVar()
+        self.gesamtpreis_var = tk.StringVar(value='0,00€')
 
         self.create_widgets_part_1()
         self.create_layout_part_1()
@@ -1672,6 +1693,8 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
         self.behandlungsdaten_delete_button = customtkinter.CTkButton(self.row_frames[0], text='Löschen',
                                                                       state='disabled',
                                                                       command=lambda: self.behandlungsdaten_delete_button_event())
+        self.gesamtpreis_label = customtkinter.CTkLabel(self.row_frames[0], text='Gesamtpreis:')
+        self.gesamtpreis = customtkinter.CTkLabel(self.row_frames[0], textvariable=self.gesamtpreis_var)
 
         # row widgets
         self.rows_2d_array = []
@@ -1698,6 +1721,8 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                                    customtkinter.CTkTextbox(self.row_frames[2], width=80, height=150),
                                    tk.ttk.Separator(self.row_frames[2], orient='horizontal')])
 
+        self.rows_2d_array[1][6].bind('<FocusOut>', self.gesamtpreis_bind)
+
         # Separator
         self.separator_3 = tk.ttk.Separator(self, orient='horizontal')
 
@@ -1718,8 +1743,11 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
         self.heading_3.grid(row=0, column=0, padx=10, pady=4, sticky='w')
 
         # packing table buttons
+        self.row_frames[0].grid_columnconfigure(2, weight=1)
         self.behandlungsdaten_add_button.grid(row=0, column=0, padx=(0, 10), pady=(20, 30), sticky='w')
         self.behandlungsdaten_delete_button.grid(row=0, column=1, padx=10, pady=(20, 30), sticky='w')
+        self.gesamtpreis_label.grid(row=0, column=2, padx=10, pady=4, sticky='e')
+        self.gesamtpreis.grid(row=0, column=3, padx=10, pady=4, sticky='e')
 
         # pack the widgets into the frames
         for index_1, i in enumerate(self.rows_2d_array):
@@ -1755,7 +1783,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
 
         # Diagnose section
         self.frame_3.grid_columnconfigure(1, weight=1)
-        self.frame_3.pack(fill='x', expand=False, pady=(15, 15), padx=20)
+        self.frame_3.pack(fill='x', expand=False, pady=(15, 30), padx=20)
         self.heading_4.grid(row=0, column=0, padx=10, pady=4, columnspan=2, sticky='w')
         self.diagnose_textbox.grid(row=1, column=1, padx=10, pady=4, sticky='ew')
 
@@ -1855,6 +1883,8 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
              customtkinter.CTkTextbox(self.row_frames[len(self.row_frames) - 1], width=80, height=150),
              tk.ttk.Separator(self.row_frames[len(self.row_frames) - 1], orient='horizontal')])
 
+        self.rows_2d_array[len(self.rows_2d_array) - 1][6].bind('<FocusOut>', self.gesamtpreis_bind)
+
         # packing the widgets of the last row to the added frame
         for index_2, a in enumerate(self.rows_2d_array[-1]):
             if index_2 == 0:
@@ -1895,6 +1925,22 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
 
         # removing row from row_frame
         self.row_frames.pop(-1)
+
+    def gesamtpreis_bind(self, event):
+        """binds to the 6th element in every item of self.rows_2d_array (except index 0)
+        and calculates the gesamtpreis of all inserted Einzelpreise"""
+
+        gesamtpreis = 0
+        for index, i in enumerate(self.rows_2d_array):
+            if index != 0:
+                data = list(filter(None, i[6].get('0.0', 'end').split('\n')))
+                for a in data:
+                    try:
+                        b = float(a.replace(',', '.'))
+                    except ValueError:
+                        continue
+                    gesamtpreis += b
+                self.gesamtpreis_var.set(f'{round(gesamtpreis, 2):.2f}€'.replace('.', ','))
 
     def hp_rechnung_erstellen_button_event(self):
         """triggers the class Backend and the function of validate_hp_entrys.
@@ -2003,11 +2049,6 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                         row.append(data)
 
             self.behandlungsdaten.append(row)
-
-            if lengths[0] >= 2:
-                self.behandlungsdaten[0][0] += '\n\n'
-            else:
-                self.behandlungsdaten[0][0] += '\n'
 
         logging.debug(f'behandlungdaten: {self.behandlungsdaten}')
         logging.debug(f'self.gesamtpreis: {self.gesamtpreis}')
@@ -2934,6 +2975,8 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
 
     changes = []
 
+    # TODO Finish detect changes!!!!
+
     def __init__(self, parent):
         super().__init__(parent)
 
@@ -3069,7 +3112,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.bic_entry.grid(row=3, column=1, padx=10, pady=4, sticky='w')
 
         # Separator
-        self.separator_3.pack(fill='x', expand=False, pady=(40, 0))
+        self.separator_3.pack(fill='x', expand=False, pady=(300, 0))
 
         # About section
         self.frame_2.grid_columnconfigure(0, weight=1)
@@ -3224,7 +3267,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
             self.separator_4.pack_forget()
             self.create_widgets_part_2()
             self.create_layout_part_2()
-            self.separator_3.pack(fill='x', expand=False, pady=(40, 0))
+            self.separator_3.pack(fill='x', expand=False, pady=(300, 0))
             self.frame_2.pack(fill='x', expand=False, pady=(15, 15), padx=20)
 
         elif self.frame_1_switch_var.get() == 'off':
