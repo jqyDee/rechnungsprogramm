@@ -644,56 +644,112 @@ class App(customtkinter.CTk):
     def store_draft(self) -> bool:
         """Calls store_draft in Backend with the Params:
                     open_interface: str = self.open_interface"""
-        return True
+
+        # return True
         logging.debug('App.store_draft() called')
 
         # rewrite -> Not ready
         ####################################################
-        draft_interfaces = [self.kg_interface, self.hp_interface]
+        data = []
+        draft_interfaces = [self.kg_interface, self.hp_interface, self.einstellungen_interface]
         if not self.debug_mode and any(draft_interfaces):
             if draft_interfaces[0]:
-                logging.debug('Interface where draft can be stored was open before')
+                logging.debug('KG Interface was open before')
                 try:
                     data = [self.kg_interface.kuerzel_entry, self.kg_interface.rechnungsdatum_entry,
                             self.kg_interface.daten_entrys,
                             self.kg_interface.behandlungsarten_entrys_2d_array]
                 except AttributeError:
                     return True
+
+                # check if Behandlungsdaten or Behandlungsarten/Einzelpreise has value
+                if any([[True for i in data[2] if i.get() != ''], [True for a in data[3] for i in a if i.get() != '']]):
+                    # Kürzel, Rechnungsnummer
+                    rechnungsdaten = [data[0].get(), f'{data[0].get()}{data[1].get().replace(".", "")}', 'km', 'km',
+                                      'km', 'km',
+                                      'Euro', 'Euro', ]
+
+                    # Behandlungsdaten
+                    for i in data[2]:
+                        rechnungsdaten.append(i.get())
+
+                    # Behandlungsdaten und Preise
+                    behandlungsarten = []
+                    einzelpreise = []
+                    for i in data[3]:
+                        behandlungsarten.append(i[0].get())
+                        einzelpreise.append(i[1].get())
+                    rechnungsdaten.extend(behandlungsarten)
+                    rechnungsdaten.extend(einzelpreise)
+                else:
+                    return True
+
             elif draft_interfaces[1]:
                 logging.debug('HP Interface was open before')
+                try:
+                    data = [self.hp_interface.kuerzel_entry, self.hp_interface.rechnungsdatum_entry,
+                            self.hp_interface.rows_2d_array, self.hp_interface.diagnose_textbox]
+                except AttributeError:
+                    return True
 
-        if self.open_interface is None or self.debug_mode:
-            return True
-        if self.open_interface == 'kg':
-            try:
-                data = [self.kg_interface.kuerzel_entry, self.kg_interface.rechnungsdatum_entry,
-                        self.kg_interface.daten_entrys,
-                        self.kg_interface.behandlungsarten_entrys_2d_array]
-            except AttributeError:
-                return True
+                data_2 = []
+                for index1, a in enumerate(data[2]):
+                    if index1 != 0:
+                        for index2, i in enumerate(a):
+                            if index2 in (0, 2, 4, 6) and i.get('0.0', 'end').replace('\n', '') != '':
+                                data_2.append(True)
 
-            found = False
-            for i in data[2]:
-                if i.get() != '':
-                    found = True
-            for i in data[3]:
-                for a in i:
-                    if a.get() != '':
-                        found = True
-            if not found:
-                return True
+                data_3 = []
+                try:
+                    if data[3].get('0.0', 'end').replace('\n', ''):
+                        data_3.append(True)
+                except tk.TclError:
+                    return True
 
-            rechnungsdaten = [data[0].get(), f'{data[0].get()}{data[1].get().replace(".", "")}', 'km', 'km', 'km', 'km',
-                              'Euro', 'Euro', ]
-            for i in data[2]:
-                rechnungsdaten.append(i.get())
-            behandlungsarten = []
-            einzelpreise = []
-            for i in data[3]:
-                behandlungsarten.append(i[0].get())
-                einzelpreise.append(i[1].get())
-            rechnungsdaten.extend(behandlungsarten)
-            rechnungsdaten.extend(einzelpreise)
+                if any([data_2, data_3]):
+                    # Kürzel, Rechnungsnummer
+                    rechnungsdaten = [data[0].get(), f'{data[0].get()}{data[1].get().replace(".", "")}H', 'km', 'km',
+                                      'km', 'km',
+                                      'Euro', 'Euro', ]
+
+                    # Behandlungsdaten
+                    array_2d = []
+                    for index1, a in enumerate(data[2]):
+                        if index1 != 0:
+                            array_1d = []
+                            for index2, i in enumerate(a):
+                                if index2 in (0, 2, 4, 6):
+                                    if i.get('0.0', 'end')[-1] == '\n':
+                                        array_1d.append(i.get('0.0', 'end')[:-1])
+                                    else:
+                                        array_1d.append(i.get('0.0', 'end'))
+                            array_2d.append(array_1d)
+                    rechnungsdaten.append(array_2d)
+
+                    # Diagnose
+                    if data[3].get('0.0', 'end')[-1] == '\n':
+                        rechnungsdaten.append(data[3].get('0.0', 'end')[:-1])
+                    else:
+                        rechnungsdaten.append(data[3].get('0.0', 'end'))
+                else:
+                    return True
+
+            elif draft_interfaces[2]:
+                logging.debug('Einstellung Inteface was open before')
+
+                if self.einstellungen_interface.changes:
+                    save_changes = messagebox.askyesnocancel('Warnung',
+                                                             'Beim fortfahren gehen alle Änderungen verloren. '
+                                                             'Sollen die Änderungen gespeichert werden?')
+                    if save_changes:
+                        self.einstellungen_interface.save_property_values()
+                        return True
+                    elif save_changes is False:
+                        return True
+                    elif save_changes is None:
+                        return False
+                else:
+                    return True
         else:
             return True
 
@@ -705,6 +761,14 @@ class App(customtkinter.CTk):
                 for index, row_1 in enumerate(csvfile):
                     if index == 0:
                         data.extend(row_1)
+
+            try:
+                data_8 = ast.literal_eval(data[8])
+                data.pop(8)
+                data.insert(8, data_8)
+            except IndexError:
+                logging.info('There is no Data')
+
             if data == rechnungsdaten:
                 return True
 
@@ -1520,7 +1584,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
         logging.info('class HPRechnungInterface() called')
 
         self.parent = parent
-        self.parent.bottom_nav.bottom_nav_button.configure(command=lambda: self.validate_hp_entrys())
+        self.parent.bottom_nav.bottom_nav_button.configure(command=lambda: self.hp_rechnung_erstellen_button_event())
 
         self.configure(fg_color='gray16', corner_radius=0)
 
@@ -1714,11 +1778,12 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
 
             try:
                 self.frame_2.destroy()
-            except AttributeError:
-                pass
-            try:
                 self.frame_3.destroy()
                 self.separator_3.destroy()
+                self.row_frames.clear()
+                self.rows_2d_array.clear()
+                self.diagnose_textbox.destroy()
+                self.row_count = 0
             except AttributeError:
                 pass
 
@@ -1830,6 +1895,23 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
 
         # removing row from row_frame
         self.row_frames.pop(-1)
+
+    def hp_rechnung_erstellen_button_event(self):
+        """triggers the class Backend and the function of validate_hp_entrys.
+           Checks the return value."""
+
+        logging.debug('HPRechnungInterface.hp_rechnung_erstellen_button_event() called')
+
+        # HP Rechnung erstellt
+        if self.validate_hp_entrys():
+            self.kuerzel_entry.delete(0, tk.END)
+            self.rechnungsdatum_entry.delete(0, tk.END)
+            self.rechnungsdatum_entry.insert(0, f'{time.strftime("%d.%m.%y")}')
+            self.parent.bottom_nav.bottom_nav_warning.configure(
+                text=f'Rechnung erstellt und Daten gespeichert!', fg_color='green')
+        # HP Rechnung nicht erstellt
+        else:
+            return False
 
     def validate_hp_entrys(self):
         logging.debug('HPRechnungInterface.validate_hp_entrys() called')
@@ -1947,7 +2029,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                         fg_color='red')
                     return False
             if i == '':
-                if index == 8:
+                if index in (8, 10, 11, 12):
                     pass
                 else:
                     logging.debug(f'Stammdatei has no value in line {index + 1}, exiting')
@@ -2791,12 +2873,12 @@ class RechnungenInterface(customtkinter.CTkFrame):
 
             if row_count > 1:
                 logging.error(
-                    f'rechnungen-csv Error: rechnungen-{self.parent.year}.csv corruopt. Rechnung {self.files_in_dir[row]} found multiple times!')
+                    f'rechnungen-csv Error: rechnungen-{self.parent.year}.csv corrupt. Rechnung {self.files_in_dir[row]} found multiple times!')
                 return messagebox.showerror('rechnungen-csv Error',
                                             f'rechnungen-{self.parent.year}.csv korrupt. {self.files_in_dir[row]} mehrmals gefunden!')
             elif row_count < 1:
                 logging.error(
-                    f'rechnungen-csv Error: rechnungen-{self.parent.year}.csv corruopt. Rechnung {self.files_in_dir[row]} not found times!')
+                    f'rechnungen-csv Error: rechnungen-{self.parent.year}.csv corrupt. Rechnung {self.files_in_dir[row]} not found times!')
                 return messagebox.showerror('rechnungen-csv Error',
                                             f'rechnungen-{self.parent.year}.csv korrupt. {self.files_in_dir[row]} nicht gefunden!')
 
@@ -2807,7 +2889,7 @@ class RechnungenInterface(customtkinter.CTkFrame):
             return messagebox.showerror('stammdatei Error', f'Stammdatei {data[0]}.txt nicht gefunden. Erneut '
                                                             f'erstellen um Rechnung zu bearbeiten!')
 
-        if os.path.splitext(path_head_tail[1])[0][-1] == 'H':
+        if os.path.splitext(path_head_tail[1])[0].replace('DRAFT', '')[-1] == 'H':
             logging.info('editing HPRechnung')
 
             try:
