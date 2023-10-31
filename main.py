@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.6.11-beta'
+    version = '2.6.12-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -1361,6 +1361,11 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
         """binds to the 6th element in every item of self.rows_2d_array (except index 0)
         and calculates the gesamtpreis of all inserted Einzelpreise"""
 
+        daten_anzahl = 0
+        for i in self.daten_entrys:
+            if i.get() != '':
+                daten_anzahl += 1
+
         gesamtpreis = 0
         for i in self.behandlungsarten_entrys_2d_array:
             try:
@@ -1368,6 +1373,7 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
             except ValueError:
                 continue
             gesamtpreis += b
+            gesamtpreis *= daten_anzahl
             self.gesamtpreis_var.set(f'{round(gesamtpreis, 2):.2f}€'.replace('.', ','))
 
     def kg_rechnung_erstellen_button_event(self):
