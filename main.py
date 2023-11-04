@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.6.13-beta'
+    version = '2.6.14-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -3677,6 +3677,8 @@ class UpdateYearToplevelWindow(customtkinter.CTkToplevel):
 
 
 class PDF(FPDF):
+    """overwrites the default FPDF2 header and footer functions."""
+
     def __init__(self, rechnungsnummer: str, steuer_id: str, iban: str, bic: str):
         super().__init__()
         self.rechnungsnummer = rechnungsnummer
@@ -3685,6 +3687,8 @@ class PDF(FPDF):
         self.bic = bic
 
     def header(self):
+        """New PDF header section"""
+
         # Logo
         try:
             self.image(x=22, y=17, name='./system/components/images/logo.png', w=18, alt_text='Logo')
@@ -3707,6 +3711,8 @@ class PDF(FPDF):
 
     # Page footer
     def footer(self):
+        """New PDF footer section"""
+
         # Position at 1.5 cm from bottom
         self.set_y(-25)
         # helvetica italic 8
@@ -3725,11 +3731,15 @@ class PDF(FPDF):
 
 
 class KgRechnung(PDF):
+    """Creates the KG PDF and outputs to given filepath"""
+
+    # setting pdf font sizes
     normal_font_size = 11
     honorar_font_size = 10
+
     rechnungsempfaenger_offset = 4
 
-    def __init__(self, parent, stammdaten: list, rechnungsnummer: str, rechnungsdatum: str, gesamtpreis: int,
+    def __init__(self, parent, stammdaten: list, rechnungsnummer: str, rechnungsdatum: str, gesamtpreis: float,
                  rechnungsdaten: list, rechnungsdaten_anzahl: int, behandlungsarten: list,
                  einzelpreise: list, filepath: str, steuer_id: str, iban: str, bic: str):
         super().__init__(rechnungsnummer, steuer_id, iban, bic)
@@ -3743,6 +3753,7 @@ class KgRechnung(PDF):
 
     def prepare_data(self, stammdaten, rechnungsnummer, rechnungsdatum, gesamtpreis, rechnungsdaten,
                      rechnungsdaten_anzahl, behandlungsarten, einzelpreise):
+        """prepares the passed data so table creation is working!"""
 
         self.TABLE_DATA_1 = [['Patientenkürzel', 'Rechnungsnummer', 'Rechnungsdatum']]
 
@@ -3785,6 +3796,9 @@ class KgRechnung(PDF):
         self.TABLE_DATA_4.insert(0, ['', 'Gesamtbetrag:', self.gesamtpreis, '\u00a0'])
 
     def create_pages(self, filepath):
+        """Creates the PDF. Checks also checks for linebreak so content is not
+        split between 2 pages"""
+
         self.add_page()
 
         self.set_font("helvetica", size=7)
@@ -3900,8 +3914,12 @@ class KgRechnung(PDF):
 
 
 class HpRechnung(PDF):
+    """Creates the HP PDF and outputs to given filepath"""
+
+    # setting pdf font sizes
     normal_font_size = 11
     honorar_font_size = 10
+
     rechnungsempfaenger_offset = 4
 
     def __init__(self, stammdaten: list, rechnungsnummer: str, rechnungsdatum: str, gesamtpreis: float,
@@ -3915,6 +3933,7 @@ class HpRechnung(PDF):
 
     def prepare_data(self, stammdaten, rechnungsnummer, rechnungsdatum, gesamtpreis, rechnungsdaten,
                      diagnose):
+        """prepares the passed data so table creation is working!"""
 
         self.TABLE_DATA_1 = [['Patientenkürzel', 'Rechnungsnummer', 'Rechnungsdatum']]
 
@@ -3948,6 +3967,9 @@ class HpRechnung(PDF):
         self.diagnose = diagnose
 
     def create_pages(self, filepath):
+        """Creates the PDF. Checks also checks for linebreak so content is not
+        split between 2 pages"""
+
         self.add_page()
 
         self.set_font("helvetica", size=7)
