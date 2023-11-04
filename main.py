@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.6.12-beta'
+    version = '2.6.13-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -2993,6 +2993,8 @@ class RechnungenInterface(customtkinter.CTkFrame):
 
 
 class EinstellungInterface(customtkinter.CTkScrollableFrame):
+    """Creating the Einstellung Interface frame, widgets and layout part_1.
+    Main setting Interface!"""
 
     changes = []
 
@@ -3042,6 +3044,8 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.create_layout_part_1()
 
     def create_widgets_part_1(self):
+        """Creating the widgets_part_1 of frame/class EinstellungenInterface"""
+
         logging.debug('EinstellungInterface.create_widgets_part_1() called')
 
         # 'KG Rechnung' / 'heading_1' section
@@ -3098,6 +3102,8 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.separator_4 = tk.ttk.Separator(self, orient='horizontal')
 
     def create_layout_part_1(self):
+        """Creating the layout_part_1 of frame/class EinstellungenInterface"""
+
         logging.debug('EinstellungInterface.create_layout_part_1() called')
 
         # 'KG Rechnung' / 'heading_1' section
@@ -3143,6 +3149,8 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.separator_4.pack(fill='x', expand=False)
 
     def create_widgets_part_2(self):
+        """Creating the widgets_part_2 of frame/class EinstellungenInterface"""
+
         logging.debug('EinstellungInterface.create_widgets_part_2() called')
 
         self.separator_8 = tk.ttk.Separator(self, orient='horizontal')
@@ -3245,6 +3253,8 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                                                            command=lambda: self.change_dirpath('log_location'))
 
     def create_layout_part_2(self):
+        """Creating the layout_part_2 of frame/class EinstellungenInterface"""
+
         logging.debug('EinstellungInterface.create_layout_part_2() called')
 
         # Separator
@@ -3293,6 +3303,8 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.log_location_button.grid(row=11, column=2, padx=10, pady=4, sticky='w')
 
     def advanced_options_switch_event(self):
+        """Creates/destroys/toggles the frame for advanced options."""
+
         logging.debug('EinstellungInterface.advanced_options_switch_event() called')
 
         if self.frame_1_switch_var.get() == 'on':
@@ -3309,7 +3321,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
             self.separator_8.pack_forget()
 
     def change_dirpath(self, kind):
-        """changes the dirpath displayed in entry field"""
+        """changes the dirpath displayed in respective entry field"""
 
         dirpath = tk.filedialog.askdirectory(title='stammdaten Filepath', initialdir='./', )
         if dirpath == '':
@@ -3324,6 +3336,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
             self.frame_3_logs_folder_location_var.set(f'{dirpath}')
 
     def detect_change(self, text_after_action: str, kind: str) -> bool:
+        """detects when changes in the Setting Interface took place"""
 
         if kind == 'steuer_id':
             if not kind in self.changes and text_after_action != self.parent.steuer_id:
@@ -3384,6 +3397,9 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         return True
 
     def save_property_values(self):
+        """checks if a change has been detected. If true save the changes in
+        properties.yml"""
+
         logging.debug('EinstellungInterface.open_dir() called')
 
         logging.debug(f'changes: {self.changes}')
@@ -3584,6 +3600,9 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.changes.clear()
 
     def behandlungsarten_limit_validation(self, text_after_action: str) -> bool:
+        """validates that the entry of behandlungsarten limit is int. detects change if
+        entry has been int"""
+
         if not text_after_action == '' and not text_after_action == self.frame_3_behandlungsarten_limit_var.get():
             try:
                 int(text_after_action)
