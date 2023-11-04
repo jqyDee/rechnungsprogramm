@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.6.14-beta'
+    version = '2.6.15-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -3616,10 +3616,13 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
 
 
 class UpdateYearToplevelWindow(customtkinter.CTkToplevel):
+    """spawns the update year toplevel window"""
+
     window_width = 300
     window_height = 150
 
     def __init__(self, parent):
+        """creates widgets and layout of the toplevel window."""
         super().__init__(parent)
 
         logging.info('class UpdateYearToplevelWindow() called')
@@ -3656,6 +3659,9 @@ class UpdateYearToplevelWindow(customtkinter.CTkToplevel):
         self.label_2.pack(padx=20, pady=(4, 20))
 
     def update_button_event(self, *args):
+        """Triggered when Update button is pressed. Checks if entry is valid year.
+        If yes changes parent year, saves to properties.yml and destroys window!"""
+
         logging.debug('UpdateYearToplevelWindow.update_button_event() called')
 
         if re.match('^[12][0-9]{3}$', self.entry_var.get()):
