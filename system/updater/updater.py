@@ -64,7 +64,7 @@ class Updater:
             i += 1
             try:
                 logging.info('HTTP: trying to fetch version.txt')
-                urllib.request.urlretrieve('https://ffischh.de/version.txt', './system/tmp/version.txt.tmp')
+                urllib.request.urlretrieve('http://rechnungsprogramm.ffischh.de/version.txt', './system/tmp/version.txt.tmp')
             except HTTPError as e:
                 logging.error('Error code: ', e.code)
                 time.sleep(self.sleep_time)
