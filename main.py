@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.7.0-beta'
+    version = '2.7.1-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
