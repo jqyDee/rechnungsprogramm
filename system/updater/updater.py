@@ -8,7 +8,7 @@ from urllib.error import URLError, HTTPError
 
 
 class Updater:
-    version = '2.2.0-beta'
+    version = '2.3.0-beta'
     sleep_time = 10
     downloaded_version_file = False
     downloaded_pip_requirements_file = False
