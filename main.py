@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.7.2-beta'
+    version = '2.7.3-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -1983,6 +1983,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
             return False
 
     def validate_hp_entrys(self):
+        """Validates the user entries"""
         logging.debug('HPRechnungInterface.validate_hp_entrys() called')
 
         self.parent.bottom_nav.bottom_nav_warning.configure(text='')
@@ -2115,6 +2116,8 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                 return True
 
     def store_hp_data(self):
+        """stores the user entries/data into rechnungen-xxxx.csv"""
+
         logging.debug('HPRechnungInterface.store_hp_data() called')
 
         # validate Rechnungsnummer
@@ -2142,6 +2145,9 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
             return True
 
     def create_hp_pdf(self):
+        """passes user data to HpRechnung Class that creates the Hp
+        PDF"""
+
         logging.debug('Backend.create_kg_pdf() called')
 
         filepath = f'{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/{self.rechnungsnummer}.pdf'
@@ -2582,7 +2588,10 @@ class StammdatenInterface(customtkinter.CTkFrame):
             self.clear_widgets_part_3()
 
     def validate_stammdaten_entrys(self):
+        """Validates the user entries/data"""
+
         logging.debug('Backend.validate_stammdaten_entrys() called')
+
         self.stammdaten = self.stammdaten_entrys
 
         self.parent.bottom_nav.bottom_nav_warning.configure(text='')
@@ -2627,6 +2636,8 @@ class StammdatenInterface(customtkinter.CTkFrame):
             return True
 
     def store_stammdaten_data(self):
+        """stores the entry/data into rechnungen-xxxx.csv"""
+
         logging.debug('Backend.store_stammdaten_data() called')
 
         if os.path.exists(f'{self.parent.stammdaten_location}/{self.stammdaten[0].get()}.txt'):
