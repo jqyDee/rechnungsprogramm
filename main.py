@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.7.3-beta'
+    version = '2.7.4-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -94,7 +94,7 @@ class App(customtkinter.CTk):
 
         self.on_startup()
 
-        self.check_or_create_working_dirs()
+        self.setup_working_dirs_and_logging()
         logging.info(
             f'____________________________ Program Started at {time.strftime("%H:%M:%S")} ____________________________')
 
@@ -377,20 +377,34 @@ class App(customtkinter.CTk):
             logging.debug("couldn't import trash_img")
             self.trash_img = None
 
-    def check_or_create_working_dirs(self):
+    def setup_working_dirs_and_logging(self):
         """Runs at startup and checks the necessary Directories to run the Program."""
 
-        created_properties_yml = False
+        # functions
+        def check_dir(path) -> bool:
+            if not os.path.exists(path):
+                os.mkdir(path)
+                return True
+            else:
+                return False
 
-        # checking ./system/ or creating it
-        if not os.path.exists('./system') or not os.path.exists('./system/properties.yml'):
-            try:
-                os.makedirs('./system')
-            except FileExistsError:
-                pass
+        def setup_logging():
+            log_format = '%(msecs)dms at %(asctime)s with PID: %(process)d -> main.py:%(levelname)s:  %(message)s'
+            date_format = '%H:%M:%S'
+            log_level = logging.DEBUG if self.debug_mode else logging.INFO
+            handlers = [logging.StreamHandler(stream=sys.stderr)]
 
-            # creating properties.yml
-            with open('system/properties.yml', 'w') as f:
+            if self.logs_enabled:
+                handlers.append(logging.FileHandler(filename=f'{self.log_location}/{time.strftime("%Y%m%d")}.log',
+                                                    mode='a'))
+
+            logging.basicConfig(format=log_format, datefmt=date_format, level=log_level, handlers=handlers)
+
+        # main
+        created_properties_yml = check_dir('./system') or not os.path.exists('./system/properties.yml')
+
+        if created_properties_yml:
+            with open('./system/properties.yml', 'w') as f:
                 yaml.dump(
                     {'program_year': self.year, 'window_resizable': self.window_resizable,
                      'window_width': self.window_width, 'window_height': self.window_height,
@@ -403,9 +417,6 @@ class App(customtkinter.CTk):
                      'logs_enabled': self.logs_enabled,
                      'log_location': self.log_location}, f)
 
-            created_properties_yml = True
-
-        # extracting year out of ./system/properties.yml
         with open('./system/properties.yml', 'r') as f:
             properties_dict = yaml.safe_load(f)
             self.year = properties_dict['program_year']
@@ -422,68 +433,25 @@ class App(customtkinter.CTk):
             self.logs_enabled = properties_dict['logs_enabled']
             self.log_location = properties_dict['log_location']
 
-        if not os.path.exists('./system/logs/'):
-            os.makedirs('./system/logs/')
+        check_dir(f'{self.log_location}')
+        setup_logging()
 
-        self.file_handler = logging.FileHandler(filename=f'{self.log_location}/{time.strftime("%Y%m%d")}.log',
-                                                mode='a')
-        stderr_handler = logging.StreamHandler(stream=sys.stderr)
+        logging.info('App.setup_working_dirs_and_logging() called')
 
-        if self.debug_mode:
-            if self.logs_enabled:
-                logging.basicConfig(format='%(msecs)dms at %(asctime)s -> main.py:%(levelname)s:  %(message)s',
-                                    datefmt='%H:%M:%S',
-                                    level=logging.DEBUG,
-                                    handlers=[self.file_handler, stderr_handler])
-            else:
-                logging.basicConfig(format='%(msecs)dms at %(asctime)s -> main.py:%(levelname)s:  %(message)s',
-                                    datefmt='%H:%M:%S',
-                                    level=logging.DEBUG,
-                                    handlers=[stderr_handler])
-        else:
-            if self.logs_enabled:
-                logging.basicConfig(format='%(msecs)dms at %(asctime)s -> main.py:%(levelname)s:  %(message)s',
-                                    datefmt='%H:%M:%S',
-                                    level=logging.DEBUG,
-                                    handlers=[self.file_handler, stderr_handler])
-            else:
-                logging.basicConfig(format='%(msecs)dms at %(asctime)s -> main.py:%(levelname)s:  %(message)s',
-                                    datefmt='%H:%M:%S',
-                                    level=logging.INFO,
-                                    handlers=[stderr_handler])
-
-        logging.debug('App.check_or_create_working_dirs() called')
         if created_properties_yml:
             logging.info('created properties.yml file and dir')
         logging.info(f'read properties.yml file')
-        logging.info(f'version: {self.version}; '
-                     f'year: {self.year}; '
-                     f'resizable: {self.window_resizable}; '
-                     f'width: {self.window_width}; '
-                     f'height: {self.window_height}; '
-                     f'Debug: {self.debug_mode}; '
-                     f'behandlungsarten_limiter: {self.behandlungsarten_limiter}; '
-                     f'behandlungsarten_limit: {self.behandlungsarten_limit}; '
-                     f'rechnungen_location: {self.rechnungen_location}; '
-                     f'stammdaten_location: {self.stammdaten_location}; '
-                     f'backups_enabled: {self.backups_enabled}; '
-                     f'backup_location: {self.backup_location}')
 
-        if not os.path.exists(f'{self.rechnungen_location}/rechnungen-{self.year}'):
-            os.makedirs(f'{self.rechnungen_location}/rechnungen-{self.year}')
-            logging.info(f'created rechnungen-{self.year} dir')
+        dir_paths = [
+            f'{self.rechnungen_location}/rechnungen-{self.year}',
+            f'{self.stammdaten_location}/',
+            f'{self.rechnungen_location}/rechnungen-csv',
+            f'{self.backup_location}/'
+        ]
 
-        if not os.path.exists(f'{self.stammdaten_location}/'):
-            os.makedirs(f'{self.stammdaten_location}/')
-            logging.info('created stammdaten dir')
-
-        if not os.path.exists(f'{self.rechnungen_location}/rechnungen-csv'):
-            os.makedirs(f'{self.rechnungen_location}/rechnungen-csv')
-            logging.info('created ZusammenfassungRechnungen dir')
-
-        if not os.path.exists(f'{self.backup_location}/'):
-            os.makedirs(f'{self.backup_location}/')
-            logging.info('created backups dir')
+        for dir_path in dir_paths:
+            if check_dir(dir_path):
+                logging.info(f'created {dir_path} dir')
 
     def load_user_data(self):
         """Loads the user data out of csv file"""
@@ -923,7 +891,7 @@ class App(customtkinter.CTk):
 
         logging.debug('App.on_shutdown() called')
 
-        self.check_or_create_working_dirs()
+        self.setup_working_dirs_and_logging()
 
         if not self.create_backup():
             logging.info('No backup created')
@@ -3426,7 +3394,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                         os.makedirs(self.parent.rechnungen_location)
 
                     if not os.path.exists('./system/properties.yml'):
-                        self.parent.check_or_create_working_dirs()
+                        self.parent.setup_working_dirs_and_logging()
 
                     with open('./system/properties.yml', 'r') as a:
                         properties_dict = yaml.safe_load(a)
@@ -3442,7 +3410,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                         os.makedirs(self.parent.stammdaten_location)
 
                     if not os.path.exists('./system/properties.yml'):
-                        self.parent.check_or_create_working_dirs()
+                        self.parent.setup_working_dirs_and_logging()
 
                     with open('./system/properties.yml', 'r') as a:
                         properties_dict = yaml.safe_load(a)
@@ -3458,7 +3426,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                         os.makedirs(self.parent.backup_location)
 
                     if not os.path.exists('./system/properties.yml'):
-                        self.parent.check_or_create_working_dirs()
+                        self.parent.setup_working_dirs_and_logging()
 
                     with open('./system/properties.yml', 'r') as a:
                         properties_dict = yaml.safe_load(a)
@@ -3474,7 +3442,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                         os.makedirs(self.parent.log_location)
 
                     if not os.path.exists('./system/properties.yml'):
-                        self.parent.check_or_create_working_dirs()
+                        self.parent.setup_working_dirs_and_logging()
 
                     with open('./system/properties.yml', 'r') as a:
                         properties_dict = yaml.safe_load(a)
@@ -3491,7 +3459,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                         self.parent.debug_mode = True
 
                     if not os.path.exists('./system/properties.yml'):
-                        self.parent.check_or_create_working_dirs()
+                        self.parent.setup_working_dirs_and_logging()
 
                     with open('./system/properties.yml', 'r') as a:
                         properties_dict = yaml.safe_load(a)
@@ -3512,7 +3480,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                         self.behandlungsarten_limit_entry.configure(state='normal', fg_color='#343638')
 
                     if not os.path.exists('./system/properties.yml'):
-                        self.parent.check_or_create_working_dirs()
+                        self.parent.setup_working_dirs_and_logging()
 
                     with open('./system/properties.yml', 'r') as a:
                         properties_dict = yaml.safe_load(a)
@@ -3525,7 +3493,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                     self.parent.behandlungsarten_limit = int(self.frame_3_behandlungsarten_limit_var.get())
 
                     if not os.path.exists('./system/properties.yml'):
-                        self.parent.check_or_create_working_dirs()
+                        self.parent.setup_working_dirs_and_logging()
 
                     with open('./system/properties.yml', 'r') as a:
                         properties_dict = yaml.safe_load(a)
@@ -3541,7 +3509,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                         self.parent.backups_enabled = True
 
                     if not os.path.exists('./system/properties.yml'):
-                        self.parent.check_or_create_working_dirs()
+                        self.parent.setup_working_dirs_and_logging()
 
                     with open('./system/properties.yml', 'r') as a:
                         properties_dict = yaml.safe_load(a)
@@ -3557,7 +3525,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                         self.parent.logs_enabled = True
 
                     if not os.path.exists('./system/properties.yml'):
-                        self.parent.check_or_create_working_dirs()
+                        self.parent.setup_working_dirs_and_logging()
 
                     with open('./system/properties.yml', 'r') as a:
                         properties_dict = yaml.safe_load(a)
