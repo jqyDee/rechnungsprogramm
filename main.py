@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.7.4-beta'
+    version = '2.7.5-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -617,8 +617,6 @@ class App(customtkinter.CTk):
         # return True
         logging.debug('App.store_draft() called')
 
-        # rewrite -> Not ready
-        ####################################################
         data = []
         draft_interfaces = [self.kg_interface, self.hp_interface, self.einstellungen_interface]
         if not self.debug_mode and any(draft_interfaces):
@@ -3319,58 +3317,13 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
     def detect_change(self, text_after_action: str, kind: str) -> bool:
         """detects when changes in the Setting Interface took place"""
 
-        if kind == 'steuer_id':
-            if not kind in self.changes and text_after_action != self.parent.steuer_id:
+        logging.info('EinstellungenInterface.detect_change() called')
+
+        if kind in ['steuer_id', 'iban', 'bic', 'rechnungen_location', 'stammdaten_location', 'backup_location',
+                    'log_location']:
+            if kind not in self.changes and text_after_action != getattr(self.parent, kind):
                 self.changes.append(kind)
-            else:
-                try:
-                    self.changes.remove(kind)
-                except ValueError:
-                    pass
-        elif kind == 'iban':
-            if not kind in self.changes and text_after_action != self.parent.iban:
-                self.changes.append(kind)
-            else:
-                try:
-                    self.changes.remove(kind)
-                except ValueError:
-                    pass
-        elif kind == 'bic':
-            if not kind in self.changes and text_after_action != self.parent.bic:
-                self.changes.append(kind)
-            else:
-                try:
-                    self.changes.remove(kind)
-                except ValueError:
-                    pass
-        elif kind == 'rechnungen_location':
-            if not kind in self.changes and text_after_action != self.parent.rechnungen_location:
-                self.changes.append(kind)
-            else:
-                try:
-                    self.changes.remove(kind)
-                except ValueError:
-                    pass
-        elif kind == 'stammdaten_location':
-            if not kind in self.changes and text_after_action != self.parent.stammdaten_location:
-                self.changes.append(kind)
-            else:
-                try:
-                    self.changes.remove(kind)
-                except ValueError:
-                    pass
-        elif kind == 'backup_location':
-            if not kind in self.changes and text_after_action != self.parent.backup_location:
-                self.changes.append(kind)
-            else:
-                try:
-                    self.changes.remove(kind)
-                except ValueError:
-                    pass
-        elif kind == 'log_location':
-            if not kind in self.changes and text_after_action != self.parent.log_location:
-                self.changes.append(kind)
-            else:
+            elif text_after_action == getattr(self.parent, kind):
                 try:
                     self.changes.remove(kind)
                 except ValueError:
