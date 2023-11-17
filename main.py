@@ -108,7 +108,6 @@ class App(customtkinter.CTk):
 
         self.load_user_data()
 
-
         self.mainloop()
 
     # Update functions
@@ -127,7 +126,8 @@ class App(customtkinter.CTk):
 
             try:
                 logging.info('HTTP: trying to fetch version.txt')
-                urllib.request.urlretrieve('http://rechnungsprogramm.ffischh.de/version.txt', './system/tmp/version.txt.tmp')
+                urllib.request.urlretrieve('http://rechnungsprogramm.ffischh.de/version.txt',
+                                           './system/tmp/version.txt.tmp')
             except HTTPError as e:
                 logging.error('Error code: ', e.code)
                 time.sleep(self.sleep_time)
@@ -1995,7 +1995,8 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                         if len(data) != 1:
                             return self.parent.bottom_nav.bottom_nav_warning.configure(
                                 text=f'Es wurde in Reihe {index_1} mehr/weniger als 1 Datum eingegeben', fg_color='red')
-                        if not re.match("(^0[1-9]|[12][0-9]|3[01]).(0[1-9]|1[0-2]).(\d{2}$)", data[0].replace('\t', '')):
+                        if not re.match("(^0[1-9]|[12][0-9]|3[01]).(0[1-9]|1[0-2]).(\d{2}$)",
+                                        data[0].replace('\t', '')):
                             return self.parent.bottom_nav.bottom_nav_warning.configure(
                                 text=f'Datum in Reihe {index_1} nicht richtig formatiert: dd.m.yy', fg_color='red')
                         # data[0] += '\n\n'
@@ -3064,11 +3065,13 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                                                       validatecommand=(
                                                           self.register(self.detect_change), '%P', 'steuer_id'))
         self.iban_label = customtkinter.CTkLabel(self.frame_4, text='IBAN:')
-        self.iban_entry = customtkinter.CTkEntry(self.frame_4, textvariable=self.frame_4_iban_var, width=200, validate='key',
+        self.iban_entry = customtkinter.CTkEntry(self.frame_4, textvariable=self.frame_4_iban_var, width=200,
+                                                 validate='key',
                                                  validatecommand=(self.register(self.detect_change), '%P', 'iban'))
         self.bic_label = customtkinter.CTkLabel(self.frame_4, text='BIC:')
-        self.bic_entry = customtkinter.CTkEntry(self.frame_4, textvariable=self.frame_4_bic_var, width=200, validate='key',
-                                                 validatecommand=(self.register(self.detect_change), '%P', 'bic'))
+        self.bic_entry = customtkinter.CTkEntry(self.frame_4, textvariable=self.frame_4_bic_var, width=200,
+                                                validate='key',
+                                                validatecommand=(self.register(self.detect_change), '%P', 'bic'))
 
         # About section
         self.frame_2 = customtkinter.CTkFrame(self, fg_color='gray16')
@@ -3171,8 +3174,9 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                                                                 textvariable=self.frame_3_rechnungen_location_var,
                                                                 validate='key',
                                                                 validatecommand=(
-                                                                self.register(self.detect_change), '%P', 'rechnungen_location'),
-                                                                 fg_color='gray16')
+                                                                    self.register(self.detect_change), '%P',
+                                                                    'rechnungen_location'),
+                                                                fg_color='gray16')
         self.rechnungen_location_button = customtkinter.CTkButton(self.frame_3, text='öffnen',
                                                                   command=lambda: self.change_dirpath(
                                                                       'rechnungen_location'))
@@ -3186,7 +3190,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                                                                 validatecommand=(
                                                                     self.register(self.detect_change), '%P',
                                                                     'stammdaten_location'),
-                                                                 fg_color='gray16')
+                                                                fg_color='gray16')
         self.stammdaten_location_button = customtkinter.CTkButton(self.frame_3, text='öffnen',
                                                                   command=lambda: self.change_dirpath(
                                                                       'stammdaten_location'))
@@ -3207,7 +3211,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                                                             validatecommand=(
                                                                 self.register(self.detect_change), '%P',
                                                                 'backup_location'),
-                                                             fg_color='gray16')
+                                                            fg_color='gray16')
         self.backup_location_button = customtkinter.CTkButton(self.frame_3, text='öffnen',
                                                               command=lambda: self.change_dirpath(
                                                                   'backup_location'))
@@ -3227,7 +3231,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                                                          validatecommand=(
                                                              self.register(self.detect_change), '%P',
                                                              'log_location'),
-                                                          fg_color='gray16')
+                                                         fg_color='gray16')
         self.log_location_button = customtkinter.CTkButton(self.frame_3, text='öffnen',
                                                            command=lambda: self.change_dirpath('log_location'))
 
@@ -3353,7 +3357,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                         properties_dict = yaml.safe_load(a)
                         properties_dict['rechnungen_location'] = self.parent.rechnungen_location
                     with open('./system/properties.yml', 'w') as f:
-                            yaml.dump(properties_dict, f)
+                        yaml.dump(properties_dict, f)
 
                     logging.info('rechnungen location changed successfully')
                 elif kind == 'stammdaten_location':
@@ -3423,7 +3427,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                     logging.info('debug mode changed successfully')
 
                     messagebox.showinfo('Änderungen gespeichert',
-                                               'Programm muss neu gestartet werden um Änderungen zu sehen!')
+                                        'Programm muss neu gestartet werden um Änderungen zu sehen!')
                 elif kind == 'behandlungsarten_limiter':
                     if self.frame_3_switch_var_2.get() == 'off':
                         self.parent.behandlungsarten_limiter = False
@@ -3489,7 +3493,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                     logging.info('logs enabled changed successfully')
 
                     messagebox.showinfo('Änderungen gespeichert',
-                                               'Programm muss neu gestartet werden um Änderungen zu sehen!')
+                                        'Programm muss neu gestartet werden um Änderungen zu sehen!')
                 elif kind == 'steuer_id':
                     self.parent.steuer_id = self.frame_4_steuer_id_var.get()
 
