@@ -3,7 +3,7 @@
 ## Description
 Rechnungsprogramm to write HP and KG invoices.
 
-run setup.py to install requirements and install necessary components.
+run setup.py to install requirements, necessary components and the actual program.
 
 ```
 python3 setup.py
