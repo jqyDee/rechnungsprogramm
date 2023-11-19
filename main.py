@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.7.5-beta'
+    version = '2.7.6-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -1199,6 +1199,8 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
                 self.frame_2.destroy()
                 self.frame_3.pack_forget()
                 self.frame_3.destroy()
+                self.frame_4.pack_forget()
+                self.frame_4.destroy()
                 self.daten_entrys.clear()
                 self.behandlungsarten_entrys_2d_array.clear()
                 self.row_count = 0
@@ -1535,6 +1537,11 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
         logging.debug('KGRechnungInterface.create_kg_pdf() called')
 
         filepath = f'{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/{self.rechnungsnummer}.pdf'
+
+        if self.parent.steuer_id == '' or self.parent.iban == '' or self.parent.bic == '':
+            if not messagebox.askyesno('Warnung', 'Es wurde für Steuer-Nummer/Iban/Bic kein Wert eingegeben. Soll trotzdem'
+                                              'eine Rechnung erstellt werden?'):
+                return False
 
         KgRechnung(self, self.stammdaten, self.rechnungsnummer, self.rechnungsdatum, self.gesamtpreis,
                    self.dates,
