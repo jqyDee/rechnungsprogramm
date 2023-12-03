@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.7.6-beta'
+    version = '2.7.7-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -4084,6 +4084,7 @@ class HpRechnung(PDF):
         if page_number_before is not page_number_after:
             self.add_page()
 
+        self.set_font("helvetica", size=self.normal_font_size)
         self.write(6.5, txt=f'Ich bitte Sie, den Gesamtbetrag von {self.gesamtpreis} ')
         self.set_font("symbol", size=self.normal_font_size + 1)
         self.write(6.5, txt='\u00a0 ')
