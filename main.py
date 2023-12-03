@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.7.7-beta'
+    version = '2.7.8-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -1343,8 +1343,9 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
             except ValueError:
                 continue
             gesamtpreis += b
-            gesamtpreis *= daten_anzahl
-            self.gesamtpreis_var.set(f'{round(gesamtpreis, 2):.2f}€'.replace('.', ','))
+
+        gesamtpreis *= daten_anzahl
+        self.gesamtpreis_var.set(f'{round(gesamtpreis, 2):.2f}€'.replace('.', ','))
 
     def kg_rechnung_erstellen_button_event(self):
         """triggers the class Backend and the function of validate_kg_entrys.
@@ -1442,7 +1443,7 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
                 elif index_2 == 1:
                     if not a.get() == '':
                         try:
-                            self.einzelpreise.append(float(a.get()))
+                            self.einzelpreise.append(float(a.get().replace(',', '.')))
                         except ValueError:
                             logging.debug(f'Einzelpreis {index_1 + 1} not convertable to float, exiting')
                             a.select_range(0, tk.END)
