@@ -43,7 +43,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.7.8-beta'
+    version = '2.7.9-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -383,7 +383,7 @@ class App(customtkinter.CTk):
         # functions
         def check_dir(path) -> bool:
             if not os.path.exists(path):
-                os.mkdir(path)
+                os.makedirs(path)
                 return True
             else:
                 return False
@@ -443,9 +443,9 @@ class App(customtkinter.CTk):
         logging.info(f'read properties.yml file')
 
         dir_paths = [
-            f'{self.rechnungen_location}/rechnungen-{self.year}',
+            f'{self.rechnungen_location}/rechnungen-{self.year}/',
             f'{self.stammdaten_location}/',
-            f'{self.rechnungen_location}/rechnungen-csv',
+            f'{self.rechnungen_location}/rechnungen-csv/',
             f'{self.backup_location}/'
         ]
 
