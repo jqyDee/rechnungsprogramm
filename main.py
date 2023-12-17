@@ -26,16 +26,10 @@ try:
 except Exception as f:
     print(f)
 
+
 #####################################################
 #           Copyright Matti Fischbach 2023          #
 #####################################################
-
-
-customtkinter.set_appearance_mode("dark")
-customtkinter.set_default_color_theme("dark-blue")
-default_font = ('Arial', 15, "normal")
-small_heading = ('Arial', 18, "bold")
-large_heading = ('Arial', 28, "bold")
 
 
 class App(customtkinter.CTk):
@@ -43,7 +37,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.7.9-beta'
+    version = '2.7.10-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -87,11 +81,21 @@ class App(customtkinter.CTk):
     sleep_time = 10
 
     def __init__(self):
+        # customtkinter setup
+        customtkinter.set_appearance_mode("dark")
+        customtkinter.set_default_color_theme("dark-blue")
+        self.default_font = ('Arial', 15, "normal")
+        self.small_heading = ('Arial', 18, "bold")
+        self.large_heading = ('Arial', 28, "bold")
+
+        # init customtkinter CTK
         super().__init__()
 
+        # configure bg color and bind function to program exiting
         self.configure(fg_color='gray16')
         self.protocol("WM_DELETE_WINDOW", lambda: self.on_shutdown())
 
+        # debug function
         self.on_startup()
 
         self.setup_working_dirs_and_logging()
@@ -102,6 +106,8 @@ class App(customtkinter.CTk):
 
         self.sidebar = Sidebar(self)
         self.bottom_nav = BottomNav(self)
+
+        self.import_components()
 
         self.running = True
         threading.Thread(target=self.download_version_file, daemon=True).start()
@@ -276,11 +282,11 @@ class App(customtkinter.CTk):
                         logging.info("couldn't fetch/read main.py")
                         self.sidebar.label_5.pack(padx=20, pady=(10, 20), ipadx=5, ipady=5, side='bottom', fill='x')
                 else:
-                    logging.debug('queue is empty; sleeping 2s')
+                    logging.debug('queue is empty; sleeping 5s')
 
             logging.debug('joining process')
             updater.join()
-            logging.debug('exiting thread')
+            logging.debug('exiting Process')
             sys.exit()
 
         logging.debug('queue initiated')
@@ -305,8 +311,8 @@ class App(customtkinter.CTk):
 
         if data:
             self.download_components(data)
-        else:
-            self.import_components()
+
+        self.import_components()
 
     def download_components(self, data: list):
         """downloads components like images etc."""
@@ -340,8 +346,6 @@ class App(customtkinter.CTk):
                     logging.info('HTTP request good!')
                     requests.append(True)
 
-        self.import_components()
-
     # main/components configuring/downloading
     def import_components(self):
         """runs after every component install. imports all images"""
@@ -356,8 +360,8 @@ class App(customtkinter.CTk):
             logging.debug("couldn't import search_img")
             self.search_img = None
         try:
-            self.open_img = customtkinter.CTkImage(light_image=Image.open('cursor-01.png'),
-                                                   dark_image=Image.open('cursor-01.png'),
+            self.open_img = customtkinter.CTkImage(light_image=Image.open('./system/components/images/cursor-01.png'),
+                                                   dark_image=Image.open('./system/components/images/cursor-01.png'),
                                                    size=(15, 15))
         except FileNotFoundError:
             logging.debug("couldn't import open_img")
@@ -941,7 +945,7 @@ class Sidebar(customtkinter.CTkFrame):
         # heading
         self.heading_1 = customtkinter.CTkLabel(self, text='Rechnungsprogramm',
                                                 font=('Arial', 23, "bold"))
-        self.heading_2 = customtkinter.CTkLabel(self, text=f'{self.year}', font=small_heading)
+        self.heading_2 = customtkinter.CTkLabel(self, text=f'{self.year}', font=self.parent.small_heading)
 
         # buttons
         self.button_1 = customtkinter.CTkButton(self, text='KG-Rechnung', command=lambda: self.parent.kg_rechnung())
@@ -1059,14 +1063,14 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
         logging.debug('KGRechnungInterface.create_widgets_part_1() called')
 
         # heading section
-        self.heading_1 = customtkinter.CTkLabel(self, text='Neue KG Rechnung', font=large_heading)
+        self.heading_1 = customtkinter.CTkLabel(self, text='Neue KG Rechnung', font=self.parent.large_heading)
 
         # Separator
         self.separator_1 = tk.ttk.Separator(self, orient='horizontal')
 
         # kuerzel-rechnungsdatum section
         self.frame_1 = customtkinter.CTkFrame(self, fg_color='gray16')
-        self.heading_2 = customtkinter.CTkLabel(self.frame_1, text='General', font=small_heading)
+        self.heading_2 = customtkinter.CTkLabel(self.frame_1, text='General', font=self.parent.small_heading)
         self.kuerzel_label = customtkinter.CTkLabel(self.frame_1, text='Kürzel:')
         self.kuerzel_entry = customtkinter.CTkEntry(self.frame_1, validate='key', validatecommand=(self.register(
             self.kuerzel_entry_validation), '%P'))
@@ -1113,7 +1117,8 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
 
         # Daten Eingabe section
         self.frame_2 = customtkinter.CTkFrame(self, fg_color='gray16')
-        self.heading_3 = customtkinter.CTkLabel(self.frame_2, text='Rechnungsdaten-Eingabe', font=small_heading)
+        self.heading_3 = customtkinter.CTkLabel(self.frame_2, text='Rechnungsdaten-Eingabe',
+                                                font=self.parent.small_heading)
 
         self.daten_labels = []
         self.daten_entrys = []
@@ -1127,7 +1132,7 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
 
         # Behandlungsarten section
         self.frame_3 = customtkinter.CTkFrame(self, fg_color='gray16')
-        self.heading_4 = customtkinter.CTkLabel(self.frame_3, text='Behandlungsarten', font=small_heading)
+        self.heading_4 = customtkinter.CTkLabel(self.frame_3, text='Behandlungsarten', font=self.parent.small_heading)
         self.behandlungsarten_labels_2d_array = []
         self.behandlungsarten_entrys_2d_array = []
 
@@ -1540,8 +1545,9 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
         filepath = f'{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/{self.rechnungsnummer}.pdf'
 
         if self.parent.steuer_id == '' or self.parent.iban == '' or self.parent.bic == '':
-            if not messagebox.askyesno('Warnung', 'Es wurde für Steuer-Nummer/Iban/Bic kein Wert eingegeben. Soll trotzdem'
-                                              'eine Rechnung erstellt werden?'):
+            if not messagebox.askyesno('Warnung',
+                                       'Es wurde für Steuer-Nummer/Iban/Bic kein Wert eingegeben. Soll trotzdem'
+                                       'eine Rechnung erstellt werden?'):
                 return False
 
         KgRechnung(self, self.stammdaten, self.rechnungsnummer, self.rechnungsdatum, self.gesamtpreis,
@@ -1620,7 +1626,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
         logging.debug('HPRechnungInterface.create_widgets_part_1() called')
 
         # heading section
-        self.heading_1 = customtkinter.CTkLabel(self, text='Neue HP Rechnung', font=large_heading)
+        self.heading_1 = customtkinter.CTkLabel(self, text='Neue HP Rechnung', font=self.parent.large_heading)
 
         # Separator
         self.separator_1 = tk.ttk.Separator(self, orient='horizontal')
@@ -1628,7 +1634,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
         # kuerzel-rechnungsdatum section
         self.frame_1 = customtkinter.CTkFrame(self, fg_color='gray16')
         self.heading_2 = customtkinter.CTkLabel(self.frame_1,
-                                                text='General', font=small_heading)
+                                                text='General', font=self.parent.small_heading)
         self.kuerzel_label = customtkinter.CTkLabel(self.frame_1, text='Kürzel:')
         self.kuerzel_entry = customtkinter.CTkEntry(self.frame_1, validate='key', validatecommand=(
             self.register(self.kuerzel_entry_validation), '%P'))
@@ -1676,7 +1682,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
 
         # Behandlungsarten section
         self.frame_2 = customtkinter.CTkFrame(self, fg_color='gray16')
-        self.heading_3 = customtkinter.CTkLabel(self.frame_2, text='Behandlungsdaten', font=small_heading)
+        self.heading_3 = customtkinter.CTkLabel(self.frame_2, text='Behandlungsdaten', font=self.parent.small_heading)
 
         # row frames
         self.row_frames = []
@@ -1725,7 +1731,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
 
         # Diagnose section
         self.frame_3 = customtkinter.CTkFrame(self, corner_radius=0, fg_color='gray16')
-        self.heading_4 = customtkinter.CTkLabel(self.frame_3, text='Diagnose', font=small_heading)
+        self.heading_4 = customtkinter.CTkLabel(self.frame_3, text='Diagnose', font=self.parent.small_heading)
         self.diagnose_label = customtkinter.CTkLabel(self.frame_3, text='Diagnose:')
         self.diagnose_textbox = customtkinter.CTkTextbox(self.frame_3, height=60)
 
@@ -2200,14 +2206,14 @@ class StammdatenInterface(customtkinter.CTkFrame):
         logging.debug('StammdatenInterface.create_widgets_part_1() called')
 
         # heading section
-        self.heading_1 = customtkinter.CTkLabel(self, text='stammdaten Bearbeiten', font=large_heading)
+        self.heading_1 = customtkinter.CTkLabel(self, text='stammdaten Bearbeiten', font=self.parent.large_heading)
 
         # Separator
         self.separator_1 = tk.ttk.Separator(self, orient='horizontal')
 
         # Filter section
         self.frame_1 = customtkinter.CTkFrame(self, fg_color='gray16')
-        self.heading_2 = customtkinter.CTkLabel(self.frame_1, text='Filter', font=small_heading)
+        self.heading_2 = customtkinter.CTkLabel(self.frame_1, text='Filter', font=self.parent.small_heading)
         self.search_label = customtkinter.CTkLabel(self.frame_1, text='Suche:')
         self.search_entry = customtkinter.CTkEntry(self.frame_1)
         self.search_entry.bind('<Return>', self.aktualisieren_event)
@@ -2361,14 +2367,14 @@ class StammdatenInterface(customtkinter.CTkFrame):
         self.frame_3 = customtkinter.CTkFrame(self.parent, fg_color='gray16', corner_radius=0)
 
         # heading section
-        self.heading_4 = customtkinter.CTkLabel(self.frame_3, text='Neue Stammdatei', font=large_heading)
+        self.heading_4 = customtkinter.CTkLabel(self.frame_3, text='Neue Stammdatei', font=self.parent.large_heading)
 
         # Separator
         self.separator_6 = tk.ttk.Separator(self.frame_3, orient='horizontal')
 
         # placeholder section
         self.frame_4 = customtkinter.CTkFrame(self.frame_3, fg_color='gray16')
-        self.heading_5 = customtkinter.CTkLabel(self.frame_4, text='', font=small_heading)
+        self.heading_5 = customtkinter.CTkLabel(self.frame_4, text='', font=self.parent.small_heading)
         self.search_label = customtkinter.CTkLabel(self.frame_4, text='')
         self.close_button = customtkinter.CTkButton(self.frame_4, width=20, text='Schließen',
                                                     command=lambda: self.clear_widgets_part_3())
@@ -2666,7 +2672,7 @@ class RechnungenInterface(customtkinter.CTkFrame):
         logging.debug('RechnungenInterface.create_widgets_part_1() called')
 
         # heading section
-        self.heading_1 = customtkinter.CTkLabel(self, text='rechnungen Bearbeiten', font=large_heading)
+        self.heading_1 = customtkinter.CTkLabel(self, text='rechnungen Bearbeiten', font=self.parent.large_heading)
 
         # Separator
         self.separator_1 = tk.ttk.Separator(self, orient='horizontal')
@@ -2674,7 +2680,7 @@ class RechnungenInterface(customtkinter.CTkFrame):
         # Filter
         self.frame_1 = customtkinter.CTkFrame(self, fg_color='gray16')
         self.heading_2 = customtkinter.CTkLabel(self.frame_1,
-                                                text='Filter', font=small_heading)
+                                                text='Filter', font=self.parent.small_heading)
         self.search_label = customtkinter.CTkLabel(self.frame_1, text='Suche:')
         self.search_entry = customtkinter.CTkEntry(self.frame_1)
 
@@ -3037,14 +3043,14 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         logging.debug('EinstellungInterface.create_widgets_part_1() called')
 
         # 'KG Rechnung' / 'heading_1' section
-        self.heading_1 = customtkinter.CTkLabel(self, text='Einstellungen', font=large_heading)
+        self.heading_1 = customtkinter.CTkLabel(self, text='Einstellungen', font=self.parent.large_heading)
 
         # Separator
         self.separator_1 = tk.ttk.Separator(self, orient='horizontal')
 
         # 'kuerzel-rechnungsdatum' section
         self.frame_1 = customtkinter.CTkFrame(self, fg_color='gray16')
-        self.heading_2 = customtkinter.CTkLabel(self.frame_1, text='General', font=small_heading)
+        self.heading_2 = customtkinter.CTkLabel(self.frame_1, text='General', font=self.parent.small_heading)
         self.change_year_label = customtkinter.CTkLabel(self.frame_1, text='Programmjahr:')
         self.change_year_button = customtkinter.CTkButton(self.frame_1, text='Ändern', width=20,
                                                           command=lambda: self.parent.updateyear_interface())
@@ -3066,7 +3072,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
 
         # Variablen section
         self.frame_4 = customtkinter.CTkFrame(self, fg_color='gray16')
-        self.heading_5 = customtkinter.CTkLabel(self.frame_4, text='Variablen', font=small_heading)
+        self.heading_5 = customtkinter.CTkLabel(self.frame_4, text='Variablen', font=self.parent.small_heading)
         self.steuer_id_label = customtkinter.CTkLabel(self.frame_4, text='Steuer-Nummer:')
         self.steuer_id_entry = customtkinter.CTkEntry(self.frame_4, textvariable=self.frame_4_steuer_id_var,
                                                       validate='key', width=200,
@@ -3083,7 +3089,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
 
         # About section
         self.frame_2 = customtkinter.CTkFrame(self, fg_color='gray16')
-        self.heading_3 = customtkinter.CTkLabel(self.frame_2, text='About', font=small_heading)
+        self.heading_3 = customtkinter.CTkLabel(self.frame_2, text='About', font=self.parent.small_heading)
         self.about_text_label = customtkinter.CTkLabel(self.frame_2, text=f'Rechnungsprogramm\n\n'
                                                                           f'Version Number: {self.parent.version}\n\n'
                                                                           f'Copyright 2023 | Matti Fischbach')
@@ -3147,7 +3153,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
 
         self.frame_3 = customtkinter.CTkFrame(self, fg_color='gray16')
 
-        self.heading_4 = customtkinter.CTkLabel(self.frame_3, text='Advanced', font=small_heading)
+        self.heading_4 = customtkinter.CTkLabel(self.frame_3, text='Advanced', font=self.parent.small_heading)
 
         # Debug section
         self.debug_mode_label = customtkinter.CTkLabel(self.frame_3, text='Debug Mode:')
