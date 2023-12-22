@@ -37,7 +37,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.7.10-beta'
+    version = '2.7.11-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -1928,6 +1928,9 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
 
         # removing row from row_frame
         self.row_frames.pop(-1)
+
+        # removing widgets from 2d_array
+        self.rows_2d_array.pop(-1)
 
     def gesamtpreis_bind(self, event):
         """binds to the 6th element in every item of self.rows_2d_array (except index 0)
