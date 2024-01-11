@@ -37,7 +37,7 @@ class App(customtkinter.CTk):
        Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = '2.7.11-beta'
+    version = '2.7.12-beta'
     year = time.strftime('%Y')
     window_resizable = False
     window_width = 1300
@@ -3675,7 +3675,7 @@ class PDF(FPDF):
         """New PDF footer section"""
 
         # Position at 1.5 cm from bottom
-        self.set_y(-25)
+        self.set_y(-35)
         # helvetica italic 8
         self.set_font('helvetica', 'B', 8)
         self.cell(0, 5, 'Bankverbindung', align='C')
