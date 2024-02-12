@@ -177,13 +177,14 @@ class App(customtkinter.CTk):
                 logging.info("main program version up to date")
 
             try:
-                if file[2].replace("\n", "") != Updater.version:
-                    logging.info("updater version not up to date")
-                    threading.Thread(target=self.update_updater, daemon=True).start()
-                else:
-                    logging.info("updater.py version up to date")
+                updater_version = Updater.version if Updater.version else None
             except NameError:
                 logging.info("updater.py not installed")
+                threading.Thread(target=self.update_updater, daemon=True).start()
+                return
+            
+            if file[2].replace("\n", "") != updater_version:
+                logging.info("updater version not up to date")
                 threading.Thread(target=self.update_updater, daemon=True).start()
 
     def update_updater(self):
@@ -341,6 +342,11 @@ class App(customtkinter.CTk):
         logging.debug("queue initiated")
         queue = multiprocessing.Queue()
         logging.debug("updater process created")
+        try:
+            _ = Updater.version
+        except NameError:
+            logging.error("fatal: program error: main.py:348 updater.py not "
+                          "installed, but should be installed by now")
         updater = multiprocessing.Process(
             target=Updater,
             args=[
@@ -470,23 +476,24 @@ class App(customtkinter.CTk):
             )
             date_format = "%H:%M:%S"
             log_level = logging.DEBUG if self.debug_mode else logging.INFO
-            handlers = [logging.StreamHandler(stream=sys.stderr)]
 
             if self.logs_enabled:
-                handlers.append(
-                    logging.FileHandler(
-                        filename=f"{self.log_location}/"
-                        f'{time.strftime("%Y%m%d")}.log',
-                        mode="a",
-                    )
+                logging.basicConfig(
+                        format=log_format,
+                        datefmt=date_format,
+                        level=log_level,
+                        handlers=[logging.FileHandler(
+                            filename=f'{self.log_location}/'
+                                     f'{time.strftime("%Y%m%d")}.log',
+                            mode="a",
+                    ), logging.StreamHandler(stream=sys.stderr)])
+            else:
+                logging.basicConfig(
+                    format=log_format,
+                    datefmt=date_format,
+                    level=log_level,
+                    handlers=[logging.StreamHandler(stream=sys.stderr)],
                 )
-
-            logging.basicConfig(
-                format=log_format,
-                datefmt=date_format,
-                level=log_level,
-                handlers=handlers,
-            )
 
         # main
         created_properties_yml = check_dir("./system") or not os.path.exists(
@@ -721,7 +728,7 @@ class App(customtkinter.CTk):
         self.einstellungen_interface = None
 
     # universal functions
-    def store_draft(self) -> bool:
+    def store_draft(self):
         """Calls store_draft in Backend with the Params:
         open_interface: str = self.open_interface"""
 
@@ -1429,7 +1436,7 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
         self.gesamtpreis_label.grid(row=0, column=2, padx=10, pady=4, sticky="e")
         self.gesamtpreis_total_label.grid(row=0, column=3, padx=10, pady=4, sticky="e")
 
-    def kuerzel_entry_validation(self, text_after_action: str) -> bool:
+    def kuerzel_entry_validation(self, text_after_action: str):
         """validating the changes made to kuerzel_entry widgets on keystroke.
         Params:
              text_after_action: str (text in the entry)"""
@@ -1849,7 +1856,7 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
 
         # calculating gesamtpreis
         self.gesamtpreis = 0
-        for i, data in enumerate(self.einzelpreise):
+        for data in self.einzelpreise:
             # Addition of 'Einzelpreise'
             self.gesamtpreis += self.datenanzahl * float(data)
         logging.debug(f"gesamtpreis: {self.gesamtpreis}")
@@ -3078,7 +3085,7 @@ class StammdatenInterface(customtkinter.CTkFrame):
         self.frame_5.grid_columnconfigure(5, weight=1)
         self.frame_5.pack(side="top", fill="both", expand=True, pady=20, padx=20)
 
-        for index, i in enumerate(self.stammdaten_label_names):
+        for index, _ in enumerate(self.stammdaten_label_names):
             if index < 6:
                 self.stammdaten_entries[index].grid(
                     row=index, column=1, padx=(10, 10), pady=(8, 0)
@@ -3143,7 +3150,7 @@ class StammdatenInterface(customtkinter.CTkFrame):
         self.files_in_dir_unsorted = os.listdir(f"{self.parent.stammdaten_location}/")
 
         # checks if file meets filter criteria
-        for index, i in enumerate(self.files_in_dir_unsorted):
+        for i in self.files_in_dir_unsorted:
             if i == ".DS_Store":
                 continue
             if self.segmented_button_1.get() == "Alle":
@@ -3628,7 +3635,7 @@ class RechnungenInterface(customtkinter.CTkFrame):
         self.files_in_dir_unsorted = os.listdir(path)
 
         # checks if file meets filter criteria
-        for index, i in enumerate(self.files_in_dir_unsorted):
+        for i in self.files_in_dir_unsorted:
             if i == ".DS_Store":
                 continue
             if self.segmented_button_1.get() == "Alle":
@@ -4276,7 +4283,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
     def detect_change(self, text_after_action: str, kind: str) -> bool:
         """detects when changes in the Setting Interface took place"""
 
-        logging.info("EinstellungenInterface.detect_change() called")
+        logging.debug("detect_change() called")
 
         if kind in [
             "steuer_id",
@@ -4288,14 +4295,16 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
             "log_location",
         ]:
             if kind not in self.changes and text_after_action != getattr(
-                self.parent, kind
-            ):
+                self.parent, kind):
                 self.changes.append(kind)
             elif text_after_action == getattr(self.parent, kind):
                 try:
                     self.changes.remove(kind)
                 except ValueError:
                     pass
+
+        logging.info("changes: %s", self.changes)
+
         return True
 
     def save_property_values(self):
@@ -4844,7 +4853,7 @@ class KgRechnung(PDF):
         self.ln(5)
         with self.table(
             width=80,
-            line_height=1.7 * self.font_size,
+            line_height=int(1.7 * self.font_size),
             align="LEFT",
             borders_layout="NONE",
             first_row_as_headings=False,
@@ -4997,6 +5006,8 @@ class HpRechnung(PDF):
 
         self.table_data_2 = [["Datum", "Ziffer", "Art der Behandlung", "Betrag", ""]]
 
+        self.table_data_2_plus = [["Datum", "Ziffer", "Art der Behandlung", "Betrag", ""]]
+
         self.table_data_3 = [["", "", "", "", ""]]
 
         self.kuerzel = stammdaten[0]
@@ -5010,14 +5021,22 @@ class HpRechnung(PDF):
         self.geburtsdatum = stammdaten[8]
 
         self.table_data_1.append([self.kuerzel, rechnungsnummer, rechnungsdatum])
-
-        for index, i in enumerate(rechnungsdaten):
+    
+        lines = 0
+        self.manual_pagebreak = False
+        for i in rechnungsdaten:
             length = len(list(filter(None, i[3].split())))
+            lines += length
+            if lines > 21:
+                self.manual_pagebreak = True
             col_5 = []
             for _ in range(length):
                 col_5.append("\u00a0\n")
             i.insert(4, "".join(col_5))
-            self.table_data_2.append(i)
+            if not self.manual_pagebreak:
+                self.table_data_2.append(i)
+            else:
+                self.table_data_2_plus.append(i)
 
         self.gesamtpreis = f"{round(float(gesamtpreis), 2):.2f}".replace(".", ",")
         self.table_data_3.insert(
@@ -5080,88 +5099,90 @@ class HpRechnung(PDF):
         self.multi_cell(160, text=f"{self.diagnose}")
 
         # checking if page break is triggered by first table
-        with self.offset_rendering() as dummy:
-            dummy.ln(15)
-            if self.mann_frau == "Mann":
-                dummy.write(
-                    text=f"Sehr geehrter Herr {self.nachname},\n\n"
-                    f"hiermit erlaube ich mir, für meine Bemühungen folgendes "
-                    f"Honorar zu berechnen:"
-                )
-            if self.mann_frau == "Frau":
-                dummy.write(
-                    text=f"Sehr geehrte Frau {self.nachname},\n\n"
-                    f"hiermit erlaube ich mir, für meine Bemühungen folgendes "
-                    f"Honorar zu berechnen:"
-                )
-            dummy.ln(7)
-            dummy.set_font("helvetica", size=self.honorar_font_size)
-
-            with dummy.table(
-                cell_fill_color=230,
-                cell_fill_mode="ROWS",
-                borders_layout="SINGLE_TOP_LINE",
-                line_height=1.7 * self.font_size,
-                text_align=("CENTER", "RIGHT", "LEFT", "RIGHT", "LEFT"),
-                col_widths=(10, 8, 70, 10, 3),
-            ) as table:
-                for data_row in self.table_data_2:
-                    row = table.row()
-                    for index, datum in enumerate(data_row):
-                        if index == 4:
-                            dummy.set_font("symbol", size=self.honorar_font_size + 1)
-                            row.cell(datum)
-                            dummy.set_font(
-                                "helvetica", style="", size=self.honorar_font_size
-                            )
-                        else:
-                            row.cell(datum)
-
-            dummy.ln(1)
-            dummy.cell(190, 0, border=1, center=True)
-
-            # check if page break is triggered by table2
-            if dummy.page_break_triggered:
-                with dummy.table(
-                    borders_layout="NONE",
-                    col_widths=(10, 8, 70, 10, 3),
-                    line_height=1.7 * self.font_size,
-                    text_align=("CENTER", "LEFT", "RIGHT", "RIGHT", "LEFT"),
-                    cell_fill_color=180,
-                    cell_fill_mode="NONE",
-                    first_row_as_headings=False,
-                ) as table:
-                    for data_row in self.table_data_3:
-                        row = table.row()
-                        for index, datum in enumerate(data_row):
-                            if index == 4:
-                                dummy.set_font(
-                                    "symbol", "", size=self.honorar_font_size + 1
-                                )
-                                row.cell(datum)
-                                dummy.set_font(
-                                    "helvetica", style="", size=self.honorar_font_size
-                                )
-                            else:
-                                dummy.set_font(
-                                    "helvetica", style="B", size=self.honorar_font_size
-                                )
-                                row.cell(datum)
-                                dummy.set_font(
-                                    "helvetica", style="", size=self.honorar_font_size
-                                )
-
-                # triggered by table 2
-                if dummy.page_break_triggered:
-                    linebreak_length = 25
-                else:
-                    linebreak_length = 15
-
-            # triggered by table 1
-            else:
-                linebreak_length = 15
+#         with self.offset_rendering() as dummy:
+#             dummy.ln(15)
+#             if self.mann_frau == "Mann":
+#                 dummy.write(
+#                     text=f"Sehr geehrter Herr {self.nachname},\n\n"
+#                     f"hiermit erlaube ich mir, für meine Bemühungen folgendes "
+#                     f"Honorar zu berechnen:"
+#                 )
+#             if self.mann_frau == "Frau":
+#                 dummy.write(
+#                     text=f"Sehr geehrte Frau {self.nachname},\n\n"
+#                     f"hiermit erlaube ich mir, für meine Bemühungen folgendes "
+#                     f"Honorar zu berechnen:"
+#                 )
+#             dummy.ln(7)
+#             dummy.set_font("helvetica", size=self.honorar_font_size)
+# 
+#             with dummy.table(
+#                 cell_fill_color=230,
+#                 cell_fill_mode="ROWS",
+#                 borders_layout="SINGLE_TOP_LINE",
+#                 line_height=1.7 * self.font_size,
+#                 text_align=("CENTER", "RIGHT", "LEFT", "RIGHT", "LEFT"),
+#                 col_widths=(10, 8, 70, 10, 3),
+#             ) as table:
+#                 for data_row in self.table_data_2:
+#                     row = table.row()
+#                     for index, datum in enumerate(data_row):
+#                         if index == 4:
+#                             dummy.set_font("symbol", size=self.honorar_font_size + 1)
+#                             row.cell(datum)
+#                             dummy.set_font(
+#                                 "helvetica", style="", size=self.honorar_font_size
+#                             )
+#                         else:
+#                             row.cell(datum)
+# 
+#             dummy.ln(1)
+#             dummy.cell(190, 0, border=1, center=True)
+# 
+#             # check if page break is triggered by table2
+#             if dummy.page_break_triggered:
+#                 with dummy.table(
+#                     borders_layout="NONE",
+#                     col_widths=(10, 8, 70, 10, 3),
+#                     line_height=1.7 * self.font_size,
+#                     text_align=("CENTER", "LEFT", "RIGHT", "RIGHT", "LEFT"),
+#                     cell_fill_color=180,
+#                     cell_fill_mode="NONE",
+#                     first_row_as_headings=False,
+#                 ) as table:
+#                     for data_row in self.table_data_3:
+#                         row = table.row()
+#                         for index, datum in enumerate(data_row):
+#                             if index == 4:
+#                                 dummy.set_font(
+#                                     "symbol", "", size=self.honorar_font_size + 1
+#                                 )
+#                                 row.cell(datum)
+#                                 dummy.set_font(
+#                                     "helvetica", style="", size=self.honorar_font_size
+#                                 )
+#                             else:
+#                                 dummy.set_font(
+#                                     "helvetica", style="B", size=self.honorar_font_size
+#                                 )
+#                                 row.cell(datum)
+#                                 dummy.set_font(
+#                                     "helvetica", style="", size=self.honorar_font_size
+#                                 )
+# 
+#                 # triggered by table 2
+#                 if dummy.page_break_triggered:
+#                     linebreak_length = 15
+#                 else:
+#                     linebreak_length = 15
+# 
+#             # triggered by table 1
+#             else:
+#                 linebreak_length = 15
 
         # rendering the tables
+        self.cell(175, 0, border=1, center=True)
+        linebreak_length = 10
         self.ln(linebreak_length)
         if self.mann_frau == "Mann":
             self.write(
@@ -5196,6 +5217,27 @@ class HpRechnung(PDF):
                         )
                     else:
                         row.cell(datum)
+
+        if self.manual_pagebreak:
+            self.add_page()
+            with self.table(
+            cell_fill_color=230,
+            cell_fill_mode="ROWS",
+            line_height=int(1.7 * self.font_size),
+            text_align=("CENTER", "RIGHT", "LEFT", "RIGHT", "LEFT"),
+            col_widths=(10, 8, 70, 10, 4),
+            ) as table:
+                for data_row in self.table_data_2_plus:
+                    row = table.row()
+                    for index, datum in enumerate(data_row):
+                        if index == 4:
+                            self.set_font("symbol", size=self.honorar_font_size + 1)
+                            row.cell(datum)
+                            self.set_font(
+                                "helvetica", style="", size=self.honorar_font_size
+                            )
+                        else:
+                            row.cell(datum)
 
         self.ln(1)
         self.cell(175, 0, border=1, center=True)
