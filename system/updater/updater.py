@@ -8,7 +8,7 @@ from urllib.error import HTTPError, URLError
 
 
 class Updater:
-    version = "2.3.0-beta"
+    version = "2.3.1-beta"
     sleep_time = 10
     downloaded_version_file = False
     downloaded_pip_requirements_file = False
@@ -141,6 +141,9 @@ class Updater:
         in the tmp folder"""
 
         logging.debug("Updater.install_pip_requirements() called")
+
+        os.system("pip freeze > uninstall.txt")
+        os.system("pip uninstall -r uninstall.txt -y")
 
         os.system("pip install --upgrade pip")
         os.system("pip install -r ./system/tmp/requirements.txt.tmp")
