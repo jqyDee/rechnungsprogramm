@@ -38,7 +38,7 @@ class App(customtkinter.CTk):
     Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = "2.7.13-beta"
+    version = "2.7.15-beta"
     year = time.strftime("%Y")
     window_resizable = False
     window_width = 1300
@@ -782,8 +782,8 @@ class App(customtkinter.CTk):
                     for i in data[3]:
                         behandlungsarten.append(i[0].get())
                         einzelpreise.append(i[1].get())
-                    rechnungsdaten.extend(behandlungsarten)
-                    rechnungsdaten.extend(einzelpreise)
+                    rechnungsdaten.append(behandlungsarten)
+                    rechnungsdaten.append(einzelpreise)
                 else:
                     return True
             elif draft_interfaces[1]:
@@ -881,7 +881,7 @@ class App(customtkinter.CTk):
             data = []
             with open(
                 f"{self.rechnungen_location}/drafts/{rechnungsdaten[1]}DRAFT.csv",
-                newline="",
+                newline="", encoding='utf-8'
             ) as f:
                 csvfile = csv.reader(f, delimiter=";")
                 for index, row_1 in enumerate(csvfile):
@@ -916,7 +916,7 @@ class App(customtkinter.CTk):
             with open(
                 f"{self.rechnungen_location}/drafts/{rechnungsdaten[1].upper()}DRAFT.csv",
                 "w",
-                newline="",
+                newline="", encoding='utf-8'
             ) as f:
                 csvfile = csv.writer(f, delimiter=";")
                 csvfile.writerow(rechnungsdaten)
@@ -998,7 +998,7 @@ class App(customtkinter.CTk):
                     with open(
                         f"{self.rechnungen_location}/rechnungen-csv/rechnungen-"
                         f"{self.year}.csv",
-                        "w",
+                        "w", encoding='utf-8'
                     ):
                         pass
 
@@ -1023,7 +1023,7 @@ class App(customtkinter.CTk):
             else:
                 with open(
                     f"{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv",
-                    "w",
+                    "w", encoding='utf-8'
                 ):
                     pass
             logging.info("File didn't exist. Cleared RechnungenInsgesamt!")
@@ -1858,7 +1858,7 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
         self.gesamtpreis = 0
         for data in self.einzelpreise:
             # Addition of 'Einzelpreise'
-            self.gesamtpreis += self.datenanzahl * float(data)
+            self.gesamtpreis += float(self.datenanzahl) * float(data)
         logging.debug(f"gesamtpreis: {self.gesamtpreis}")
 
         rechnungsdaten = [
@@ -1886,7 +1886,7 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
                 f"{self.parent.rechnungen_location}/rechnungen-csv/rechnungen-"
                 f"{self.parent.year}.csv",
                 "a",
-                newline="",
+                newline="", encoding='utf-8'
             ) as f:
                 csvfile = csv.writer(f, delimiter=";")
                 csvfile.writerow(rechnungsdaten)
@@ -2658,7 +2658,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                 f"{self.parent.rechnungen_location}/rechnungen-csv/rechnungen-"
                 f"{self.parent.year}.csv",
                 "a",
-                newline="",
+                newline="", encoding='utf-8'
             ) as f:
                 csvfile = csv.writer(f, delimiter=";")
                 csvfile.writerow(rechnungsdaten)
@@ -3678,7 +3678,7 @@ class RechnungenInterface(customtkinter.CTkFrame):
 
         # checks if file is a draft
         if draft:
-            with open(filepath, newline="") as f:
+            with open(filepath, newline="", encoding='utf-8') as f:
                 csvfile = csv.reader(f, delimiter=";")
                 for index, row_1 in enumerate(csvfile):
                     if index == 0:
@@ -3715,7 +3715,7 @@ class RechnungenInterface(customtkinter.CTkFrame):
             with open(
                 f"{self.parent.rechnungen_location}/rechnungen-"
                 f"csv/rechnungen-{self.parent.year}.csv",
-                newline="",
+                newline="", encoding='utf-8'
             ) as f:
                 csvfile = csv.reader(f, delimiter=";")
                 for row_1 in csvfile:
