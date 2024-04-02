@@ -38,7 +38,7 @@ class App(customtkinter.CTk):
     Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = "2.7.15-beta"
+    version = "2.7.16-beta"
     year = time.strftime("%Y")
     window_resizable = False
     window_width = 1300
@@ -5027,7 +5027,7 @@ class HpRechnung(PDF):
         for i in rechnungsdaten:
             length = len(list(filter(None, i[3].split())))
             lines += length
-            if lines > 21:
+            if lines > 13:
                 self.manual_pagebreak = True
             col_5 = []
             for _ in range(length):
