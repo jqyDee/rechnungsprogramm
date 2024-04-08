@@ -38,7 +38,7 @@ class App(customtkinter.CTk):
     Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = "2.7.16-beta"
+    version = "2.7.17-beta"
     year = time.strftime("%Y")
     window_resizable = False
     window_width = 1300
@@ -182,7 +182,7 @@ class App(customtkinter.CTk):
                 logging.info("updater.py not installed")
                 threading.Thread(target=self.update_updater, daemon=True).start()
                 return
-            
+
             if file[2].replace("\n", "") != updater_version:
                 logging.info("updater version not up to date")
                 threading.Thread(target=self.update_updater, daemon=True).start()
@@ -243,8 +243,8 @@ class App(customtkinter.CTk):
         logging.debug("App.update_main() called; Program Update initiated")
 
         if not messagebox.askyesno(
-            "Soll Update heruntergeladen werden?",
-            "Beim fortfahren wird ein neues Update " "heruntergeladen!",
+                "Soll Update heruntergeladen werden?",
+                "Beim fortfahren wird ein neues Update " "heruntergeladen!",
         ):
             logging.debug("Messagebox false")
             return
@@ -479,13 +479,13 @@ class App(customtkinter.CTk):
 
             if self.logs_enabled:
                 logging.basicConfig(
-                        format=log_format,
-                        datefmt=date_format,
-                        level=log_level,
-                        handlers=[logging.FileHandler(
-                            filename=f'{self.log_location}/'
-                                     f'{time.strftime("%Y%m%d")}.log',
-                            mode="a",
+                    format=log_format,
+                    datefmt=date_format,
+                    level=log_level,
+                    handlers=[logging.FileHandler(
+                        filename=f'{self.log_location}/'
+                                 f'{time.strftime("%Y%m%d")}.log',
+                        mode="a",
                     ), logging.StreamHandler(stream=sys.stderr)])
             else:
                 logging.basicConfig(
@@ -645,8 +645,8 @@ class App(customtkinter.CTk):
             return
         self.open_interface = "st"
         if (
-            self.stammdaten_interface is None
-            or not self.stammdaten_interface.winfo_exists()
+                self.stammdaten_interface is None
+                or not self.stammdaten_interface.winfo_exists()
         ):
             self.clear_interfaces()
             self.stammdaten_interface = StammdatenInterface(self)
@@ -660,8 +660,8 @@ class App(customtkinter.CTk):
             return
         self.open_interface = "re"
         if (
-            self.rechnung_loeschen_interface is None
-            or not self.rechnung_loeschen_interface.winfo_exists()
+                self.rechnung_loeschen_interface is None
+                or not self.rechnung_loeschen_interface.winfo_exists()
         ):
             self.clear_interfaces()
             self.rechnung_loeschen_interface = RechnungenInterface(self)
@@ -675,8 +675,8 @@ class App(customtkinter.CTk):
             return
         self.open_interface = "ei"
         if (
-            self.einstellungen_interface is None
-            or not self.einstellungen_interface.winfo_exists()
+                self.einstellungen_interface is None
+                or not self.einstellungen_interface.winfo_exists()
         ):
             self.clear_interfaces()
             self.einstellungen_interface = EinstellungInterface(self)
@@ -755,10 +755,10 @@ class App(customtkinter.CTk):
 
                 # check if Behandlungsdaten or Behandlungsarten/Einzelpreise has value
                 if any(
-                    [
-                        [True for i in data[2] if i.get() != ""],
-                        [True for a in data[3] for i in a if i.get() != ""],
-                    ]
+                        [
+                            [True for i in data[2] if i.get() != ""],
+                            [True for a in data[3] for i in a if i.get() != ""],
+                        ]
                 ):
                     # Kürzel, Rechnungsnummer
                     rechnungsdaten = [
@@ -803,8 +803,8 @@ class App(customtkinter.CTk):
                     if index1 != 0:
                         for index2, i in enumerate(a):
                             if (
-                                index2 in (0, 2, 4, 6)
-                                and i.get("0.0", "end").replace("\n", "") != ""
+                                    index2 in (0, 2, 4, 6)
+                                    and i.get("0.0", "end").replace("\n", "") != ""
                             ):
                                 data_2.append(True)
 
@@ -876,12 +876,12 @@ class App(customtkinter.CTk):
 
         # check if draft exist and check value
         if os.path.exists(
-            f"{self.rechnungen_location}/drafts/{rechnungsdaten[1]}DRAFT.csv"
+                f"{self.rechnungen_location}/drafts/{rechnungsdaten[1]}DRAFT.csv"
         ):
             data = []
             with open(
-                f"{self.rechnungen_location}/drafts/{rechnungsdaten[1]}DRAFT.csv",
-                newline="", encoding='utf-8'
+                    f"{self.rechnungen_location}/drafts/{rechnungsdaten[1]}DRAFT.csv",
+                    newline="", encoding='utf-8'
             ) as f:
                 csvfile = csv.reader(f, delimiter=";")
                 for index, row_1 in enumerate(csvfile):
@@ -901,8 +901,8 @@ class App(customtkinter.CTk):
 
         # check if rechnung to rechnungsnummer exists
         if os.path.exists(
-            f"{self.rechnungen_location}/rechnungen-{self.year}/"
-            f"{rechnungsdaten[1].upper()}.pdf"
+                f"{self.rechnungen_location}/rechnungen-{self.year}/"
+                f"{rechnungsdaten[1].upper()}.pdf"
         ):
             return True
 
@@ -914,9 +914,9 @@ class App(customtkinter.CTk):
             if not os.path.exists(f"{self.rechnungen_location}/drafts/"):
                 os.mkdir(f"{self.rechnungen_location}/drafts/")
             with open(
-                f"{self.rechnungen_location}/drafts/{rechnungsdaten[1].upper()}DRAFT.csv",
-                "w",
-                newline="", encoding='utf-8'
+                    f"{self.rechnungen_location}/drafts/{rechnungsdaten[1].upper()}DRAFT.csv",
+                    "w",
+                    newline="", encoding='utf-8'
             ) as f:
                 csvfile = csv.writer(f, delimiter=";")
                 csvfile.writerow(rechnungsdaten)
@@ -969,8 +969,8 @@ class App(customtkinter.CTk):
 
         if os.path.exists(filepath):
             if not messagebox.askyesno(
-                "Do you want to continue?",
-                f"Beim fortfahren wird die Rechnung {file} " f"gelöscht/überschrieben!",
+                    "Do you want to continue?",
+                    f"Beim fortfahren wird die Rechnung {file} " f"gelöscht/überschrieben!",
             ):
                 logging.debug("Rechnung wird nicht gelöscht, exiting")
                 return False
@@ -978,11 +978,11 @@ class App(customtkinter.CTk):
                 logging.debug("Rechnung wird gelöscht")
                 os.remove(filepath)
                 if os.path.exists(
-                    f"{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv"
+                        f"{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv"
                 ):
                     with fileinput.FileInput(
-                        f"{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv",
-                        inplace=True,
+                            f"{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv",
+                            inplace=True,
                     ) as a:
                         for line in a:
                             if line == "":
@@ -996,19 +996,19 @@ class App(customtkinter.CTk):
                                 print(line, end="")
                 else:
                     with open(
-                        f"{self.rechnungen_location}/rechnungen-csv/rechnungen-"
-                        f"{self.year}.csv",
-                        "w", encoding='utf-8'
+                            f"{self.rechnungen_location}/rechnungen-csv/rechnungen-"
+                            f"{self.year}.csv",
+                            "w", encoding='utf-8'
                     ):
                         pass
 
         else:
             if os.path.exists(
-                f"{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv"
+                    f"{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv"
             ):
                 with fileinput.FileInput(
-                    f"{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv",
-                    inplace=True,
+                        f"{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv",
+                        inplace=True,
                 ) as a:
                     for line in a:
                         if line == "":
@@ -1022,8 +1022,8 @@ class App(customtkinter.CTk):
                             print(line, end="")
             else:
                 with open(
-                    f"{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv",
-                    "w", encoding='utf-8'
+                        f"{self.rechnungen_location}/rechnungen-csv/rechnungen-{self.year}.csv",
+                        "w", encoding='utf-8'
                 ):
                     pass
             logging.info("File didn't exist. Cleared RechnungenInsgesamt!")
@@ -1171,7 +1171,7 @@ class Sidebar(customtkinter.CTkFrame):
         self.label_6 = customtkinter.CTkLabel(
             self,
             text="Update Installiert\n\nProgramm muss neugestartet\n"
-            "werden damit Änderungen\nsichtbar sind!",
+                 "werden damit Änderungen\nsichtbar sind!",
             fg_color="orange",
             text_color="black",
         )
@@ -1494,11 +1494,11 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
             logging.debug("kuerzel len == 4")
 
             if os.path.exists(
-                f"{self.parent.stammdaten_location}/{text_after_action.upper()}.txt"
+                    f"{self.parent.stammdaten_location}/{text_after_action.upper()}.txt"
             ):
                 logging.info(f'stammdatei "{text_after_action}.txt" exists')
                 with open(
-                    f"{self.parent.stammdaten_location}/{text_after_action}.txt", "r"
+                        f"{self.parent.stammdaten_location}/{text_after_action}.txt", "r"
                 ) as f:
                     stammdaten = f.readlines()
                     for i, line in enumerate(stammdaten):
@@ -1683,11 +1683,11 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
         # validate kuerzel + getting stammdaten
         if len(self.kuerzel_entry.get()) == 4:
             if os.path.exists(
-                f"{self.parent.stammdaten_location}/{self.kuerzel_entry.get()}.txt"
+                    f"{self.parent.stammdaten_location}/{self.kuerzel_entry.get()}.txt"
             ):
                 with open(
-                    f"{self.parent.stammdaten_location}/{self.kuerzel_entry.get()}.txt",
-                    "r",
+                        f"{self.parent.stammdaten_location}/{self.kuerzel_entry.get()}.txt",
+                        "r",
                 ) as f:
                     self.stammdaten = f.readlines()
                     for i, line in enumerate(self.stammdaten):
@@ -1707,8 +1707,8 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
 
         # validate rechnungsdatum
         if re.match(
-            r"(^0[1-9]|[12][0-9]|3[01]).(0[1-9]|1[0-2]).(\d{2}$)",
-            self.rechnungsdatum_entry.get(),
+                r"(^0[1-9]|[12][0-9]|3[01]).(0[1-9]|1[0-2]).(\d{2}$)",
+                self.rechnungsdatum_entry.get(),
         ):
             self.rechnungsdatum = self.rechnungsdatum_entry.get()
         else:
@@ -1742,8 +1742,8 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
                 return False
         if self.datenanzahl == 0:
             if not messagebox.askyesno(
-                "Do you want to continue?",
-                "Keine Behandlungsdaten eingetragen! Trotzdem fortsetzen?",
+                    "Do you want to continue?",
+                    "Keine Behandlungsdaten eingetragen! Trotzdem fortsetzen?",
             ):
                 logging.debug(f"no dates and dont wanting to continue, exiting")
                 self.parent.bottom_nav.bottom_nav_warning.configure(
@@ -1782,7 +1782,7 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
                             a.select_range(0, tk.END)
                             self.parent.bottom_nav.bottom_nav_warning.configure(
                                 text=f"Einzelpreis {index_1 + 1} keine Zahl: {a.get()} -> z.B. "
-                                f"3.40",
+                                     f"3.40",
                                 fg_color="red",
                             )
                             return False
@@ -1809,7 +1809,7 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
                     )
                     self.parent.bottom_nav.bottom_nav_warning.configure(
                         text=f"Stammdatei - Kilometer keine Zahl: -> z.B. 3.40 oder 10; Ändern "
-                        f"unter stammdaten!",
+                             f"unter stammdaten!",
                         fg_color="red",
                     )
                     return False
@@ -1822,7 +1822,7 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
                     )
                     self.parent.bottom_nav.bottom_nav_warning.configure(
                         text=f"Stammdatei hat keinen Wert in Linie {index + 1}. Stammdatei "
-                        f"überprüfen!",
+                             f"überprüfen!",
                         fg_color="red",
                     )
                     return False
@@ -1876,17 +1876,17 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
         rechnungsdaten.append(self.einzelpreise)
 
         if not self.parent.clean_remove(
-            f"{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/"
-            f"{self.rechnungsnummer}.pdf",
-            f"{self.rechnungsnummer}.pdf",
+                f"{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/"
+                f"{self.rechnungsnummer}.pdf",
+                f"{self.rechnungsnummer}.pdf",
         ):
             return False
         else:
             with open(
-                f"{self.parent.rechnungen_location}/rechnungen-csv/rechnungen-"
-                f"{self.parent.year}.csv",
-                "a",
-                newline="", encoding='utf-8'
+                    f"{self.parent.rechnungen_location}/rechnungen-csv/rechnungen-"
+                    f"{self.parent.year}.csv",
+                    "a",
+                    newline="", encoding='utf-8'
             ) as f:
                 csvfile = csv.writer(f, delimiter=";")
                 csvfile.writerow(rechnungsdaten)
@@ -1904,14 +1904,14 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
         )
 
         if (
-            self.parent.steuer_id == ""
-            or self.parent.iban == ""
-            or self.parent.bic == ""
+                self.parent.steuer_id == ""
+                or self.parent.iban == ""
+                or self.parent.bic == ""
         ):
             if not messagebox.askyesno(
-                "Warnung",
-                "Es wurde für Steuer-Nummer/Iban/Bic kein Wert eingegeben. Soll trotzdem"
-                "eine Rechnung erstellt werden?",
+                    "Warnung",
+                    "Es wurde für Steuer-Nummer/Iban/Bic kein Wert eingegeben. Soll trotzdem"
+                    "eine Rechnung erstellt werden?",
             ):
                 return False
 
@@ -2279,11 +2279,11 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
             logging.debug("kuerzel len == 4")
 
             if os.path.exists(
-                f"{self.parent.stammdaten_location}/{text_after_action.upper()}.txt"
+                    f"{self.parent.stammdaten_location}/{text_after_action.upper()}.txt"
             ):
                 logging.info(f'stammdatei "{text_after_action}.txt" exists')
                 with open(
-                    f"{self.parent.stammdaten_location}/{text_after_action}.txt", "r"
+                        f"{self.parent.stammdaten_location}/{text_after_action}.txt", "r"
                 ) as f:
                     stammdaten = f.readlines()
                     for i, line in enumerate(stammdaten):
@@ -2451,11 +2451,11 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
         # validate kuerzel + getting stammdaten
         if len(self.kuerzel_entry.get()) == 4:
             if os.path.exists(
-                f"{self.parent.stammdaten_location}/{self.kuerzel_entry.get()}.txt"
+                    f"{self.parent.stammdaten_location}/{self.kuerzel_entry.get()}.txt"
             ):
                 with open(
-                    f"{self.parent.stammdaten_location}/{self.kuerzel_entry.get()}.txt",
-                    "r",
+                        f"{self.parent.stammdaten_location}/{self.kuerzel_entry.get()}.txt",
+                        "r",
                 ) as f:
                     self.stammdaten = f.readlines()
                     for i, line in enumerate(self.stammdaten):
@@ -2475,8 +2475,8 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
 
         # validate rechnungsdatum
         if re.match(
-            r"(^0[1-9]|[12][0-9]|3[01]).(0[1-9]|1[0-2]).(\d{2}$)",
-            self.rechnungsdatum_entry.get(),
+                r"(^0[1-9]|[12][0-9]|3[01]).(0[1-9]|1[0-2]).(\d{2}$)",
+                self.rechnungsdatum_entry.get(),
         ):
             self.rechnungsdatum = self.rechnungsdatum_entry.get()
         else:
@@ -2504,16 +2504,16 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                         if len(data) != 1:
                             return self.parent.bottom_nav.bottom_nav_warning.configure(
                                 text=f"Es wurde in Reihe {index_1} mehr/weniger als 1 Datum "
-                                f"eingegeben",
+                                     f"eingegeben",
                                 fg_color="red",
                             )
                         if not re.match(
-                            r"(^0[1-9]|[12][0-9]|3[01]).(0[1-9]|1[0-2]).(\d{2}$)",
-                            data[0].replace("\t", ""),
+                                r"(^0[1-9]|[12][0-9]|3[01]).(0[1-9]|1[0-2]).(\d{2}$)",
+                                data[0].replace("\t", ""),
                         ):
                             return self.parent.bottom_nav.bottom_nav_warning.configure(
                                 text=f"Datum in Reihe {index_1} nicht richtig formatiert: "
-                                f"dd.m.yy",
+                                     f"dd.m.yy",
                                 fg_color="red",
                             )
                         # data[0] += '\n\n'
@@ -2532,8 +2532,8 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                             if b != len(data):
                                 return self.parent.bottom_nav.bottom_nav_warning.configure(
                                     text=f"Die eingegebenen Datenanzahl stimmt nicht mit den "
-                                    f"anderen in Reihe "
-                                    f"{index_1} überein",
+                                         f"anderen in Reihe "
+                                         f"{index_1} überein",
                                     fg_color="red",
                                 )
                         lengths.append(len(data))
@@ -2544,8 +2544,8 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                             if b != len(data):
                                 return self.parent.bottom_nav.bottom_nav_warning.configure(
                                     text=f"Die eingegebenen Datenanzahl stimmt nicht mit den "
-                                    f"anderen in Reihe "
-                                    f"{index_1} überein",
+                                         f"anderen in Reihe "
+                                         f"{index_1} überein",
                                     fg_color="red",
                                 )
                         lengths.append(len(data))
@@ -2559,7 +2559,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                                 )
                                 return self.parent.bottom_nav.bottom_nav_warning.configure(
                                     text=f"Einzelpreis {index_3} in Reihe {index_1} keine Zahl: "
-                                    f"{i} -> z.B. 3.40",
+                                         f"{i} -> z.B. 3.40",
                                     fg_color="red",
                                 )
                             einzelpreise.append(f"{round(c, 2):.2f}".replace(".", ","))
@@ -2589,7 +2589,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                     )
                     self.parent.bottom_nav.bottom_nav_warning.configure(
                         text=f"Stammdatei - Kilometer keine Zahl: -> z.B. 3.40 oder 10; Ändern "
-                        f"unter stammdaten!",
+                             f"unter stammdaten!",
                         fg_color="red",
                     )
                     return False
@@ -2602,7 +2602,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                     )
                     self.parent.bottom_nav.bottom_nav_warning.configure(
                         text=f"Stammdatei hat keinen Wert in Linie {index + 1}. Stammdatei "
-                        f"überprüfen!",
+                             f"überprüfen!",
                         fg_color="red",
                     )
                     return False
@@ -2648,17 +2648,17 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
         ]
 
         if not self.parent.clean_remove(
-            f"{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/"
-            f"{self.rechnungsnummer}.pdf",
-            f"{self.rechnungsnummer}.pdf",
+                f"{self.parent.rechnungen_location}/rechnungen-{self.parent.year}/"
+                f"{self.rechnungsnummer}.pdf",
+                f"{self.rechnungsnummer}.pdf",
         ):
             return False
         else:
             with open(
-                f"{self.parent.rechnungen_location}/rechnungen-csv/rechnungen-"
-                f"{self.parent.year}.csv",
-                "a",
-                newline="", encoding='utf-8'
+                    f"{self.parent.rechnungen_location}/rechnungen-csv/rechnungen-"
+                    f"{self.parent.year}.csv",
+                    "a",
+                    newline="", encoding='utf-8'
             ) as f:
                 csvfile = csv.writer(f, delimiter=";")
                 csvfile.writerow(rechnungsdaten)
@@ -3166,8 +3166,8 @@ class StammdatenInterface(customtkinter.CTkFrame):
                     for a in f:
                         try:
                             if f[12].replace("\n", "") == "KG" and (
-                                self.search_entry.get() in a
-                                or self.search_entry.get() in i
+                                    self.search_entry.get() in a
+                                    or self.search_entry.get() in i
                             ):
                                 self.files_in_dir.append(i)
                                 break
@@ -3179,8 +3179,8 @@ class StammdatenInterface(customtkinter.CTkFrame):
                     for a in f:
                         try:
                             if f[12].replace("\n", "") == "HP" and (
-                                self.search_entry.get() in a
-                                or self.search_entry.get() in i
+                                    self.search_entry.get() in a
+                                    or self.search_entry.get() in i
                             ):
                                 self.files_in_dir.append(i)
                                 break
@@ -3291,8 +3291,8 @@ class StammdatenInterface(customtkinter.CTkFrame):
             )
 
         if (
-            not self.stammdaten[12].get() == "HP"
-            and not self.stammdaten[12].get() == "KG"
+                not self.stammdaten[12].get() == "HP"
+                and not self.stammdaten[12].get() == "KG"
         ):
             self.stammdaten[12].select_range(0, tk.END)
             self.stammdaten[12].focus_set()
@@ -3319,20 +3319,20 @@ class StammdatenInterface(customtkinter.CTkFrame):
         logging.debug("Backend.store_stammdaten_data() called")
 
         if os.path.exists(
-            f"{self.parent.stammdaten_location}/{self.stammdaten[0].get()}.txt"
+                f"{self.parent.stammdaten_location}/{self.stammdaten[0].get()}.txt"
         ):
             if not messagebox.askyesno(
-                "Do you want to continue?",
-                f"Stammdatei zu {self.stammdaten[0].get()} existiert bereits und wird beim "
-                f"fortsetzen überschrieben! Trotzdem fortsetzen?",
+                    "Do you want to continue?",
+                    f"Stammdatei zu {self.stammdaten[0].get()} existiert bereits und wird beim "
+                    f"fortsetzen überschrieben! Trotzdem fortsetzen?",
             ):
                 logging.debug("Stammdatei wird nicht überschrieben, exiting")
                 return False
             else:
                 logging.debug("Stammdatei wird überschrieben")
                 with open(
-                    f"{self.parent.stammdaten_location}/{self.stammdaten[0].get()}.txt",
-                    "w",
+                        f"{self.parent.stammdaten_location}/{self.stammdaten[0].get()}.txt",
+                        "w",
                 ) as f:
                     for index, i in enumerate(self.stammdaten):
                         if index != 12:
@@ -3342,7 +3342,7 @@ class StammdatenInterface(customtkinter.CTkFrame):
                 return True
         else:
             with open(
-                f"{self.parent.stammdaten_location}/{self.stammdaten[0].get()}.txt", "w"
+                    f"{self.parent.stammdaten_location}/{self.stammdaten[0].get()}.txt", "w"
             ) as f:
                 for index, i in enumerate(self.stammdaten):
                     if index != 12:
@@ -3693,13 +3693,13 @@ class RechnungenInterface(customtkinter.CTkFrame):
                 logging.debug(f"Rechnung {self.files_in_dir_unsorted[row]} found.")
 
             if not os.path.exists(
-                f"{self.parent.rechnungen_location}/rechnungen-"
-                f"csv/rechnungen-{self.parent.year}.csv"
+                    f"{self.parent.rechnungen_location}/rechnungen-"
+                    f"csv/rechnungen-{self.parent.year}.csv"
             ):
                 with open(
-                    f"{self.parent.rechnungen_location}/rechnungen-"
-                    f"csv/rechnungen-{self.parent.year}.csv",
-                    "w",
+                        f"{self.parent.rechnungen_location}/rechnungen-"
+                        f"csv/rechnungen-{self.parent.year}.csv",
+                        "w",
                 ):
                     pass
                 logging.error(
@@ -3713,9 +3713,9 @@ class RechnungenInterface(customtkinter.CTkFrame):
                 )
 
             with open(
-                f"{self.parent.rechnungen_location}/rechnungen-"
-                f"csv/rechnungen-{self.parent.year}.csv",
-                newline="", encoding='utf-8'
+                    f"{self.parent.rechnungen_location}/rechnungen-"
+                    f"csv/rechnungen-{self.parent.year}.csv",
+                    newline="", encoding='utf-8'
             ) as f:
                 csvfile = csv.reader(f, delimiter=";")
                 for row_1 in csvfile:
@@ -3955,8 +3955,8 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.about_text_label = customtkinter.CTkLabel(
             self.frame_2,
             text=f"Rechnungsprogramm\n\n"
-            f"Version Number: {self.parent.version}\n\n"
-            f"Copyright 2023 | Matti Fischbach",
+                 f"Version Number: {self.parent.version}\n\n"
+                 f"Copyright 2023 | Matti Fischbach",
         )
 
         # Separator
@@ -4295,7 +4295,7 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
             "log_location",
         ]:
             if kind not in self.changes and text_after_action != getattr(
-                self.parent, kind):
+                    self.parent, kind):
                 self.changes.append(kind)
             elif text_after_action == getattr(self.parent, kind):
                 try:
@@ -4543,8 +4543,8 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         entry has been int"""
 
         if (
-            not text_after_action == ""
-            and not text_after_action == self.frame_3_behandlungsarten_limit_var.get()
+                not text_after_action == ""
+                and not text_after_action == self.frame_3_behandlungsarten_limit_var.get()
         ):
             try:
                 int(text_after_action)
@@ -4675,7 +4675,7 @@ class PDF(FPDF):
     def footer(self):
         """New PDF footer section"""
 
-        # Position at 1.5 cm from bottom
+        # Position at 3.5 cm from bottom
         self.set_y(-35)
         # helvetica italic 8
         self.set_font("helvetica", "B", 8)
@@ -4707,20 +4707,20 @@ class KgRechnung(PDF):
     rechnungsempfaenger_offset = 4
 
     def __init__(
-        self,
-        parent,
-        stammdaten: list,
-        rechnungsnummer: str,
-        rechnungsdatum: str,
-        gesamtpreis: float,
-        rechnungsdaten: list,
-        rechnungsdaten_anzahl: int,
-        behandlungsarten: list,
-        einzelpreise: list,
-        filepath: str,
-        steuer_id: str,
-        iban: str,
-        bic: str,
+            self,
+            parent,
+            stammdaten: list,
+            rechnungsnummer: str,
+            rechnungsdatum: str,
+            gesamtpreis: float,
+            rechnungsdaten: list,
+            rechnungsdaten_anzahl: int,
+            behandlungsarten: list,
+            einzelpreise: list,
+            filepath: str,
+            steuer_id: str,
+            iban: str,
+            bic: str,
     ):
         super().__init__(rechnungsnummer, steuer_id, iban, bic)
         self.parent = parent
@@ -4740,15 +4740,15 @@ class KgRechnung(PDF):
         self.create_pages(filepath)
 
     def prepare_data(
-        self,
-        stammdaten,
-        rechnungsnummer,
-        rechnungsdatum,
-        gesamtpreis,
-        rechnungsdaten,
-        rechnungsdaten_anzahl,
-        behandlungsarten,
-        einzelpreise,
+            self,
+            stammdaten,
+            rechnungsnummer,
+            rechnungsdatum,
+            gesamtpreis,
+            rechnungsdaten,
+            rechnungsdaten_anzahl,
+            behandlungsarten,
+            einzelpreise,
     ):
         """prepares the passed data so table creation is working!"""
 
@@ -4827,9 +4827,9 @@ class KgRechnung(PDF):
         self.cell(175, 0, border=1, center=True)
         self.set_font("helvetica", size=self.normal_font_size)
         with self.table(
-            borders_layout="NONE",
-            line_height=int(1.5 * self.font_size),
-            text_align=("LEFT", "CENTER", "RIGHT"),
+                borders_layout="NONE",
+                line_height=int(1.5 * self.font_size),
+                text_align=("LEFT", "CENTER", "RIGHT"),
         ) as table:
             for data_row in self.table_data_1:
                 row = table.row()
@@ -4852,11 +4852,11 @@ class KgRechnung(PDF):
         self.set_font("helvetica", style="", size=self.normal_font_size)
         self.ln(5)
         with self.table(
-            width=80,
-            line_height=int(1.7 * self.font_size),
-            align="LEFT",
-            borders_layout="NONE",
-            first_row_as_headings=False,
+                width=80,
+                line_height=int(1.7 * self.font_size),
+                align="LEFT",
+                borders_layout="NONE",
+                first_row_as_headings=False,
         ) as table:
             for data_row in self.table_data_2:
                 row = table.row()
@@ -4868,24 +4868,24 @@ class KgRechnung(PDF):
         if self.mann_frau == "Mann":
             self.write(
                 text=f"Sehr geehrter Herr {self.nachname},\n\n"
-                f"hiermit erlaube ich mir, für meine Bemühungen folgendes "
-                f"Honorar zu berechnen:"
+                     f"hiermit erlaube ich mir, für meine Bemühungen folgendes "
+                     f"Honorar zu berechnen:"
             )
         if self.mann_frau == "Frau":
             self.write(
                 text=f"Sehr geehrte Frau {self.nachname},\n\n"
-                f"hiermit erlaube ich mir, für meine Bemühungen folgendes "
-                f"Honorar zu berechnen:"
+                     f"hiermit erlaube ich mir, für meine Bemühungen folgendes "
+                     f"Honorar zu berechnen:"
             )
         self.ln(7)
         self.set_font("helvetica", size=self.honorar_font_size)
 
         with self.table(
-            cell_fill_color=230,
-            cell_fill_mode="ROWS",
-            line_height=int(1.7 * self.font_size),
-            text_align=("CENTER", "LEFT", "RIGHT", "RIGHT", "LEFT"),
-            col_widths=(9, 69, 13, 15, 4),
+                cell_fill_color=230,
+                cell_fill_mode="ROWS",
+                line_height=int(1.7 * self.font_size),
+                text_align=("CENTER", "LEFT", "RIGHT", "RIGHT", "LEFT"),
+                col_widths=(9, 69, 13, 15, 4),
         ) as table:
             for data_row in self.table_data_3:
                 row = table.row()
@@ -4902,13 +4902,13 @@ class KgRechnung(PDF):
         self.ln(1)
         self.cell(175, 0, border=1, center=True)
         with self.table(
-            borders_layout="NONE",
-            col_widths=(9, 69, 13, 15, 4),
-            line_height=int(1.7 * self.font_size),
-            text_align=("CENTER", "RIGHT", "RIGHT", "RIGHT", "LEFT"),
-            cell_fill_color=180,
-            cell_fill_mode="NONE",
-            first_row_as_headings=False,
+                borders_layout="NONE",
+                col_widths=(9, 69, 13, 15, 4),
+                line_height=int(1.7 * self.font_size),
+                text_align=("CENTER", "RIGHT", "RIGHT", "RIGHT", "LEFT"),
+                cell_fill_color=180,
+                cell_fill_mode="NONE",
+                first_row_as_headings=False,
         ) as table:
             for data_row in self.table_data_4:
                 row = table.row()
@@ -4945,7 +4945,7 @@ class KgRechnung(PDF):
         self.write(
             6.5,
             text="innerhalb von 14 Tagen unter Angabe der Rechnungsnummer auf "
-            "unten stehendes Konto zu überweisen.",
+                 "unten stehendes Konto zu überweisen.",
         )
         self.ln(13)
         self.write(text="Mit freundlichen Grüßen")
@@ -4963,19 +4963,20 @@ class HpRechnung(PDF):
     honorar_font_size = 10
 
     rechnungsempfaenger_offset = 4
+    table_data_2_1 = None
 
     def __init__(
-        self,
-        stammdaten: list,
-        rechnungsnummer: str,
-        rechnungsdatum: str,
-        gesamtpreis: float,
-        rechnungsdaten: list,
-        diagnose: str,
-        filepath: str,
-        steuer_id: str,
-        iban: str,
-        bic: str,
+            self,
+            stammdaten: list,
+            rechnungsnummer: str,
+            rechnungsdatum: str,
+            gesamtpreis: float,
+            rechnungsdaten: list,
+            diagnose: str,
+            filepath: str,
+            steuer_id: str,
+            iban: str,
+            bic: str,
     ):
         super().__init__(rechnungsnummer, steuer_id, iban, bic)
 
@@ -4992,21 +4993,19 @@ class HpRechnung(PDF):
         self.create_pages(filepath)
 
     def prepare_data(
-        self,
-        stammdaten,
-        rechnungsnummer,
-        rechnungsdatum,
-        gesamtpreis,
-        rechnungsdaten,
-        diagnose,
+            self,
+            stammdaten,
+            rechnungsnummer,
+            rechnungsdatum,
+            gesamtpreis,
+            rechnungsdaten,
+            diagnose,
     ):
         """prepares the passed data so table creation is working!"""
 
         self.table_data_1 = [["Patientenkürzel", "Rechnungsnummer", "Rechnungsdatum"]]
 
         self.table_data_2 = [["Datum", "Ziffer", "Art der Behandlung", "Betrag", ""]]
-
-        self.table_data_2_plus = [["Datum", "Ziffer", "Art der Behandlung", "Betrag", ""]]
 
         self.table_data_3 = [["", "", "", "", ""]]
 
@@ -5021,22 +5020,15 @@ class HpRechnung(PDF):
         self.geburtsdatum = stammdaten[8]
 
         self.table_data_1.append([self.kuerzel, rechnungsnummer, rechnungsdatum])
-    
-        lines = 0
+
         self.manual_pagebreak = False
         for i in rechnungsdaten:
             length = len(list(filter(None, i[3].split())))
-            lines += length
-            if lines > 13:
-                self.manual_pagebreak = True
             col_5 = []
             for _ in range(length):
                 col_5.append("\u00a0\n")
             i.insert(4, "".join(col_5))
-            if not self.manual_pagebreak:
-                self.table_data_2.append(i)
-            else:
-                self.table_data_2_plus.append(i)
+            self.table_data_2.append(i)
 
         self.gesamtpreis = f"{round(float(gesamtpreis), 2):.2f}".replace(".", ",")
         self.table_data_3.insert(
@@ -5048,6 +5040,8 @@ class HpRechnung(PDF):
     def create_pages(self, filepath):
         """Creates the PDF. Checks also checks for linebreak so content is not
         split between 2 pages"""
+
+        self.set_auto_page_break(True, 35)
 
         self.add_page()
 
@@ -5072,10 +5066,14 @@ class HpRechnung(PDF):
 
         self.cell(175, 0, border=1, center=True)
         self.set_font("helvetica", size=self.normal_font_size)
+
+        # Table 1
+        # ----------------------
+        # Kuerzel | ReNr | Date
         with self.table(
-            borders_layout="NONE",
-            line_height=int(1.5 * self.font_size),
-            text_align=("LEFT", "CENTER", "RIGHT"),
+                borders_layout="NONE",
+                line_height=int(1.5 * self.font_size),
+                text_align=("LEFT", "CENTER", "RIGHT"),
         ) as table:
             for data_row in self.table_data_1:
                 row = table.row()
@@ -5096,115 +5094,120 @@ class HpRechnung(PDF):
         self.set_font("helvetica", style="B", size=self.normal_font_size)
         self.cell(25, text="Diagnose:", align="L")
         self.set_font("helvetica", style="", size=self.normal_font_size)
-        self.multi_cell(160, text=f"{self.diagnose}")
+        self.multi_cell(135, text=f"{self.diagnose}")
 
-        # checking if page break is triggered by first table
-#         with self.offset_rendering() as dummy:
-#             dummy.ln(15)
-#             if self.mann_frau == "Mann":
-#                 dummy.write(
-#                     text=f"Sehr geehrter Herr {self.nachname},\n\n"
-#                     f"hiermit erlaube ich mir, für meine Bemühungen folgendes "
-#                     f"Honorar zu berechnen:"
-#                 )
-#             if self.mann_frau == "Frau":
-#                 dummy.write(
-#                     text=f"Sehr geehrte Frau {self.nachname},\n\n"
-#                     f"hiermit erlaube ich mir, für meine Bemühungen folgendes "
-#                     f"Honorar zu berechnen:"
-#                 )
-#             dummy.ln(7)
-#             dummy.set_font("helvetica", size=self.honorar_font_size)
-# 
-#             with dummy.table(
-#                 cell_fill_color=230,
-#                 cell_fill_mode="ROWS",
-#                 borders_layout="SINGLE_TOP_LINE",
-#                 line_height=1.7 * self.font_size,
-#                 text_align=("CENTER", "RIGHT", "LEFT", "RIGHT", "LEFT"),
-#                 col_widths=(10, 8, 70, 10, 3),
-#             ) as table:
-#                 for data_row in self.table_data_2:
-#                     row = table.row()
-#                     for index, datum in enumerate(data_row):
-#                         if index == 4:
-#                             dummy.set_font("symbol", size=self.honorar_font_size + 1)
-#                             row.cell(datum)
-#                             dummy.set_font(
-#                                 "helvetica", style="", size=self.honorar_font_size
-#                             )
-#                         else:
-#                             row.cell(datum)
-# 
-#             dummy.ln(1)
-#             dummy.cell(190, 0, border=1, center=True)
-# 
-#             # check if page break is triggered by table2
-#             if dummy.page_break_triggered:
-#                 with dummy.table(
-#                     borders_layout="NONE",
-#                     col_widths=(10, 8, 70, 10, 3),
-#                     line_height=1.7 * self.font_size,
-#                     text_align=("CENTER", "LEFT", "RIGHT", "RIGHT", "LEFT"),
-#                     cell_fill_color=180,
-#                     cell_fill_mode="NONE",
-#                     first_row_as_headings=False,
-#                 ) as table:
-#                     for data_row in self.table_data_3:
-#                         row = table.row()
-#                         for index, datum in enumerate(data_row):
-#                             if index == 4:
-#                                 dummy.set_font(
-#                                     "symbol", "", size=self.honorar_font_size + 1
-#                                 )
-#                                 row.cell(datum)
-#                                 dummy.set_font(
-#                                     "helvetica", style="", size=self.honorar_font_size
-#                                 )
-#                             else:
-#                                 dummy.set_font(
-#                                     "helvetica", style="B", size=self.honorar_font_size
-#                                 )
-#                                 row.cell(datum)
-#                                 dummy.set_font(
-#                                     "helvetica", style="", size=self.honorar_font_size
-#                                 )
-# 
-#                 # triggered by table 2
-#                 if dummy.page_break_triggered:
-#                     linebreak_length = 15
-#                 else:
-#                     linebreak_length = 15
-# 
-#             # triggered by table 1
-#             else:
-#                 linebreak_length = 15
+        # offset rendering the main table and the total
+        # making sure it is not split in half
+        with self.offset_rendering() as dummy:
+            dummy.cell(175, 0, border=1, center=True)
+            dummy.ln(10)
+            if self.mann_frau == "Mann":
+                dummy.write(
+                    text=f"Sehr geehrter Herr {self.nachname},\n\n"
+                         f"hiermit erlaube ich mir, für meine Bemühungen folgendes "
+                         f"Honorar zu berechnen:"
+                )
+            if self.mann_frau == "Frau":
+                dummy.write(
+                    text=f"Sehr geehrte Frau {self.nachname},\n\n"
+                         f"hiermit erlaube ich mir, für meine Bemühungen "
+                         f"folgendes Honorar zu berechnen:"
+                )
+            dummy.ln(7)
+            dummy.set_font("helvetica", size=self.honorar_font_size)
 
-        # rendering the tables
+            # Table 2
+            # -----------------
+            # Date | Ziffern | Descriptions | Costs
+            with dummy.table(
+                    cell_fill_color=230,
+                    cell_fill_mode="ROWS",
+                    line_height=int(1.7 * self.font_size),
+                    text_align=("CENTER", "RIGHT", "LEFT", "RIGHT", "LEFT"),
+                    col_widths=(10, 8, 70, 10, 4),
+            ) as table:
+                for index1, data_row in enumerate(self.table_data_2):
+                    row = table.row()
+                    for index2, datum in enumerate(data_row):
+                        if index2 == 4:
+                            dummy.set_font("symbol", size=self.honorar_font_size + 1)
+                            row.cell(datum)
+                            dummy.set_font(
+                                "helvetica", style="", size=self.honorar_font_size
+                            )
+                        else:
+                            row.cell(datum)
+
+            dummy.ln(1)
+            dummy.cell(175, 0, border=1, center=True)
+
+            # Table 3
+            # --------------
+            #      |      | Gesamtbetrag | Total
+            with dummy.table(
+                    borders_layout="NONE",
+                    col_widths=(10, 8, 70, 10, 4),
+                    line_height=int(1.7 * self.font_size),
+                    text_align=("CENTER", "LEFT", "RIGHT", "RIGHT", "LEFT"),
+                    cell_fill_color=180,
+                    cell_fill_mode="NONE",
+                    first_row_as_headings=False,
+            ) as table:
+                page_before = dummy.page_no()
+                for data_row in self.table_data_3:
+                    row = table.row()
+                    for index, datum in enumerate(data_row):
+                        if index == 4:
+                            dummy.set_font("symbol", "", size=self.honorar_font_size + 1)
+                            row.cell(datum)
+                            dummy.set_font(
+                                "helvetica", style="", size=self.honorar_font_size
+                            )
+                        else:
+                            dummy.set_font(
+                                "helvetica", style="B", size=self.honorar_font_size
+                            )
+                            row.cell(datum)
+                            dummy.set_font(
+                                "helvetica", style="", size=self.honorar_font_size
+                            )
+
+            man_page_break = False
+            if page_before != dummy.page_no():
+                man_page_break = True
+
+        if man_page_break:
+            self.table_data_2_1 = list(self.table_data_2)
+            while len(self.table_data_2_1) > 2:
+                self.table_data_2_1.pop(1)
+            self.table_data_2.pop(-1)
+
         self.cell(175, 0, border=1, center=True)
-        linebreak_length = 10
-        self.ln(linebreak_length)
+        self.ln(10)
         if self.mann_frau == "Mann":
             self.write(
                 text=f"Sehr geehrter Herr {self.nachname},\n\n"
-                f"hiermit erlaube ich mir, für meine Bemühungen folgendes "
-                f"Honorar zu berechnen:"
+                     f"hiermit erlaube ich mir, für meine Bemühungen folgendes "
+                     f"Honorar zu berechnen:"
             )
         if self.mann_frau == "Frau":
             self.write(
                 text=f"Sehr geehrte Frau {self.nachname},\n\n"
-                f"hiermit erlaube ich mir, für meine Bemühungen "
-                f"folgendes Honorar zu berechnen:"
+                     f"hiermit erlaube ich mir, für meine Bemühungen "
+                     f"folgendes Honorar zu berechnen:"
             )
         self.ln(7)
         self.set_font("helvetica", size=self.honorar_font_size)
 
+        # Table 2
+        # -----------------
+        # Date | Ziffern | Descriptions | Costs
         with self.table(
-            cell_fill_color=230,
-            cell_fill_mode="ROWS",
-            line_height=int(1.7 * self.font_size),
-            text_align=("CENTER", "RIGHT", "LEFT", "RIGHT", "LEFT"),
-            col_widths=(10, 8, 70, 10, 4),
+                cell_fill_color=230,
+                cell_fill_mode="ROWS",
+                line_height=int(1.7 * self.font_size),
+                text_align=("CENTER", "RIGHT", "LEFT", "RIGHT", "LEFT"),
+                col_widths=(10, 8, 70, 10, 4),
         ) as table:
             for data_row in self.table_data_2:
                 row = table.row()
@@ -5218,14 +5221,18 @@ class HpRechnung(PDF):
                     else:
                         row.cell(datum)
 
-        if self.manual_pagebreak:
+        # only when table 2 and 3 are separated
+        # Table 2.1
+        # -----------------
+        # Date | Ziffern | Descriptions | Costs
+        if self.table_data_2_1:
             self.add_page()
             with self.table(
-            cell_fill_color=230,
-            cell_fill_mode="ROWS",
-            line_height=int(1.7 * self.font_size),
-            text_align=("CENTER", "RIGHT", "LEFT", "RIGHT", "LEFT"),
-            col_widths=(10, 8, 70, 10, 4),
+                    cell_fill_color=230,
+                    cell_fill_mode="ROWS",
+                    line_height=int(1.7 * self.font_size),
+                    text_align=("CENTER", "RIGHT", "LEFT", "RIGHT", "LEFT"),
+                    col_widths=(10, 8, 70, 10, 4),
             ) as table:
                 for data_row in self.table_data_2_plus:
                     row = table.row()
@@ -5242,14 +5249,17 @@ class HpRechnung(PDF):
         self.ln(1)
         self.cell(175, 0, border=1, center=True)
 
+        # Table 3
+        # --------------
+        #      |      | Gesamtbetrag | Total
         with self.table(
-            borders_layout="NONE",
-            col_widths=(10, 8, 70, 10, 4),
-            line_height=int(1.7 * self.font_size),
-            text_align=("CENTER", "LEFT", "RIGHT", "RIGHT", "LEFT"),
-            cell_fill_color=180,
-            cell_fill_mode="NONE",
-            first_row_as_headings=False,
+                borders_layout="NONE",
+                col_widths=(10, 8, 70, 10, 4),
+                line_height=int(1.7 * self.font_size),
+                text_align=("CENTER", "LEFT", "RIGHT", "RIGHT", "LEFT"),
+                cell_fill_color=180,
+                cell_fill_mode="NONE",
+                first_row_as_headings=False,
         ) as table:
             for data_row in self.table_data_3:
                 row = table.row()
@@ -5269,7 +5279,6 @@ class HpRechnung(PDF):
                             "helvetica", style="", size=self.honorar_font_size
                         )
 
-        # rendering finished
         self.ln(3)
 
         with self.offset_rendering() as dummy:
@@ -5282,7 +5291,7 @@ class HpRechnung(PDF):
             dummy.write(
                 6.5,
                 text="innerhalb von 14 Tagen unter Angabe der Rechnungsnummer auf unten "
-                "stehendes Konto zu überweisen.",
+                     "stehendes Konto zu überweisen.",
             )
             dummy.ln(13)
             dummy.write(text="Mit freundlichen Grüßen")
@@ -5300,7 +5309,7 @@ class HpRechnung(PDF):
         self.write(
             6.5,
             text="innerhalb von 14 Tagen unter Angabe der Rechnungsnummer auf unten "
-            "stehendes Konto zu überweisen.",
+                 "stehendes Konto zu überweisen.",
         )
         self.ln(13)
         self.write(text="Mit freundlichen Grüßen")
