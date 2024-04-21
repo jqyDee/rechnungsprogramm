@@ -4632,8 +4632,8 @@ class UpdateYearToplevelWindow(customtkinter.CTkToplevel):
             self.label_var.set("Format Datum -> YYYY / 2023")
 
 
-class PDF(FPDF):
-    """overwrites the default FPDF2 header and footer functions."""
+class KG_PDF(FPDF):
+    """overwrites the default FPDF2 header and footer functions for KG Rechnung."""
 
     def __init__(self, rechnungsnummer: str, steuer_id: str, iban: str, bic: str):
         super().__init__()
@@ -4696,8 +4696,72 @@ class PDF(FPDF):
         # Page number
         self.cell(0, 5, "Seite " + str(self.page_no()) + " von {nb}", align="R")
 
+class HP_PDF(FPDF):
+    """overwrites the default FPDF2 header and footer functions for HP Rechnung."""
 
-class KgRechnung(PDF):
+    def __init__(self, rechnungsnummer: str, steuer_id: str, iban: str, bic: str):
+        super().__init__()
+        self.rechnungsnummer = rechnungsnummer
+        self.steuer_id = steuer_id
+        self.iban = iban
+        self.bic = bic
+
+    def header(self):
+        """New PDF header section"""
+
+        # Logo
+        try:
+            self.image(
+                x=22,
+                y=17,
+                name="./system/components/images/logo.png",
+                w=18,
+                alt_text="Logo",
+            )
+        except FileNotFoundError:
+            pass
+        self.set_font("helvetica", "B", 14)
+        self.cell(0, new_x=XPos.LMARGIN, new_y=YPos.TMARGIN)
+        self.ln(2.5)
+        self.cell(25)
+        self.cell(0, text="Mervi Fischbach", align="L")
+        # self.cell(0, text='Test', align='R')
+        self.ln()
+        self.cell(25)
+        self.set_font("helvetica", "B", 12)
+        self.set_text_color(150)
+        self.cell(0, text="Heilpraktikerin", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        self.cell(25)
+        self.set_text_color(255)
+        self.cell(0, text="Physiotherapeutin")
+        self.ln(23)
+
+    # Page footer
+    def footer(self):
+        """New PDF footer section"""
+
+        # Position at 3.5 cm from bottom
+        self.set_y(-35)
+        # helvetica italic 8
+        self.set_font("helvetica", "B", 8)
+        self.cell(0, 5, "Bankverbindung", align="C")
+        self.ln(3)
+        self.cell(0, 5, f"IBAN: {self.iban}", align="C")
+        self.ln(3)
+        self.cell(0, 5, f"BIC: {self.bic}", align="C")
+        self.ln(3)
+        self.set_font("helvetica", "", 6)
+        self.cell(1, 5, f"Rechnungsnummer: {self.rechnungsnummer}", align="L")
+        self.cell(
+            0,
+            5,
+            f"Steuer Nummer: {self.steuer_id} - Ust. Befreit nach §4 UStG",
+            align="C",
+        )
+        # Page number
+        self.cell(0, 5, "Seite " + str(self.page_no()) + " von {nb}", align="R")
+
+class KgRechnung(KG_PDF):
     """Creates the KG PDF and outputs to given filepath"""
 
     # setting pdf font sizes
@@ -4955,7 +5019,7 @@ class KgRechnung(PDF):
         self.output(filepath)
 
 
-class HpRechnung(PDF):
+class HpRechnung(HP_PDF):
     """Creates the HP PDF and outputs to given filepath"""
 
     # setting pdf font sizes
