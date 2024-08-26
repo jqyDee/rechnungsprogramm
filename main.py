@@ -57,12 +57,15 @@ class App(customtkinter.CTk):
     iban = None
     steuer_id = None
     bic = None
+    price_from = "100"
+    price_to = "110"
 
     # interfaces
     kg_interface = None
     hp_interface = None
     stammdaten_interface = None
     rechnung_loeschen_interface = None
+    documents_interface = None
     einstellungen_interface = None
     toplevel_window = None
 
@@ -195,10 +198,6 @@ class App(customtkinter.CTk):
         if not os.path.exists("./system/updater/"):
             os.makedirs("./system/updater/")
             logging.debug("./system/updater/ created")
-
-        if os.path.exists("./system/tmp/updater.py"):
-            os.remove("./system/tmp/updater.py")
-            logging.debug("old ./system/tmp/updater.py deleted")
 
         i = 0
         while self.running and i < 10:
@@ -575,6 +574,20 @@ class App(customtkinter.CTk):
         self.iban = user_dict["iban"]
         self.bic = user_dict["bic"]
 
+        try:
+            self.price_from = user_dict["price_from"]
+        except KeyError:
+            user_dict["price_from"] = self.price_from
+            with open(f"./system/user_data.yml", "w") as f:
+                yaml.dump(user_dict, f)
+
+        try:
+            self.price_to = user_dict["price_to"]
+        except KeyError:
+            user_dict["price_to"] = self.price_to
+            with open(f"./system/user_data.yml", "w") as f:
+                yaml.dump(user_dict, f)
+
     def configure_main_window(self, title: str = "Rechnungsprogramm"):
         """Configures the main window: dimensions, title, isResizeable, x- and y-coordinates"""
 
@@ -635,6 +648,20 @@ class App(customtkinter.CTk):
                     self.hp_interface.insert_data(*args)
             except TypeError:
                 pass
+
+    def documents(self, *args):
+        """Calls the store_draft function and creates the interface to create a new HPRechnung by
+        calling the class DocumentsInterface
+
+        :type args: data out of rechnungen-*.csv or *-DRAFT-*.csv"""
+
+        logging.debug("App.documents() called")
+        if not self.store_draft():
+            return
+        self.open_interface = "doc"
+        if self.documents_interface is None or not self.documents_interface.winfo_exists():
+            self.clear_interfaces()
+            self.documents_interface = DocumentsInterface(self)
 
     def stammdaten_(self):
         """Calls the store_draft function and creates the stammdaten Interface by
@@ -714,6 +741,10 @@ class App(customtkinter.CTk):
             pass
         try:
             self.rechnung_loeschen_interface.destroy()
+        except AttributeError:
+            pass
+        try:
+            self.documents_interface.destroy()
         except AttributeError:
             pass
         try:
@@ -950,7 +981,7 @@ class App(customtkinter.CTk):
     def open_file(filepath: str):
         """opens file in default program of your os"""
 
-        logging.debug("App.open_rechnung() called")
+        logging.debug("App.open_file() called")
 
         if platform.system() == "Darwin":  # macOS
             subprocess.call(("open", filepath))
@@ -1059,6 +1090,12 @@ class App(customtkinter.CTk):
             with open("./system/properties.yml", "w") as f:
                 yaml.dump(properties_dict, f)
 
+        folder = './system/tmp'
+        for filename in os.listdir(folder):
+            filepath = os.path.join(folder, filename)
+            os.remove(filepath)
+
+
     def on_shutdown(self):
         """Called when program is closing. Checks the integrity of necessary Directories and
         creates backup when enabled in properties.yml. Makes sure all threads are closed
@@ -1138,6 +1175,9 @@ class Sidebar(customtkinter.CTkFrame):
         self.button_4 = customtkinter.CTkButton(
             self, text="Rechnungen", command=lambda: self.parent.rechnung_loeschen()
         )
+        self.button_7 = customtkinter.CTkButton(
+            self, text="Dokumente", command=lambda: self.parent.documents()
+        )
         self.label_1 = customtkinter.CTkLabel(
             self,
             text="Main Error\nCouldn't download version.txt!\nTry again later!",
@@ -1196,6 +1236,7 @@ class Sidebar(customtkinter.CTkFrame):
         self.button_2.pack(padx=20, pady=(10, 0), side="top", fill="x")
         self.button_3.pack(padx=20, pady=(10, 0), side="top", fill="x")
         self.button_4.pack(padx=20, pady=(10, 0), side="top", fill="x")
+        self.button_7.pack(padx=20, pady=(10, 0), side="top", fill="x")
         self.button_5.pack(padx=20, pady=(10, 20), side="bottom", fill="x")
 
         if self.parent.debug_mode:
@@ -1814,7 +1855,7 @@ class KGRechnungInterface(customtkinter.CTkScrollableFrame):
                     )
                     return False
             if i == "":
-                if index in (8, 10, 11, 12):
+                if index in (8, 10, 11, 12, 13):
                     pass
                 else:
                     logging.debug(
@@ -2594,7 +2635,7 @@ class HPRechnungInterface(customtkinter.CTkScrollableFrame):
                     )
                     return False
             if i == "":
-                if index in (8, 10, 11, 12):
+                if index in (8, 10, 11, 12, 13):
                     pass
                 else:
                     logging.debug(
@@ -2747,8 +2788,9 @@ class StammdatenInterface(customtkinter.CTkFrame):
         "Geburtsdatum",
         "Kilometer",
         "Hausarzt",
-        "Email",
+        "E-Mail",
         "KG/HP",
+        "Telefon",
     ]
 
     def __init__(self, parent):
@@ -3221,7 +3263,7 @@ class StammdatenInterface(customtkinter.CTkFrame):
         if os.path.exists(filepath):
             with open(filepath, "r") as f:
                 f = f.readlines()
-                for i in range(13):
+                for i in range(14):
                     try:
                         self.stammdaten_entries[i].insert(0, f[i].replace("\n", ""))
                     except IndexError:
@@ -3335,7 +3377,7 @@ class StammdatenInterface(customtkinter.CTkFrame):
                         "w",
                 ) as f:
                     for index, i in enumerate(self.stammdaten):
-                        if index != 12:
+                        if index != 13:
                             f.write(f"{i.get()}\n")
                         else:
                             f.write(f"{i.get()}")
@@ -3345,7 +3387,7 @@ class StammdatenInterface(customtkinter.CTkFrame):
                     f"{self.parent.stammdaten_location}/{self.stammdaten[0].get()}.txt", "w"
             ) as f:
                 for index, i in enumerate(self.stammdaten):
-                    if index != 12:
+                    if index != 13:
                         f.write(f"{i.get()}\n")
                     else:
                         f.write(f"{i.get()}")
@@ -3797,6 +3839,299 @@ class RechnungenInterface(customtkinter.CTkFrame):
         self.aktualisieren_event()
 
 
+class DocumentsInterface(customtkinter.CTkFrame):
+    """Creating the DocumentsInterface frame and widgets."""
+
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        logging.info("class DocumentsInterface() called")
+
+        self.parent = parent
+
+        self.configure(fg_color="gray16", corner_radius=0)
+        self.place(relx=0.2, y=0, relwidth=0.8, relheight=0.90)
+
+        # tk variables
+        self.frame_1_warning_var = tk.StringVar()
+
+        self.create_widgets_part_1()
+        self.create_layout_part_1()
+
+    def create_widgets_part_1(self):
+        """Creating the widgets_part_1 of frame/class DocumentsInterface"""
+
+        logging.debug("DocumentsInterface.create_widgets_part_1() called")
+
+        # heading section
+        self.heading_1 = customtkinter.CTkLabel(
+            self, text="Dokumente", font=self.parent.large_heading
+        )
+
+        # Separator
+        self.separator_1 = ttk.Separator(self, orient="horizontal")
+
+        # kuerzel section
+        self.frame_1 = customtkinter.CTkFrame(self, fg_color="gray16")
+        self.heading_2 = customtkinter.CTkLabel(
+            self.frame_1, text="General", font=self.parent.small_heading
+        )
+        self.kuerzel_label = customtkinter.CTkLabel(self.frame_1, text="Kürzel:")
+        self.kuerzel_entry = customtkinter.CTkEntry(
+            self.frame_1,
+            validate="key",
+            validatecommand=(self.register(self.kuerzel_entry_validation), "%P"),
+        )
+
+        self.frame_1_warning = customtkinter.CTkLabel(
+            self.frame_1, textvariable=self.frame_1_warning_var, text=""
+        )
+
+        # Separator
+        self.separator_2 = ttk.Separator(self, orient="horizontal")
+
+    def create_layout_part_1(self):
+        """Creating the layout_part_1 of frame/class DocumentsInterface"""
+
+        logging.debug("DocumentsInterface.create_layout_part_1() called")
+
+        # heading section
+        self.heading_1.pack(side="top", fill="x", expand=False, pady=(20, 30), padx=20)
+
+        # Separator
+        self.separator_1.pack(fill="x", expand=False)
+
+        # kuerzel-rechnungsdatum section
+        self.frame_1.grid_columnconfigure(2, weight=1)
+        self.frame_1.pack(fill="x", expand=False, pady=15, padx=20)
+        self.heading_2.grid(row=0, column=0, padx=10, pady=4, columnspan=2, sticky="w")
+        self.kuerzel_label.grid(row=1, column=0, padx=10, pady=4, sticky="w")
+        self.kuerzel_entry.grid(row=1, column=1, sticky="w")
+
+        self.frame_1_warning.grid(row=1, column=2, pady=4, sticky="ew")
+
+        # Separator
+        self.separator_2.pack(fill="x", expand=False)
+
+    def create_widgets_part_2(self):
+        """Creating the widgets_part_2 of frame/class KGRechnungInterface"""
+
+        logging.debug("DocumentsInterface.create_widgets_part_2() called")
+
+        self.frame_2 = customtkinter.CTkFrame(self, fg_color="gray16")
+        self.heading_3 = customtkinter.CTkLabel(
+            self.frame_2, text="Variablen", font=self.parent.small_heading
+        )
+
+        # variables
+        self.price_from_label = customtkinter.CTkLabel(self.frame_2, text="Preis von:")
+        self.price_from_entry = customtkinter.CTkEntry(self.frame_2)
+        self.price_from_entry.insert(0, str(self.parent.price_from))
+        self.price_to_label = customtkinter.CTkLabel(self.frame_2, text="bis:")
+        self.price_to_entry = customtkinter.CTkEntry(self.frame_2)
+        self.price_to_entry.insert(0, str(self.parent.price_to))
+        self.info_label = customtkinter.CTkLabel(self.frame_2, text="(Preis als Zahl/ohne € Zeichen)")
+
+        self.separator_3 = ttk.Separator(self, orient="horizontal")
+
+        # create Documents section
+        self.frame_3 = customtkinter.CTkFrame(self, fg_color="gray16")
+        self.heading_4 = customtkinter.CTkLabel(
+            self.frame_3, text="Dokument erstellen", font=self.parent.small_heading
+        )
+
+        # create Documents
+        self.privacy_button = customtkinter.CTkButton(
+            self.frame_3,
+            text="Datenschutzerklärung",
+            command=lambda: self.create_privacy_pdf()
+        )
+        self.therapy_button = customtkinter.CTkButton(
+            self.frame_3,
+            text="Therapierklärung",
+            command=lambda: self.create_therapy_pdf()
+        )
+
+    def create_layout_part_2(self):
+        """Creating the layout_part_2 of frame/class KGRechnungInterface"""
+
+        logging.debug("DocumentsInterface.create_layout_part_2() called")
+
+        # variables section
+        self.frame_2.pack(fill="x", expand=False, pady=(15, 15), padx=20)
+        self.heading_3.grid(row=0, column=0, padx=10, pady=4, sticky="w")
+
+        # variables
+        self.price_from_label.grid(row=1, column=0, padx=(10,0), pady=4, sticky="w")
+        self.price_from_entry.grid(row=1, column=1, padx=(10,0), pady=4, sticky="w")
+        self.price_to_label.grid(row=1, column=2, padx=(10,0), pady=4, sticky="w")
+        self.price_to_entry.grid(row=1, column=3, padx=(10,0), pady=4, sticky="w")
+        self.info_label.grid(row=2, column=0, padx=(10,0), pady=4, columnspan=4, sticky="w")
+
+        # Seperator
+        self.separator_3.pack(fill="x", expand=False)
+
+        # create Documents section
+        self.frame_3.pack(fill="x", expand=False, pady=(15, 15), padx=20)
+        self.heading_4.grid(row=0, column=0, padx=10, pady=4, sticky="w")
+
+        # create Documents
+        self.privacy_button.grid(row=1, column=0, padx=(10,0), pady=4, sticky="w")
+        self.therapy_button.grid(row=1, column=1, padx=(10,0), pady=4, sticky="w")
+
+    def kuerzel_entry_validation(self, text_after_action: str):
+        """validating the changes made to kuerzel_entry widgets on keystroke.
+        Params:
+             text_after_action: str (text in the entry)"""
+
+        logging.debug(f"DocumentsInterface.kuerzel_entry_validation() called")
+
+        def clear_documents_widgets():
+            """unpacking and destroying the widgets_part_2"""
+
+            logging.debug(
+                "DocumentsInterface.kuerzel_entry_validation.clear_kg_rechnung_widgets() called"
+            )
+
+            self.parent.bottom_nav.bottom_nav_button.configure(state="disabled")
+            self.parent.bottom_nav.bottom_nav_button_2.configure(state="disabled")
+            self.parent.bottom_nav.bottom_nav_warning.configure(
+                text="", fg_color="transparent"
+            )
+            self.frame_1_warning_var.set("")
+
+            try:
+                self.separator_3.pack_forget()
+                self.separator_3.destroy()
+                self.frame_2.pack_forget()
+                self.frame_2.destroy()
+                self.frame_3.pack_forget()
+                self.frame_3.destroy()
+            except AttributeError:
+                pass
+
+        # checking if draft can and should be stored
+        if not self.parent.store_draft():
+            return False
+
+        # entry can't be kuerzel (len() < 4). Letting change pass
+        if len(text_after_action) < 4:
+            logging.debug("kuerzel len < 4, letting change pass")
+            if "Success" in self.frame_1_warning_var.get():
+                self.frame_1_warning_var.set("")
+            clear_documents_widgets()
+            return True
+
+        # entry can't be kuerzel (len() > 4). Letting change pass
+        elif len(text_after_action) > 4:
+            logging.debug("kuerzel len > 4, not letting change pass")
+            return False
+
+        # entry could be kuerzel. checking if stammdatei from kuerzel exists
+        elif len(text_after_action) == 4:
+            logging.debug("kuerzel len == 4")
+
+            if os.path.exists(
+                    f"{self.parent.stammdaten_location}/{text_after_action.upper()}.txt"
+            ):
+                logging.info(f'stammdatei "{text_after_action}.txt" exists')
+                with open(
+                        f"{self.parent.stammdaten_location}/{text_after_action}.txt", "r"
+                ) as f:
+                    stammdaten = f.readlines()
+                    for i, line in enumerate(stammdaten):
+                        stammdaten[i] = line.replace("\n", "")
+
+                self.frame_1_warning_var.set(f"Stammdatei gefunden!")
+                self.frame_1_warning.configure(text_color="green")
+
+                self.create_widgets_part_2()
+                self.create_layout_part_2()
+
+                return True
+
+            else:
+                logging.info(f'stammdatei "{text_after_action}.txt" doesnt exist')
+                clear_documents_widgets()
+                self.frame_1_warning_var.set(f"Stammdatei nicht gefunden!")
+                self.frame_1_warning.configure(text_color="red")
+
+                return True
+
+    def privacy_create_button_event(self):
+        """calls function validate_documents_entries. checks return value"""
+
+        logging.debug("DocumentsInterface.privacy_create_button_event() called")
+
+        # create privacy
+        if self.validate_stammdaten():
+            self.create_privacy_pdf()
+
+    def validate_stammdaten(self):
+        """Validates the stammdaten"""
+
+        logging.debug("DocumentsInterface.validate_stammdaten() called")
+
+        self.parent.bottom_nav.bottom_nav_warning.configure(text="")
+
+        if len(self.kuerzel_entry.get()) == 4:
+            if os.path.exists(
+                    f"{self.parent.stammdaten_location}/{self.kuerzel_entry.get()}.txt"
+            ):
+                with open(
+                        f"{self.parent.stammdaten_location}/{self.kuerzel_entry.get()}.txt",
+                        "r",
+                ) as f:
+                    self.stammdaten = f.readlines()
+                    for i, line in enumerate(self.stammdaten):
+                        self.stammdaten[i] = line.replace("\n", "")
+            else:
+                logging.warning(f"kuerzel not found, check code and check kuerzel")
+                messagebox.showwarning(
+                    "Kürzel Warning",
+                    "Kürzel/Stammdatei nicht gefunden. Versuche es erneut!",
+                )
+                self.parent.bottom_nav.bottom_nav_warning.configure(
+                    text=f"Kürzel/Stammdatei nicht gefunden. Versuche es erneut!",
+                    fg_color="red",
+                )
+                return False
+        logging.debug(f"stammdaten: {self.stammdaten}")
+        return True
+
+    def create_privacy_pdf(self):
+        """Creates the Privacy PDF by calling Privacy class."""
+
+        logging.debug("DocumentsInterface.create_privacy_pdf() called")
+
+        filepath = f"./system/tmp/{self.kuerzel_entry.get()}-datenschutzerklärung.pdf"
+
+        if self.validate_stammdaten():
+            Privacy(self.stammdaten, filepath)
+            self.parent.bottom_nav.bottom_nav_warning.configure(
+                text=f"Datenschutzerklärung erstellt!", fg_color="green"
+            )
+            self.parent.open_file(filepath)
+        else:
+            return False
+
+    def create_therapy_pdf(self):
+        """Creates the Therapy PDF by calling Privacy class."""
+
+        logging.debug("DocumentsInterface.create_therapy_pdf() called")
+
+        filepath = f"./system/tmp/{self.kuerzel_entry.get()}-therapievereinbarung.pdf"
+
+        if self.validate_stammdaten():
+            Therapy(self.stammdaten, filepath, self.price_from_entry.get(), self.price_to_entry.get())
+            self.parent.bottom_nav.bottom_nav_warning.configure(
+                text=f"Therapievereinbarung erstellt!", fg_color="green"
+            )
+            self.parent.open_file(filepath)
+        else:
+            return False
+
+
 class EinstellungInterface(customtkinter.CTkScrollableFrame):
     """Creating the Einstellung Interface frame, widgets and layout part_1.
     Main setting Interface!"""
@@ -3856,6 +4191,8 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.frame_4_steuer_id_var = tk.StringVar(value=f"{self.parent.steuer_id}")
         self.frame_4_iban_var = tk.StringVar(value=f"{self.parent.iban}")
         self.frame_4_bic_var = tk.StringVar(value=f"{self.parent.bic}")
+        self.frame_4_price_from_var = tk.StringVar(value=f"{self.parent.price_from}")
+        self.frame_4_price_to_var = tk.StringVar(value=f"{self.parent.price_to}")
 
         self.create_widgets_part_1()
         self.create_layout_part_1()
@@ -3946,6 +4283,22 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
             validate="key",
             validatecommand=(self.register(self.detect_change), "%P", "bic"),
         )
+        self.price_from_label = customtkinter.CTkLabel(self.frame_4, text="Therapieerklärung Preis von:")
+        self.price_from_entry = customtkinter.CTkEntry(
+            self.frame_4,
+            textvariable=self.frame_4_price_from_var,
+            width=100,
+            validate="key",
+            validatecommand=(self.register(self.detect_change), "%P", "price_from")
+        )
+        self.price_to_label = customtkinter.CTkLabel(self.frame_4, text="Therapieerklärung Preis bis:")
+        self.price_to_entry = customtkinter.CTkEntry(
+            self.frame_4,
+            textvariable=self.frame_4_price_to_var,
+            width=100,
+            validate="key",
+            validatecommand=(self.register(self.detect_change), "%P", "price_to")
+        )
 
         # About section
         self.frame_2 = customtkinter.CTkFrame(self, fg_color="gray16")
@@ -3996,6 +4349,10 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
         self.iban_entry.grid(row=2, column=1, padx=10, pady=4, sticky="w")
         self.bic_label.grid(row=3, column=0, padx=10, pady=4, sticky="w")
         self.bic_entry.grid(row=3, column=1, padx=10, pady=4, sticky="w")
+        self.price_from_label.grid(row=4, column=0, padx=10, pady=4, sticky="w")
+        self.price_from_entry.grid(row=4, column=1, padx=10, pady=4, sticky="w")
+        self.price_to_label.grid(row=5, column=0, padx=10, pady=4, sticky="w")
+        self.price_to_entry.grid(row=5, column=1, padx=10, pady=4, sticky="w")
 
         # Separator
         self.separator_3.pack(fill="x", expand=False, pady=(300, 0))
@@ -4289,6 +4646,8 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
             "steuer_id",
             "iban",
             "bic",
+            "price_from",
+            "price_to",
             "rechnungen_location",
             "stammdaten_location",
             "backup_location",
@@ -4532,6 +4891,32 @@ class EinstellungInterface(customtkinter.CTkScrollableFrame):
                         yaml.dump(user_dict, f)
 
                     logging.info("bic changed successfully")
+                elif kind == "price_from":
+                    self.parent.price_from = self.frame_4_price_from_var.get()
+
+                    if not os.path.exists("./system/user_data.yml"):
+                        self.parent.load_user_data()
+
+                    with open("./system/user_data.yml", "r") as a:
+                        user_dict = yaml.safe_load(a)
+                        user_dict["price_from"] = self.parent.price_from
+                    with open("./system/user_data.yml", "w") as f:
+                        yaml.dump(user_dict, f)
+
+                    logging.info("price_from changed successfully")
+                elif kind == "price_to":
+                    self.parent.price_to= self.frame_4_price_to_var.get()
+
+                    if not os.path.exists("./system/user_data.yml"):
+                        self.parent.load_user_data()
+
+                    with open("./system/user_data.yml", "r") as a:
+                        user_dict = yaml.safe_load(a)
+                        user_dict["price_to"] = self.parent.price_to
+                    with open("./system/user_data.yml", "w") as f:
+                        yaml.dump(user_dict, f)
+
+                    logging.info("price_to changed successfully")
 
         self.parent.bottom_nav.bottom_nav_warning.configure(
             text="Änderungen gespeichert!", fg_color="green"
@@ -4632,7 +5017,7 @@ class UpdateYearToplevelWindow(customtkinter.CTkToplevel):
             self.label_var.set("Format Datum -> YYYY / 2023")
 
 
-class KG_PDF(FPDF):
+class KgPdf(FPDF):
     """overwrites the default FPDF2 header and footer functions for KG Rechnung."""
 
     def __init__(self, rechnungsnummer: str, steuer_id: str, iban: str, bic: str):
@@ -4696,7 +5081,8 @@ class KG_PDF(FPDF):
         # Page number
         self.cell(0, 5, "Seite " + str(self.page_no()) + " von {nb}", align="R")
 
-class HP_PDF(FPDF):
+
+class HpPdf(FPDF):
     """overwrites the default FPDF2 header and footer functions for HP Rechnung."""
 
     def __init__(self, rechnungsnummer: str, steuer_id: str, iban: str, bic: str):
@@ -4761,7 +5147,58 @@ class HP_PDF(FPDF):
         # Page number
         self.cell(0, 5, "Seite " + str(self.page_no()) + " von {nb}", align="R")
 
-class KgRechnung(KG_PDF):
+
+class DocumentPdf(FPDF):
+    """overwrites the default FPDF2 header and footer functions for HP Rechnung."""
+
+    def __init__(self, footer_note: str):
+        super().__init__()
+        self.footer_note = footer_note
+
+    def header(self):
+        """New PDF header section"""
+
+        # Logo
+        try:
+            self.image(
+                x=22,
+                y=17,
+                name="./system/components/images/logo.png",
+                w=18,
+                alt_text="Logo",
+            )
+        except FileNotFoundError:
+            pass
+        self.set_font("helvetica", "B", 14)
+        self.cell(0, new_x=XPos.LMARGIN, new_y=YPos.TMARGIN)
+        self.ln(2.5)
+        self.cell(25)
+        self.cell(0, text="Mervi Fischbach", align="L")
+        # self.cell(0, text='Test', align='R')
+        self.ln()
+        self.cell(25)
+        self.set_font("helvetica", "B", 12)
+        self.set_text_color(150)
+        self.cell(0, text="Heilpraktikerin", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        self.cell(25)
+        self.set_text_color(255)
+        self.cell(0, text="Physiotherapeutin")
+        self.ln(23)
+
+    # Page footer
+    def footer(self):
+        """New PDF footer section"""
+
+        # Position at 3.5 cm from bottom
+        self.set_y(-25)
+
+        # Page number
+        self.set_font("helvetica", "", 6)
+        self.cell(1, 5, f"{self.footer_note} | Stand 2018", align="L")
+        self.cell(0, 5, "Seite " + str(self.page_no()) + " von {nb}", align="R")
+
+
+class KgRechnung(KgPdf):
     """Creates the KG PDF and outputs to given filepath"""
 
     # setting pdf font sizes
@@ -5019,7 +5456,7 @@ class KgRechnung(KG_PDF):
         self.output(filepath)
 
 
-class HpRechnung(HP_PDF):
+class HpRechnung(HpPdf):
     """Creates the HP PDF and outputs to given filepath"""
 
     # setting pdf font sizes
@@ -5379,6 +5816,559 @@ class HpRechnung(HP_PDF):
         self.write(text="Mit freundlichen Grüßen")
         self.ln(7)
         self.write(text="Mervi Fischbach")
+
+        self.output(filepath)
+
+
+class Privacy(DocumentPdf):
+    """Creates the HP PDF and outputs to given filepath"""
+
+    # setting pdf font sizes
+    header_font_size = 10
+    normal_font_size = 8
+    privacy_font_size = 7
+
+    rechnungsempfaenger_offset = 4
+    default_offset = 6
+    in_text_offset = 3
+
+    def __init__(
+            self,
+            stammdaten: list,
+            filepath: str,
+    ):
+        super().__init__("Datenschutzinformation und Einwilligungserklärung")
+
+        self.set_margins(17, 17, 17)
+
+        # prepare data
+        self.kuerzel = stammdaten[0]
+        self.mann_frau = stammdaten[1]
+        self.nachname = stammdaten[2]
+        self.vorname = stammdaten[3]
+        self.strasse = stammdaten[4]
+        self.hausnummer = stammdaten[5]
+        self.plz = stammdaten[6]
+        self.ort = stammdaten[7]
+        self.geburtsdatum = stammdaten[8]
+        self.email = stammdaten[11]
+        try:
+            self.telefon = stammdaten[13]
+        except IndexError:
+            self.telefon = ""
+
+        self.create_pages(filepath)
+
+    def create_pages(self, filepath):
+        """Creates the PDF."""
+
+        self.set_auto_page_break(True, 25)
+
+        self.add_page()
+
+        self.set_font("helvetica", size=7)
+        self.cell(self.rechnungsempfaenger_offset)
+        self.write(text="Mervi Fischbach - Schulgasse 9 - 86923 Finning")
+        self.ln(3)
+
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.cell(self.rechnungsempfaenger_offset)
+        if self.mann_frau == "Mann":
+            self.write(text="Herr\n")
+        elif self.mann_frau == "Frau":
+            self.write(text="Frau\n")
+        self.cell(self.rechnungsempfaenger_offset)
+        self.write(text=f"{self.vorname} {self.nachname}\n")
+        self.cell(self.rechnungsempfaenger_offset)
+        self.write(text=f"{self.strasse} {self.hausnummer}\n")
+        self.cell(self.rechnungsempfaenger_offset)
+        self.write(text=f"{self.plz} {self.ort}\n")
+        self.ln(27)
+
+        self.set_font("helvetica", "B", 13)
+        self.write(text="Datenschutzinformation und Einwilligungserklärung")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", size=self.normal_font_size - 1)
+        self.write(text="zwischen")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="Mervi Fischbach\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.write(text="Heilpraktikerin\n")
+        self.write(text="Schulgasse 9 - 86923 Finning\n")
+        self.write(text="Tel.: 08806 / 9587111\n")
+        self.write(text="E-Mail: mervi.winter@web.de")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", size=self.normal_font_size - 1)
+        self.write(text="und Patient:")
+        self.ln(self.default_offset)
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text=f"{self.vorname} {self.nachname}\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.write(text=f"{self.strasse} {self.hausnummer} - {self.plz} {self.ort}\n")
+        self.write(text=f"geb. {self.geburtsdatum}\n")
+        if self.telefon != "":
+            self.write(text=f"Tel.: {self.telefon}\n")
+        if self.email != "":
+            self.write(text=f"E-Mail.: {self.email}")
+        self.ln(8)
+        self.cell(175, 0, border=1, center=True)
+        self.ln(4)
+
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0, self.normal_font_size/3,
+                        "In meiner Praxis werden während Ihrer Behandlung personenbezogene vertrauliche Daten erhoben."
+                        " Immer schon unterliegen alle Therapeuten und Mitarbeiter in meiner Praxis einer strengen "
+                        "Schweigepflicht. Nach dem jetzt in Kraft getretenen neuen Datenschutzrecht "
+                        "(EU-Datenschutz-Grundverordnung und Bundesdatenschutzgesetz) sind wir verpflichtet, Sie "
+                        "darüber zu informieren, zu welchem Zweck meine Praxis Daten erhebt, speichert oder "
+                        "weiterleitet. Der Information können Sie auch entnehmen, welche Rechte Sie beim Datenschutz "
+                        "haben. Ferner ist Ihre ausdrückliche Einwilligung in die Datenerhebung erforderlich. Dies "
+                        "bezieht sich auch auf unsere Angebote, wie z.B. Kurse, Seminare oder Vorlesungen außerhalb "
+                        "der Praxis.")
+        self.ln(self.default_offset)
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="1. VERANTWORTLICHKEIT FÜR DIE DATENVERARBEITUNG\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.write(text="Verantwortlich für die Datenverarbeitung ist:\n")
+        self.write(text="Mervi Fischbach\n")
+        self.write(text="Heilpraktikerin\n")
+        self.write(text="Schulgasse 9 - 86923 Finning\n")
+        self.write(text="Telefon: 08806 / 9587111\n")
+        self.write(text="E-Mail: mervi.winter@web.de")
+        self.ln(self.default_offset)
+        self.write(text="In unserem Bundesland ist in allen Datenschutzangelegenheiten Ansprechpartner:\n")
+        self.write(text="Dr. Thomas Petri\n")
+        self.write(text="Wagmüllerstraße 18 - 80538 München\n")
+        self.write(text="Telefon: 089 / 212672-0\n")
+        self.write(text="E-Mail: poststelle@datenschutz-bayern.de")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="2. ZWECK DER DATENVERARBEITUNG\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0,
+                        self.normal_font_size/3,
+                        "Die Datenverarbeitung erfolgt aufgrund gesetzlicher Vorgaben, um den Behandlungsvertrag "
+                        "zwischen Ihnen und Ihrem Heilpraktiker und die damit verbundenen "
+                        "Pflichten zu erfüllen. Hierzu verarbeite ich Ihre personenbezogenen Daten, insbesondere Ihre "
+                        "Gesundheitsdaten. Dazu zählen Anamnesen, Diagnosen, Therapievorschläge und Befunde, die ich "
+                        "oder andere Heilpraktiker erheben. Zu diesen Zwecken können uns auch andere Heilpraktiker, "
+                        "Ärzte, Psychologische Psychotherapeuten und Physiotherapeuten bei denen Sie in Behandlung "
+                        "sind, Daten zur Verfügung stellen (z. B. in Therapeutenbriefen), wenn Sie sie von Ihrer "
+                        "Schweigepflicht entbunden haben. Die Erhebung von Gesundheitsdaten ist Voraussetzung für "
+                        "Ihre Behandlung. Werden die notwendigen Informationen nicht bereitgestellt, kann eine "
+                        "sorgfältige Behandlung nicht erfolgen.")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="3. WEITERGABE IHRER DATEN AN DRITTE\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0,
+                        self.normal_font_size/3,
+                        "Ich übermittele Ihre personenbezogenen Daten nur dann an Dritte (z. B. ein Labor), wenn "
+                        "Sie eingewilligt haben.")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="4. SPEICHERUNG IHRER DATEN\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0,
+                        self.normal_font_size/3,
+                        "Ich bewahren Ihre personenbezogenen Daten nur solange auf, wie dies für die Durchführung "
+                        "der Behandlung erforderlich ist. Nach rechtlichen Vorgaben sind ich dazu verpflichtet, diese "
+                        "Daten mindestens 10 Jahre nach Abschluss der Behandlung aufzubewahren.")
+        self.ln(self.default_offset)
+
+        self.add_page()
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="5. EINWILLIGUNGSERKLÄRUNGN\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0,
+                        self.normal_font_size/3,
+                        "Durch Ihre Unterschrift erklären Sie sich ausdrücklich mit der für Ihre Behandlung "
+                        "notwendigen Erhebung und Speicherung persönlicher Daten einverstanden. Sie haben das Recht, "
+                        "diese Einwilligung jederzeit zu widerrufen, jedoch wirkt ein Widerruf nur für die Zukunft, da "
+                        "nach gesetzlichen Bestimmungen eine Dokumentation Ihrer Behandlungsdaten zwingend "
+                        "vorgeschrieben ist. Nach Widerruf dieser Einwilligungserklärung ist allerdings eine weitere "
+                        "Behandlung nicht mehr möglich.")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="6. WEITERE EINWILLIGUNGSERKLÄRUNGEN\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0,
+                        self.normal_font_size/3,
+                        "Einverständnis, Informationen, Terminvereinbarungen, Übungsaufgaben, Tipps, Hinweise oder "
+                        "ähnliches ggf. auch über per E-Mail, WhatsApp, Messenger, Post, etc. zu erhalten, bzw. "
+                        "auszutauschen.")
+        self.ln(self.in_text_offset)
+        self.multi_cell(0,
+                        self.normal_font_size/3,
+                        "Einverständnis, Informationen, Tipps, Hinweise (z.B. zur Gesundheit, "
+                        "Praxisveranstaltungen) oder ähnliches per Newsletter zu erhalten.")
+        self.ln(self.in_text_offset)
+        self.multi_cell(0,
+                        self.normal_font_size/3,
+                        "Einverständnis, Sitzungen über Telefon oder Onlineplattformen zu machen falls "
+                        "gewünscht/vereinbart (z.B. über SKYPE).")
+        self.ln(self.in_text_offset)
+        self.multi_cell(0,
+                        self.normal_font_size/3,
+                        "Betrifft nur Kurse, Seminare und Veranstaltungen: Einverständnis, dass Foto oder Video "
+                        "Aufnahmen ohne Namensnennung im Rahmen unserer Öffentlichkeitsarbeit, z.B. Werbung, "
+                        "Internetseiten Verwendung finden dürfen.")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="7. IHRE RECHTE\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0,
+                        self.normal_font_size/3,
+                        "Sie haben das Recht, über die Sie betreffenden personenbezogenen Daten Auskunft zu erhalten. "
+                        "Auch können Sie die Berichtigung unrichtiger Daten verlangen. Darüber hinaus steht Ihnen "
+                        "unter bestimmten Voraussetzungen das Recht auf Löschung von Daten, das Recht auf "
+                        "Einschränkung der Datenverarbeitung sowie das Recht auf Datenübertragbarkeit zu.")
+        self.ln(self.in_text_offset)
+        self.multi_cell(0,
+                        self.normal_font_size/3,
+                        "Die Verarbeitung Ihrer Daten erfolgt auf Basis von gesetzlichen Regelungen. Nur in "
+                        "Ausnahmefällen benötigen wir Ihr Einverständnis. In diesen Fällen haben Sie das Recht, die "
+                        "Einwilligung für die zukünftige Verarbeitung zu widerrufen.")
+        self.ln(self.in_text_offset)
+        self.multi_cell(0,
+                        self.normal_font_size/3,
+                        "Sie haben ferner das Recht, sich bei der zuständigen Aufsichtsbehörde für den "
+                        "Datenschutz zu beschweren, wenn Sie der Ansicht sind, dass die Verarbeitung Ihrer "
+                        "personenbezogenen Daten nicht rechtmäßig erfolgt.")
+        self.ln(self.in_text_offset)
+        self.multi_cell(0,
+                        self.normal_font_size/2.5,
+                        "Die Anschrift des für unsere Praxis zuständigen Datenschutzbeauftragen/Aufsichtsbehörde "
+                        "können Sie oben Nr. 1. entnehmen.")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="8. RECHTLICHE GRUNDLAGEN\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0,
+                        self.normal_font_size/3,
+                        "Rechtsgrundlage für die Verarbeitung Ihrer Daten ist Artikel 9 Absatz 2 lit. h) DS-GVO in "
+                        "Verbindung mit § 22 Absatz 1 Nr. 1 lit. b) Bundesdatenschutzgesetz. Sollten Sie Fragen haben, "
+                        "können Sie sich jederzeit an mich wenden.")
+        self.ln(self.default_offset)
+
+        self.set_draw_color(r=0, g=0, b=0)
+        self.set_dash_pattern(dash=0.1, gap=1)
+        self.line(x1=18.5, y1=262, x2=68.5, y2=262)
+        self.line(x1=140, y1=262, x2=190, y2=262)
+        self.set_y(264)
+        self.set_x(17.5)
+        self.set_font("helvetica", "", 7)
+        self.multi_cell(0, 6/2.5, "Ort, Datum", align="L")
+        self.set_y(264)
+        self.set_x(139)
+        self.multi_cell(0, 6/2.5, "Unterschrift Klient:in\n(bei Minderjährigen zusätzlich auch der/die\nErziehungsberechtigte/gesetzlicher Vertreter)", align="L")
+
+        self.output(filepath)
+
+
+class Therapy(DocumentPdf):
+    """Creates the HP PDF and outputs to given filepath"""
+
+    # setting pdf font sizes
+    header_font_size = 10
+    normal_font_size = 8
+    privacy_font_size = 7
+
+    rechnungsempfaenger_offset = 4
+    default_offset = 6
+    in_text_offset = 3
+
+    def __init__(
+            self,
+            stammdaten: list,
+            filepath: str,
+            price_from: str,
+            price_to: str
+    ):
+        super().__init__("Therapie-Vereinbarung")
+
+        self.set_margins(17, 17, 17)
+
+        # prepare data
+        self.kuerzel = stammdaten[0]
+        self.mann_frau = stammdaten[1]
+        self.nachname = stammdaten[2]
+        self.vorname = stammdaten[3]
+        self.strasse = stammdaten[4]
+        self.hausnummer = stammdaten[5]
+        self.plz = stammdaten[6]
+        self.ort = stammdaten[7]
+        self.geburtsdatum = stammdaten[8]
+        self.price_from = price_from
+        self.price_to = price_to
+        self.email = stammdaten[11]
+        try:
+            self.telefon = stammdaten[13]
+        except IndexError:
+            self.telefon = ""
+
+        self.create_pages(filepath)
+
+    def create_pages(self, filepath):
+        """Creates the PDF."""
+
+        self.set_auto_page_break(True, 25)
+
+        self.add_page()
+
+        self.set_font("helvetica", size=7)
+        self.cell(self.rechnungsempfaenger_offset)
+        self.write(text="Mervi Fischbach - Schulgasse 9 - 86923 Finning")
+        self.ln(3)
+
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.cell(self.rechnungsempfaenger_offset)
+        if self.mann_frau == "Mann":
+            self.write(text="Herr\n")
+        elif self.mann_frau == "Frau":
+            self.write(text="Frau\n")
+        self.cell(self.rechnungsempfaenger_offset)
+        self.write(text=f"{self.vorname} {self.nachname}\n")
+        self.cell(self.rechnungsempfaenger_offset)
+        self.write(text=f"{self.strasse} {self.hausnummer}\n")
+        self.cell(self.rechnungsempfaenger_offset)
+        self.write(text=f"{self.plz} {self.ort}\n")
+        self.ln(27)
+
+        self.set_font("helvetica", "B", 13)
+        self.write(text="Therapie-Vereinbarung")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", size=self.normal_font_size - 1)
+        self.write(text="zwischen")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="Mervi Fischbach\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.write(text="Heilpraktikerin\n")
+        self.write(text="Schulgasse 9 - 86923 Finning\n")
+        self.write(text="Tel.: 08806 / 9587111\n")
+        self.write(text="E-Mail: mervi.winter@web.de")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", size=self.normal_font_size - 1)
+        self.write(text="und Patient:")
+        self.ln(self.default_offset)
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text=f"{self.vorname} {self.nachname}\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.write(text=f"{self.strasse} {self.hausnummer} - {self.plz} {self.ort}\n")
+        self.write(text=f"geb. {self.geburtsdatum}\n")
+        if self.telefon != "":
+            self.write(text=f"Tel.: {self.telefon}\n")
+        if self.email != "":
+            self.write(text=f"E-Mail.: {self.email}")
+        self.ln(8)
+        self.cell(175, 0, border=1, center=True)
+        self.ln(4)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="1. VERTRAGSGEGENSTAND\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0, self.normal_font_size/3,
+                        "Vertragsgegenstand ist eine physiotherapeutische / heilkundliche Behandlung des "
+                        "Patienten. Die Behandlungen der Heilpraktikerin umfassen unter anderem "
+                        "auch wissenschaftlich / schulmedizinisch nicht anerkannte naturheilkundliche Heilverfahren.")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="2. VERSPRECHEN AUF HEILUNG\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0, self.normal_font_size/3,
+                        "Auf alle Behandlungsmethoden wird keine Garantie auf Heilung oder Linderung gegeben. "
+                        "Es wird ausdrücklich darauf hingewiesen, dass kein Versprechen auf Heilung gemäß "
+                        "Heilmittelwerbegesetz (HWG) gegeben wird.")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="3. BEHANDLUNGSHINWEIS\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0, self.normal_font_size/3,
+                        "Der Patient wird darauf hingewiesen, dass die Behandlung eine ärztliche Therapie nicht "
+                        "vollständig ersetzt. Sofern ärztlicher Rat erforderlich ist, wird die Therapeutin "
+                        "unverzüglich eine Weiterleitung an einen Arzt veranlassen. Dies gilt auch dann, wenn der "
+                        "Therapeutin aufgrund eines gesetzlichen Tätigkeitsverbots eine Behandlung nicht möglich ist.")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="4. SCHWEIGEPFLICHT\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0, self.normal_font_size/3,
+                        "Die Therapeutin verpflichtet sich, über alles Wissen, das sie in ihrer Berufsausübung "
+                        "über die Patienten erhält, Stillschweigen zu bewahren. Sie offenbart das Berufsgeheimnis nur "
+                        "dann, wenn der Patient sie von der Schweigepflicht entbindet bzw. entbunden hat. Ausnahme: "
+                        "Die Therapeutin ist  jedoch von der Schweigepflicht befreit, wenn sie aufgrund gesetzlicher "
+                        "Vorschriften zur Weitergabe von Daten verpflichtet ist - beispielsweise Meldepflicht bei "
+                        "bestimmten Diagnosen - oder auf behördliche oder gerichtliche Anordnung auskunftspflichtig "
+                        "ist / wird. Dies gilt für: NAME VORNAME, STRASSE, PLZ ORT, GEBURTSDATUM, TELEFON, DIAGNOSE, "
+                        "KRANKENKASSE/VERSICHERUNG auch bei Auskünften an Personensorgeberechtigte, nicht aber für "
+                        "Auskünfte an Ehegatten, Verwandte oder Familienangehörige.")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="5. SORGFALTSPFLICHT\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0, self.normal_font_size/3,
+                        "Die Therapeutin betreut ihre Patienten mit der größtmöglichen Sorgfalt. Sie wendet jene "
+                        "Heilmethoden an, die nach ihrer Überzeugung und ihrem Ausbildungsstand auf dem einfachsten, "
+                        "schnellsten und kostengünstigsten Weg zur Linderung und ggf. zur Heilung (kein "
+                        "Heilversprechen) der Beschwerden führen können.")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="6. AUFKLÄRUNGSPFLICHT / AUFKLÄRUNGSUMFANGT\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0, self.normal_font_size/3,
+                        "Die Therapeutin ist verpflichtet, dem Patienten in verständlicher Weise zu Beginn der "
+                        "Behandlung und, soweit erforderlich, in deren Verlauf sämtliche für die Behandlung "
+                        "wesentlichen Umstände zu erläutern, insbesondere die Diagnose und die Therapie, sowie die "
+                        "voraussichtliche gesundheitliche Entwicklung. Mit seiner Unterschrift unter diesen Vertrag "
+                        "bestätigt der Patient, dass nachfolgende Punkte umfassend besprochen wurden: sein "
+                        "Gesundheitszustand, die Art der Erkrankung, die Behandlungsmethode und deren "
+                        "voraussichtliche Dauer, die zur Verfügung stehenden Behandlungsalternativen, Belastungen, "
+                        "Risiken und Erfolgschancen der Therapie.")
+        self.ln(self.default_offset)
+
+        self.add_page()
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="7. ERSTATTUNG DER BEHANDLUNGSKOSTEN DURCH DIE KRANKENKASSEN\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0, self.normal_font_size/3,
+                        "Die gesetzliche Krankenkassen und Ersatzkassen erstatten die Behandlungskosten für "
+                        "Heilpraktiker in der Regel nicht. Bei Privatkassen bzw. privaten Zusatzversicherung erfolgt "
+                        "die Erstattung von Behandlungskosten nur im Rahmen Ihres Versicherungsvertrages und meist "
+                        "nicht alle Heilkundeverfahren. Auch wird die volle Rechnungshöhe i.d.R. nicht erstattet. Es "
+                        "obliegt dem Patienten sich bei seiner Krankenversicherung zu erkundigen. Der Honoraranspruch "
+                        "der Heilpraktikerin gegenüber dem Patienten besteht unabhängig von "
+                        "jeglicher Krankenversicherungsleistung und/oder Beihilfeleistung in voller Höhe.")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="8. HONORARVEREINBARUNG / BEHANDLUNGSKOSTEN\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.write(text="Das Honorar wird nach realem Zeitaufwand berechnet.\nDas Honorar für die Behandlungen beträgt:\n")
+        self.write(text=f"\t\t-\t\tMontag - Freitag: Euro {self.price_from}.00 - {self.price_to}.00 / Std (ca. 60 Minuten)\n")
+        self.write(text=f"\t\t-\t\tWochenende: Euro 130.00 (ca. 60 Minuten)\n")
+        self.write(text=f"\t\t-\t\tErstanamnese: Euro 150.00 (ca. 90 Minuten)\n")
+        self.write(text=f"\t\t-\t\tTelefonische Beratung:Montag - Freitag Euro 25.00 (ca 15 Minuten)\n")
+        self.multi_cell(0, self.normal_font_size/3,
+                        "Die Rechnungsausstellung erfolgt auf Grundlage der Gebührenordnung für Therapeuten (GebüTh) "
+                        "oder der Gebührenordnung für Heilpraktiker (GebüH). ")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="9. BERATUNG / NACHBETREUUNG ÜBER TELEFON\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0, self.normal_font_size/3,
+                        "Die Beratung / Nachbetreuung per Telefon ersetzt die reguläre Behandlung in der Praxis "
+                        "nicht und wird zusätzlich zu den persönlichen Terminen angeboten. Über Telefon können keine "
+                        "Diagnosen gestellt werden, dies geschieht nur in der Praxis. Die telefonische Beratung wird "
+                        "Montag - Freitag mit Euro 25  (¼ Std.) berechnet. ")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="10. LABORKOSTEN / KOSTEN FÜR MEDIKAMENTE\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0, self.normal_font_size/3,
+                        "Die Kosten für Laboruntersuchungen von Fremdlaboren gehen zu Lasten und auf Rechnung "
+                        "des Patienten. Alle Medikamente gehören zu den Eigenleistungen des Patienten. Ich möchte "
+                        "darauf hinweisen, dass Heilpraktiker keine verschreibungspflichtigen Medikamente verordnen "
+                        "dürfen.")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="11. ENTSCHÄDIGUNG BEI NICHT- BZW. KURZFRISTIGER TERMINABSAGE\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0, self.normal_font_size/3,
+                        "Falls vereinbarte Therapietermine nicht wahrgenommen werden können, bitte ich Sie, "
+                        "diese spätestens 48 Stunden vorher abzusagen. Ich bitte weiterhin um Verständnis, dass ich bei"
+                        " Nicht- oder kurzfristiger Absage ein Ausfallhonorar in voller Höhe (100%) der normalen "
+                        "Therapiestunde berechne, da Ihr Termin leider so kurzfristig nicht belegt werden kann.")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="12. RECHNUNGSZAHLUNG\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0, self.normal_font_size/3,
+                        "Der Zahlungsspielraum für gestellte Rechnungen liegt bei 14 Tagen ab Rechnungsdatum. "
+                        "Bitte haben Sie Verständnis, daß nach diesem Zeitraum zusätzlich Mahngebühren in Rechnung "
+                        "gestellt werden.")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="13. PERSÖNLICHE PATIENTENDATEN UND MEDIZINISCHE BEFUNDE\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0, self.normal_font_size/3,
+                        "Es wird darauf hingewiesen, dass alle persönlichen und behandlungsrelevanten Angaben "
+                        "sowie medizinischen Befunde des Patienten einer Patientenkartei erhoben und gespeichert "
+                        "werden.")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="14. DATENSCHUTZ\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0, self.normal_font_size/3,
+                        "Die folgende Einverständniserklärung zur Erhebung / Verarbeitung / Übermittlung der "
+                        "Klienten Daten ist Bestandteil dieser Vereinbarung. Ich bin damit einverstanden, dass meine "
+                        "Daten zum Zwecke der Dokumentation gespeichert werden. Die Therapeutin verpflichtet sich, die "
+                        "Daten außerhalb der notwendigen Eingaben zur Diagnose und Behandlung nicht an unbeteiligte "
+                        "Dritte weiterzugeben. Diese Erklärung ist jederzeit widerrufbar. Ich bin damit einverstanden "
+                        "Terminvereinbarungen, Übungsaufgaben, Tipps, Hinweise oder ähnliches ggf. auch über "
+                        "Plattformen wie z.B. WhatsApp, SMS, etc. auszutauschen, nützliche Informationen über Kurse, "
+                        "Veranstaltungen oder Neuigkeiten zu erhalten (z.B. Newsletter). Diese Erklärung ist "
+                        "jederzeit widerrufbar.")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="15. GÜLTIGKEITSDAUER\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0, self.normal_font_size/3,
+                        "Die Vereinbarung gilt für alle weiteren und zukünftigen Sitzungen.")
+        self.ln(self.default_offset)
+
+        self.set_font("helvetica", "B", self.header_font_size)
+        self.write(text="16. ERFÜLLUNGSORT & GERICHTSSTAND\n")
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0, self.normal_font_size/3,
+                        "Erfüllungsort und Gerichtsstand für alle Streitigkeiten ist München. Es gilt das Recht "
+                        "der Bundesrepublik Deutschland.")
+
+        self.ln(6)
+        self.cell(175, 0, border=1, center=True)
+        self.ln(2)
+
+        self.set_font("helvetica", size=self.normal_font_size)
+        self.multi_cell(0, self.normal_font_size/3,
+                        "Ich willige hiermit nach ausreichender Bedenkzeit in die vorgeschlagene Behandlung ein. "
+                        "Eine Ausfertigung dieses Behandlungsvertrages habe ich erhalten")
+
+        self.set_draw_color(r=0, g=0, b=0)
+        self.set_dash_pattern(dash=0.1, gap=1)
+        self.line(x1=18.5, y1=262, x2=68.5, y2=262)
+        self.line(x1=140, y1=262, x2=190, y2=262)
+        self.set_y(264)
+        self.set_x(17.5)
+        self.set_font("helvetica", "", 7)
+        self.multi_cell(0, 6/2.5, "Ort, Datum", align="L")
+        self.set_y(264)
+        self.set_x(139)
+        self.multi_cell(0, 6/2.5, "Unterschrift Klient:in\n(bei Minderjährigen zusätzlich auch der/die\nErziehungsberechtigte/gesetzlicher Vertreter)", align="L")
 
         self.output(filepath)
 
