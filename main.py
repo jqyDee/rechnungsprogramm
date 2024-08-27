@@ -38,7 +38,7 @@ class App(customtkinter.CTk):
     Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = "2.0.0"
+    version = "2.0.1"
     year = time.strftime("%Y")
     window_resizable = False
     window_width = 1300
@@ -5851,7 +5851,10 @@ class Privacy(DocumentPdf):
         self.plz = stammdaten[6]
         self.ort = stammdaten[7]
         self.geburtsdatum = stammdaten[8]
-        self.email = stammdaten[11]
+        try:
+            self.email = stammdaten[11]
+        except IndexError:
+            self.email = ""
         try:
             self.telefon = stammdaten[13]
         except IndexError:
@@ -5913,7 +5916,7 @@ class Privacy(DocumentPdf):
         if self.telefon != "":
             self.write(text=f"Tel.: {self.telefon}\n")
         if self.email != "":
-            self.write(text=f"E-Mail.: {self.email}")
+            self.write(text=f"E-Mail: {self.email}")
         self.ln(8)
         self.cell(175, 0, border=1, center=True)
         self.ln(4)
@@ -6111,7 +6114,10 @@ class Therapy(DocumentPdf):
         self.geburtsdatum = stammdaten[8]
         self.price_from = price_from
         self.price_to = price_to
-        self.email = stammdaten[11]
+        try:
+            self.email = stammdaten[11]
+        except IndexError:
+            self.email = ""
         try:
             self.telefon = stammdaten[13]
         except IndexError:
@@ -6173,7 +6179,7 @@ class Therapy(DocumentPdf):
         if self.telefon != "":
             self.write(text=f"Tel.: {self.telefon}\n")
         if self.email != "":
-            self.write(text=f"E-Mail.: {self.email}")
+            self.write(text=f"E-Mail: {self.email}")
         self.ln(8)
         self.cell(175, 0, border=1, center=True)
         self.ln(4)
