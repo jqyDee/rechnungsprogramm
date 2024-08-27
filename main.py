@@ -38,7 +38,7 @@ class App(customtkinter.CTk):
     Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = "2.0.1"
+    version = "2.0.2"
     year = time.strftime("%Y")
     window_resizable = False
     window_width = 1300
@@ -4104,7 +4104,7 @@ class DocumentsInterface(customtkinter.CTkFrame):
 
         logging.debug("DocumentsInterface.create_privacy_pdf() called")
 
-        filepath = f"./system/tmp/{self.kuerzel_entry.get()}-datenschutzerklärung.pdf"
+        filepath = f"{os.getcwd()}/system/tmp/{self.kuerzel_entry.get()}-datenschutzerklärung.pdf"
 
         if self.validate_stammdaten():
             Privacy(self.stammdaten, filepath)
@@ -4120,7 +4120,7 @@ class DocumentsInterface(customtkinter.CTkFrame):
 
         logging.debug("DocumentsInterface.create_therapy_pdf() called")
 
-        filepath = f"./system/tmp/{self.kuerzel_entry.get()}-therapievereinbarung.pdf"
+        filepath = f"{os.getcwd()}/system/tmp/{self.kuerzel_entry.get()}-therapievereinbarung.pdf"
 
         if self.validate_stammdaten():
             Therapy(self.stammdaten, filepath, self.price_from_entry.get(), self.price_to_entry.get())
