@@ -38,7 +38,7 @@ class App(customtkinter.CTk):
     Sidebar and BottomNav at startup and calling the Interface classes."""
 
     # Default values for properties.yml
-    version = "2.0.2"
+    version = "2.0.3"
     year = time.strftime("%Y")
     window_resizable = False
     window_width = 1300
@@ -1073,9 +1073,6 @@ class App(customtkinter.CTk):
     def on_startup(self):
         """removes not necessary components/files"""
 
-        if os.path.exists("./system/components/images/logo.png"):
-            os.remove("./system/components/images/logo.png")
-
         if os.path.exists("./system/properties.yml"):
 
             with open("./system/properties.yml", "r") as f:
@@ -1094,7 +1091,6 @@ class App(customtkinter.CTk):
         for filename in os.listdir(folder):
             filepath = os.path.join(folder, filename)
             os.remove(filepath)
-
 
     def on_shutdown(self):
         """Called when program is closing. Checks the integrity of necessary Directories and
