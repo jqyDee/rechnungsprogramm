@@ -1088,9 +1088,10 @@ class App(customtkinter.CTk):
                 yaml.dump(properties_dict, f)
 
         folder = './system/tmp'
-        for filename in os.listdir(folder):
-            filepath = os.path.join(folder, filename)
-            os.remove(filepath)
+        if os.path.exists(folder):
+            for filename in os.listdir(folder):
+                filepath = os.path.join(folder, filename)
+                os.remove(filepath)
 
     def on_shutdown(self):
         """Called when program is closing. Checks the integrity of necessary Directories and
